@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- ============================================
+         BARRA LATERAL (sidebar) - Navegacion entre pestañas
+         ============================================ -->
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">♫</span>
+            <span class="logo-text">Music Manager</span>
+        </div>
+
+        <nav class="nav">
+            <a href="/" class="nav-item {{ 'active' if active_tab == 'local' else '' }}">
+                <span class="nav-icon">♪</span>
+                <span>Mi Musica</span>
+            </a>
+            <a href="/compare" class="nav-item {{ 'active' if active_tab == 'compare' else '' }}">
+                <span class="nav-icon">⇄</span>
+                <span>Comparar Playlist</span>
+            </a>
+            <a href="/editor" class="nav-item {{ 'active' if active_tab == 'editor' else '' }}">
+                <span class="nav-icon">✎</span>
+                <span>Editar Metadata</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p class="hint">v1.0 • Local</p>
+        </div>
+    </aside>
+
+    <!-- ============================================
+         CONTENIDO PRINCIPAL
+         ============================================ -->
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Toast para notificaciones -->
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

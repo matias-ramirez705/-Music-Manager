@@ -1,0 +1,9 @@
+# ============================================
+# Dependencias de Music Manager
+# ============================================
+# Instaladas automaticamente por setup_env.bat
+
+flask>=3.0.0          # Servidor web para la interfaz en navegador
+mutagen>=1.47.0       # Lectura y escritura de metadatos (ID3, FLAC, MP4, etc.)
+yt-dlp>=2024.8.6      # Lectura de playlists publicas de YouTube Music
+requests>=2.31.0      # Peticiones HTTP (Spotify embed, iTunes Search API)

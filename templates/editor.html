@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA 3: EDITOR DE METADATA
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Editar Metadata</h1>
+        <p class="subtitle">Modifica los tags de tus archivos (titulo, artista, album, etc.). Busca automaticamente en iTunes para rellenar.</p>
+    </header>
+
+    <!-- Selector de archivo -->
+    <div class="editor-file-section">
+        <div class="folder-picker">
+            <input type="text" id="file-input" placeholder="Ruta del archivo de audio..."
+                   class="folder-input">
+            <button id="btn-browse-file" class="btn btn-secondary">Explorar</button>
+            <button id="btn-load-file" class="btn btn-primary">Cargar</button>
+        </div>
+        <p class="help-text">O selecciona un archivo de la pestana "Mi Musica" (pronto: boton de edicion alli).</p>
+    </div>
+
+    <!-- Panel de edicion -->
+    <div id="editor-panel" class="editor-panel hidden">
+        <!-- Columna izquierda: formulario -->
+        <div class="editor-form">
+            <h3>Metadata actual</h3>
+            <p class="file-path" id="current-file-path">—</p>
+
+            <div class="form-group">
+                <label>Titulo</label>
+                <input type="text" id="meta-title" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Artista</label>
+                <input type="text" id="meta-artist" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Album</label>
+                <input type="text" id="meta-album" class="form-input">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Año</label>
+                    <input type="text" id="meta-date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Pista</label>
+                    <input type="text" id="meta-track" class="form-input">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Genero</label>
+                <input type="text" id="meta-genre" class="form-input">
+            </div>
+
+            <div class="form-actions">
+                <button id="btn-save-meta" class="btn btn-primary">Guardar cambios</button>
+                <button id="btn-auto-search" class="btn btn-secondary">Buscar en iTunes</button>
+            </div>
+
+            <!-- Info tecnica (solo lectura) -->
+            <div class="tech-info">
+                <h4>Informacion tecnica</h4>
+                <div class="tech-grid" id="tech-grid"></div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: resultados de iTunes -->
+        <div class="editor-search">
+            <h3>Coincidencias en iTunes</h3>
+            <p class="help-text">Haz clic en una para rellenar el formulario.</p>
+            <div id="itunes-results" class="itunes-results">
+                <p class="empty-hint">Sin resultados aun. Pulsa "Buscar en iTunes".</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado vacio -->
+    <div id="empty-editor" class="empty-state">
+        <div class="empty-icon">✎</div>
+        <h3>Sin archivo cargado</h3>
+        <p>Selecciona un archivo de audio para editar su metadata.</p>
+    </div>
+</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+{% endblock %}

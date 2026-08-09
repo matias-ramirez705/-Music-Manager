@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA 1: MI MUSICA LOCAL
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Mi Musica</h1>
+        <p class="subtitle">Escanea una carpeta para ver todos tus archivos de audio (incluye subcarpetas).</p>
+    </header>
+
+    <!-- Seleccionador de carpeta -->
+    <div class="folder-picker">
+        <input type="text" id="folder-input" placeholder="C:\Users\TU_USUARIO\Music\..."
+               class="folder-input">
+        <button id="btn-browse" class="btn btn-secondary">Explorar</button>
+        <button id="btn-scan" class="btn btn-primary">Escanear</button>
+    </div>
+
+    <!-- Estadisticas -->
+    <div id="stats-bar" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">Carpeta</span>
+            <span class="stat-value" id="stat-folder">—</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Canciones</span>
+            <span class="stat-value" id="stat-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Tamano total</span>
+            <span class="stat-value" id="stat-size">—</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Formatos</span>
+            <span class="stat-value" id="stat-formats">—</span>
+        </div>
+    </div>
+
+    <!-- Barra de busqueda + filtros -->
+    <div id="filter-bar" class="filter-bar hidden">
+        <input type="text" id="search-input" placeholder="Buscar por nombre, artista o album..."
+               class="search-input">
+        <select id="filter-format" class="filter-select">
+            <option value="">Todos los formatos</option>
+        </select>
+        <select id="sort-by" class="filter-select">
+            <option value="name">Ordenar: Nombre</option>
+            <option value="artist">Ordenar: Artista</option>
+            <option value="album">Ordenar: Album</option>
+            <option value="duration">Ordenar: Duracion</option>
+            <option value="ext">Ordenar: Formato</option>
+            <option value="size">Ordenar: Tamano</option>
+        </select>
+        <button id="btn-toggle-quality" class="btn btn-ghost">
+            Mostrar calidad
+        </button>
+    </div>
+
+    <!-- Tabla de canciones -->
+    <div class="table-container">
+        <table id="music-table" class="music-table hidden">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Artista</th>
+                    <th>Album</th>
+                    <th>Duracion</th>
+                    <th>Formato</th>
+                    <th class="quality-col hidden">Calidad</th>
+                    <th>Tamano</th>
+                    <th>Ruta</th>
+                </tr>
+            </thead>
+            <tbody id="music-tbody">
+                <!-- Filas generadas por JS -->
+            </tbody>
+        </table>
+
+        <!-- Estado vacio -->
+        <div id="empty-state" class="empty-state">
+            <div class="empty-icon">♪</div>
+            <h3>No hay musica cargada</h3>
+            <p>Selecciona una carpeta y haz clic en "Escanear" para ver tus archivos.</p>
+        </div>
+
+        <!-- Estado de carga -->
+        <div id="loading-state" class="empty-state hidden">
+            <div class="spinner"></div>
+            <h3>Leyendo archivos...</h3>
+            <p>Esto puede tardar segun cuantas canciones tengas.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/local.js') }}"></script>
+{% endblock %}
