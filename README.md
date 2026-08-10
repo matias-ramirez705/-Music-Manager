@@ -1,9 +1,17 @@
-# Music Manager v1.9
+# Music Manager v1.11
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
 Spotify, guardar accesos directos a playlists, detectar duplicados,
 reproducir canciones y editar metadata + caratulas.
+
+## Novedades en v1.11
+
+- Correcciones en la UI.
+  
+## Novedades en v1.10
+
+- Correcciones en la UI.
 
 ## Novedades en v1.9
 
