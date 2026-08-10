@@ -6,9 +6,13 @@ Spotify, guardar accesos directos a playlists, detectar duplicados,
 reproducir canciones y editar metadata + caratulas.
 
 ## Novedades en v1.11
-- ** Correcciones en la UI
+
+- ** Correcciones en la UI.
+  
 ## Novedades en v1.10
-- ** Correcciones en la UI
+
+- ** Correcciones en la UI.
+
 ## Novedades en v1.9
 
 - **Control de volumen en el reproductor**: barra horizontal deslizable
