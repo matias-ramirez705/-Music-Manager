@@ -6,7 +6,7 @@
      ============================================ -->
 <section class="page">
     <header class="page-header">
-        <h1>Mi Musica</h1>
+        <h1>Mi Música</h1>
         <p class="subtitle">Escanea una carpeta para ver todos tus archivos de audio (incluye subcarpetas).</p>
     </header>
 
@@ -29,7 +29,7 @@
             <span class="stat-value" id="stat-count">0</span>
         </div>
         <div class="stat">
-            <span class="stat-label">Tamano total</span>
+            <span class="stat-label">Tamaño total</span>
             <span class="stat-value" id="stat-size">—</span>
         </div>
         <div class="stat">
@@ -45,17 +45,23 @@
         <select id="filter-format" class="filter-select">
             <option value="">Todos los formatos</option>
         </select>
+        <select id="filter-playlist" class="filter-select">
+            <option value="">En cualquier playlist</option>
+        </select>
+        <select id="filter-dup" class="filter-select">
+            <option value="">Todas</option>
+            <option value="duplicates">Solo duplicadas</option>
+            <option value="unique">Solo únicas</option>
+        </select>
         <select id="sort-by" class="filter-select">
             <option value="name">Ordenar: Nombre</option>
             <option value="artist">Ordenar: Artista</option>
             <option value="album">Ordenar: Album</option>
-            <option value="duration">Ordenar: Duracion</option>
+            <option value="duration">Ordenar: Duración</option>
             <option value="ext">Ordenar: Formato</option>
-            <option value="size">Ordenar: Tamano</option>
+            <option value="size">Ordenar: Tamaño</option>
         </select>
-        <button id="btn-toggle-quality" class="btn btn-ghost">
-            Mostrar calidad
-        </button>
+        <button id="btn-toggle-quality" class="btn btn-ghost">Mostrar calidad</button>
     </div>
 
     <!-- Tabla de canciones -->
@@ -64,38 +70,36 @@
             <thead>
                 <tr>
                     <th>#</th>
+                    <th></th>
                     <th>Nombre</th>
                     <th>Artista</th>
                     <th>Album</th>
-                    <th>Duracion</th>
+                    <th>Duración</th>
                     <th>Formato</th>
                     <th class="quality-col hidden">Calidad</th>
-                    <th>Tamano</th>
+                    <th>Playlists</th>
+                    <th>Tamaño</th>
                     <th>Ruta</th>
                 </tr>
             </thead>
-            <tbody id="music-tbody">
-                <!-- Filas generadas por JS -->
-            </tbody>
+            <tbody id="music-tbody"></tbody>
         </table>
 
-        <!-- Estado vacio -->
         <div id="empty-state" class="empty-state">
             <div class="empty-icon">♪</div>
-            <h3>No hay musica cargada</h3>
+            <h3>No hay música cargada</h3>
             <p>Selecciona una carpeta y haz clic en "Escanear" para ver tus archivos.</p>
         </div>
 
-        <!-- Estado de carga -->
         <div id="loading-state" class="empty-state hidden">
             <div class="spinner"></div>
             <h3>Leyendo archivos...</h3>
-            <p>Esto puede tardar segun cuantas canciones tengas.</p>
+            <p>Esto puede tardar según cuántas canciones tengas.</p>
         </div>
     </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/local.js') }}"></script>
+<script src="{{ url_for('static', filename='js/local.js') }}?v=23"></script>
 {% endblock %}

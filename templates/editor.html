@@ -2,12 +2,12 @@
 
 {% block content %}
 <!-- ============================================
-     PESTANA 3: EDITOR DE METADATA
+     PESTANA: EDITOR DE METADATA (v1.6: layout 3 columnas)
      ============================================ -->
-<section class="page">
+<section class="page page-editor">
     <header class="page-header">
         <h1>Editar Metadata</h1>
-        <p class="subtitle">Modifica los tags de tus archivos (titulo, artista, album, etc.). Busca automaticamente en iTunes para rellenar.</p>
+        <p class="subtitle">Modifica los tags de tus archivos. Busca automáticamente en varias plataformas y gestiona las carátulas.</p>
     </header>
 
     <!-- Selector de archivo -->
@@ -18,18 +18,72 @@
             <button id="btn-browse-file" class="btn btn-secondary">Explorar</button>
             <button id="btn-load-file" class="btn btn-primary">Cargar</button>
         </div>
-        <p class="help-text">O selecciona un archivo de la pestana "Mi Musica" (pronto: boton de edicion alli).</p>
+        <p class="help-text">O selecciona un archivo desde la pestaña "Mi Música" (clic en una fila).</p>
     </div>
 
-    <!-- Panel de edicion -->
-    <div id="editor-panel" class="editor-panel hidden">
-        <!-- Columna izquierda: formulario -->
-        <div class="editor-form">
-            <h3>Metadata actual</h3>
+    <!-- Panel de edicion: 3 columnas horizontales -->
+    <div id="editor-panel" class="editor-panel-3col hidden">
+        <!-- Columna 1: Caratula + Metadata + Botones -->
+        <div class="editor-col editor-col-form">
+            <!-- Caratula: layout horizontal compacto -->
+            <div class="artwork-section">
+                <h3>Carátula</h3>
+                <div class="artwork-layout">
+                    <div class="artwork-preview-wrapper">
+                        <img id="artwork-preview" class="artwork-preview" alt="Sin carátula">
+                        <div id="artwork-placeholder" class="artwork-placeholder">Sin carátula</div>
+                    </div>
+                    <div class="artwork-controls">
+                        <div class="artwork-info" id="artwork-info">—</div>
+
+                        <div class="artwork-buttons-grid">
+                            <button id="btn-artwork-local" class="btn btn-secondary btn-sm" title="Cargar carátula desde archivo local">
+                                📁 <span>Desde archivo</span>
+                            </button>
+                            <button id="btn-artwork-resize" class="btn btn-secondary btn-sm" title="Redimensionar carátula actual">
+                                ⤢ <span>Redim.</span>
+                            </button>
+                            <button id="btn-artwork-remove" class="btn btn-ghost btn-sm" title="Eliminar carátula embebida">
+                                🗑 <span>Eliminar</span>
+                            </button>
+                        </div>
+
+                        <input type="file" id="artwork-file-input" accept="image/*" style="display:none;">
+
+                        <!-- Descargar desde URL -->
+                        <div class="artwork-url-section">
+                            <input type="text" id="artwork-url-input" placeholder="https://...jpg" class="artwork-url-input">
+                            <button id="btn-artwork-download" class="btn btn-secondary btn-sm">⬇ URL</button>
+                        </div>
+
+                        <!-- Redimensionar opciones (colapsable) -->
+                        <div class="artwork-resize-options hidden" id="artwork-resize-panel">
+                            <label>Tamaño:</label>
+                            <select id="resize-size">
+                                <option value="300">300</option>
+                                <option value="500">500</option>
+                                <option value="600" selected>600</option>
+                                <option value="1000">1000</option>
+                                <option value="1500">1500</option>
+                            </select>
+                            <label>Formato:</label>
+                            <select id="resize-fmt">
+                                <option value="JPEG" selected>JPEG</option>
+                                <option value="PNG">PNG</option>
+                                <option value="WEBP">WEBP</option>
+                            </select>
+                            <button id="btn-resize-confirm" class="btn btn-primary btn-sm">Aplicar</button>
+                            <button id="btn-resize-cancel" class="btn btn-ghost btn-sm">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Metadata</h3>
             <p class="file-path" id="current-file-path">—</p>
 
             <div class="form-group">
-                <label>Titulo</label>
+                <label>Título</label>
                 <input type="text" id="meta-title" class="form-input">
             </div>
             <div class="form-group">
@@ -37,7 +91,7 @@
                 <input type="text" id="meta-artist" class="form-input">
             </div>
             <div class="form-group">
-                <label>Album</label>
+                <label>Álbum</label>
                 <input type="text" id="meta-album" class="form-input">
             </div>
             <div class="form-row">
@@ -51,42 +105,53 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Genero</label>
+                <label>Género</label>
                 <input type="text" id="meta-genre" class="form-input">
             </div>
 
             <div class="form-actions">
                 <button id="btn-save-meta" class="btn btn-primary">Guardar cambios</button>
-                <button id="btn-auto-search" class="btn btn-secondary">Buscar en iTunes</button>
-            </div>
-
-            <!-- Info tecnica (solo lectura) -->
-            <div class="tech-info">
-                <h4>Informacion tecnica</h4>
-                <div class="tech-grid" id="tech-grid"></div>
+                <button id="btn-rename-file" class="btn btn-secondary" title="Renombrar archivo a 'titulo - artista.ext'">📄 Renombrar</button>
             </div>
         </div>
 
-        <!-- Columna derecha: resultados de iTunes -->
-        <div class="editor-search">
-            <h3>Coincidencias en iTunes</h3>
-            <p class="help-text">Haz clic en una para rellenar el formulario.</p>
+        <!-- Columna 2: Información técnica -->
+        <div class="editor-col editor-col-tech">
+            <h3>Información técnica</h3>
+            <div class="tech-grid-vertical" id="tech-grid"></div>
+        </div>
+
+        <!-- Columna 3: Búsqueda de metadata -->
+        <div class="editor-col editor-col-search">
+            <div class="editor-search-header">
+                <h3>Búsqueda de metadata</h3>
+            </div>
+            <button id="btn-auto-search" class="btn btn-search" title="Buscar en internet">🔍 Buscar</button>
+
+            <div class="source-selector">
+                <label>Fuente:</label>
+                <select id="source-select" class="filter-select">
+                    <option value="itunes" selected>iTunes</option>
+                    <option value="musicbrainz">MusicBrainz</option>
+                    <option value="lastfm">Last.fm</option>
+                    <option value="all">Todas</option>
+                </select>
+            </div>
+
             <div id="itunes-results" class="itunes-results">
-                <p class="empty-hint">Sin resultados aun. Pulsa "Buscar en iTunes".</p>
+                <p class="empty-hint">Sin resultados aún.</p>
             </div>
         </div>
     </div>
 
-    <!-- Estado vacio -->
     <div id="empty-editor" class="empty-state">
         <div class="empty-icon">✎</div>
         <h3>Sin archivo cargado</h3>
         <p>Selecciona un archivo de audio para editar su metadata.</p>
     </div>
-</div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}?v=23"></script>
 {% endblock %}

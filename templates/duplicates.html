@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: DUPLICADOS
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Canciones Duplicadas</h1>
+        <p class="subtitle">Encuentra canciones que tienes en múltiples formatos o calidades para liberar espacio.</p>
+    </header>
+
+    <!-- Stats -->
+    <div id="dup-stats" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">Grupos duplicados</span>
+            <span class="stat-value" id="dup-groups-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Archivos en grupos</span>
+            <span class="stat-value" id="dup-files-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Espacio recuperable</span>
+            <span class="stat-value" id="dup-reclaimable">—</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Canciones locales</span>
+            <span class="stat-value" id="dup-total-local">0</span>
+        </div>
+    </div>
+
+    <!-- Opciones -->
+    <div id="dup-options" class="filter-bar hidden">
+        <select id="dup-match-by" class="filter-select">
+            <option value="title_artist">Coincidir por: Título + Artista</option>
+            <option value="title_only">Coincidir por: Solo Título</option>
+        </select>
+        <input type="text" id="dup-search" class="search-input" placeholder="Buscar en duplicados...">
+        <button id="btn-refresh-dup" class="btn btn-secondary">↻ Recalcular</button>
+        <button id="btn-export-dup" class="btn btn-ghost">Exportar lista (CSV)</button>
+    </div>
+
+    <!-- Lista de grupos -->
+    <div id="dup-list" class="dup-list"></div>
+
+    <!-- Empty state -->
+    <div id="dup-empty" class="empty-state">
+        <div class="empty-icon">⧉</div>
+        <h3>Sin escaneo local</h3>
+        <p>Ve a <a href="/" style="color:var(--accent);">Mi Música</a> y escanea tu biblioteca para detectar duplicados.</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/duplicates.js') }}?v=23"></script>
+{% endblock %}

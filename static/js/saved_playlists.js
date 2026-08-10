@@ -1,0 +1,345 @@
+/* ============================================
+   saved_playlists.js - Pestana "Playlists Guardadas" (v1.9)
+   ============================================
+   Maneja:
+     - Listar playlists guardadas (cards)
+     - Agregar nueva playlist desde URL (YouTube Music)
+       o desde CSV (Exportify para Spotify)
+     - Abrir detalle de playlist (ver canciones)
+     - Refrescar canciones de una playlist
+     - Renombrar playlist
+     - Eliminar playlist
+     - Comparar playlist guardada con musica local
+     - Copiar enlace de playlist al portapapeles
+*/
+
+const newPlaylistUrl = document.getElementById('new-playlist-url');
+const btnSavePlaylist = document.getElementById('btn-save-playlist');
+const savedList = document.getElementById('saved-list');
+const savedEmpty = document.getElementById('saved-empty');
+
+document.addEventListener('DOMContentLoaded', () => {
+    bindEvents();
+    loadSavedPlaylists();
+});
+
+function bindEvents() {
+    if (btnSavePlaylist) btnSavePlaylist.addEventListener('click', saveNewPlaylist);
+    if (newPlaylistUrl) newPlaylistUrl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveNewPlaylist();
+    });
+    // Boton importar CSV
+    const btnImportCsv = document.getElementById('btn-import-csv');
+    const csvFileInput = document.getElementById('csv-file-input');
+    if (btnImportCsv) btnImportCsv.addEventListener('click', () => csvFileInput.click());
+    if (csvFileInput) csvFileInput.addEventListener('change', handleCsvImport);
+}
+
+// ------------------------------------------------------------------
+// Importar CSV de Exportify
+// ------------------------------------------------------------------
+async function handleCsvImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Leer contenido del CSV
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const csvContent = e.target.result;
+        const name = file.name.replace(/\.csv$/i, '');
+
+        btnSavePlaylist.disabled = true;
+        btnSavePlaylist.textContent = 'Importando CSV...';
+        try {
+            const data = await postJSON('/api/save-playlist', {
+                csv_content: csvContent,
+                name: name,
+            });
+            if (data.saved) {
+                newPlaylistUrl.value = '';
+                loadSavedPlaylists();
+                sessionStorage.setItem('playlists_changed', '1');
+                showToast(`CSV importado: "${data.saved.name}" (${data.saved.track_count} canciones)`, 'success');
+            } else if (data.error) {
+                showToast('Error: ' + data.error, 'error', 5000);
+            }
+        } catch (err) {
+            showToast('Error al importar CSV: ' + err.message, 'error', 5000);
+        } finally {
+            btnSavePlaylist.disabled = false;
+            btnSavePlaylist.textContent = 'Guardar playlist';
+        }
+    };
+    reader.readAsText(file);
+
+    // Reset del input para permitir seleccionar el mismo archivo otra vez
+    event.target.value = '';
+}
+
+// ------------------------------------------------------------------
+// Listar playlists guardadas
+// ------------------------------------------------------------------
+async function loadSavedPlaylists() {
+    try {
+        const data = await getJSON('/api/saved-playlists');
+        renderSavedList(data.playlists);
+    } catch (e) {
+        showToast('Error al cargar playlists: ' + e.message, 'error');
+    }
+}
+
+function renderSavedList(playlists) {
+    savedList.innerHTML = '';
+    if (playlists.length === 0) {
+        savedList.appendChild(savedEmpty);
+        return;
+    }
+
+    playlists.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'saved-card';
+        const platformLabel = p.platform === 'youtube' ? 'YouTube Music' : 'Spotify';
+        const platformIcon = p.platform === 'youtube' ? '▶' : '♫';
+
+        // Formatear fecha
+        const lastAcc = p.last_accessed
+            ? new Date(p.last_accessed).toLocaleDateString('es-ES', {
+                  day: 'numeric', month: 'short', year: 'numeric'
+              })
+            : '—';
+
+        card.innerHTML = `
+            <div class="saved-card-header">
+                <div class="platform-icon ${p.platform}">${platformIcon}</div>
+                <div class="saved-card-info">
+                    <div class="saved-card-title" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+                    <div class="saved-card-meta">${escapeHtml(p.uploader || 'Autor desconocido')} • ${platformLabel}</div>
+                </div>
+            </div>
+            <div class="saved-card-stats">
+                <span>${p.track_count} canciones</span>
+                <span>Acceso: ${lastAcc}</span>
+            </div>
+            <div class="saved-card-actions">
+                <button class="action-btn action-abrir" title="Ver canciones"
+                    onclick="event.stopPropagation(); openPlaylist('${p.id}')">♪ <span>Abrir</span></button>
+                <button class="action-btn action-comparar" title="Comparar con mi música local"
+                    onclick="event.stopPropagation(); comparePlaylist('${escapeHtml(p.url)}')">⇄</button>
+                <button class="action-btn action-refrescar" title="Volver a descargar"
+                    onclick="event.stopPropagation(); refreshPlaylist('${p.id}', this)">↻</button>
+                <button class="action-btn action-copiar" title="Copiar enlace"
+                    onclick="event.stopPropagation(); copyLink('${escapeHtml(p.url)}', this)">⧉</button>
+                <button class="action-btn action-editar" title="Renombrar"
+                    onclick="event.stopPropagation(); renamePlaylist('${p.id}', '${escapeHtml(p.name).replace(/'/g, "\\'")}')">✎</button>
+                <button class="action-btn action-eliminar" title="Eliminar de favoritos"
+                    onclick="event.stopPropagation(); deletePlaylist('${p.id}', '${escapeHtml(p.name).replace(/'/g, "\\'")}')">🗑</button>
+            </div>
+        `;
+
+        // Click en la card (no en botones) abre la playlist
+        card.addEventListener('click', () => openPlaylist(p.id));
+        savedList.appendChild(card);
+    });
+}
+
+// ------------------------------------------------------------------
+// Guardar nueva playlist desde URL
+// ------------------------------------------------------------------
+async function saveNewPlaylist() {
+    const url = newPlaylistUrl.value.trim();
+    if (!url) {
+        showToast('Pega un enlace primero.', 'error');
+        return;
+    }
+    btnSavePlaylist.disabled = true;
+    btnSavePlaylist.textContent = 'Descargando y guardando...';
+    try {
+        const data = await postJSON('/api/save-playlist', { url });
+        if (data.saved) {
+            newPlaylistUrl.value = '';
+            loadSavedPlaylists();
+            // Marcar flag para que Mi Musica re-escanee al volver
+            // (asi se actualizan las columnas de playlist en cada cancion)
+            sessionStorage.setItem('playlists_changed', '1');
+            if (data.warning) {
+                showToast(`Playlist guardada (${data.saved.track_count} canciones). Nota: ${data.warning}`, '', 8000);
+            } else {
+                showToast(`Playlist guardada: "${data.saved.name}" (${data.saved.track_count} canciones)`, 'success');
+            }
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error', 5000);
+    } finally {
+        btnSavePlaylist.disabled = false;
+        btnSavePlaylist.textContent = 'Guardar playlist';
+    }
+}
+
+// ------------------------------------------------------------------
+// Abrir detalle de playlist (cargar en compare)
+// ------------------------------------------------------------------
+function openPlaylist(id) {
+    // Redirige a compare con el ID en query string para auto-cargar
+    // Pero como ya tenemos la playlist cacheada, mejor ir a compare y usar la URL
+    window.location.href = `/saved?open=${id}`;
+    // Recargar la pagina y abrir modal de detalle
+    setTimeout(() => showPlaylistDetail(id), 100);
+}
+
+async function showPlaylistDetail(id) {
+    try {
+        const p = await getJSON(`/api/saved-playlist/${id}`);
+        // Modal con la lista completa de canciones
+        let html = `<div class="modal" id="detail-modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>${escapeHtml(p.name)}</h2>
+                    <button class="modal-close" onclick="document.getElementById('detail-modal').remove()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p style="color:var(--text-secondary); margin-bottom:12px;">
+                        ${escapeHtml(p.uploader || '')} • ${p.track_count} canciones •
+                        ${p.platform === 'youtube' ? 'YouTube Music' : 'Spotify'} •
+                        <a href="${escapeHtml(p.url)}" target="_blank" style="color:var(--accent);">Abrir original ↗</a>
+                    </p>
+                    <table class="music-table">
+                        <thead><tr>
+                            <th>#</th>
+                            <th>Título</th>
+                            <th>Artista</th>
+                            <th>Álbum</th>
+                            <th>Duración</th>
+                            <th>Ir a canción</th>
+                        </tr></thead>
+                        <tbody>`;
+        p.tracks.forEach((t, i) => {
+            // Icono de "Ir a cancion" con color segun plataforma
+            let link = '—';
+            if (t.url) {
+                const isYoutube = p.platform === 'youtube';
+                const icon = isYoutube ? '▶' : '♫';  // triangulo YT, nota Spotify
+                const color = isYoutube ? '#ff0000' : '#1db954';
+                const tooltip = isYoutube ? 'Abrir en YouTube Music' : 'Abrir en Spotify';
+                link = `<a href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="${tooltip}" class="track-link" style="color: ${color}; text-decoration: none; font-size: 16px; font-weight: bold;">${icon}</a>`;
+            }
+            html += `<tr>
+                <td>${i + 1}</td>
+                <td><strong>${escapeHtml(t.title)}</strong></td>
+                <td>${escapeHtml(t.artist)}</td>
+                <td>${escapeHtml(t.album || '—')}</td>
+                <td>${formatDuration(t.duration)}</td>
+                <td style="text-align:center;">${link}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// ------------------------------------------------------------------
+// Comparar playlist con musica local
+// ------------------------------------------------------------------
+function comparePlaylist(url) {
+    // Redirige a la pestana Compare con la URL precargada
+    window.location.href = `/compare?url=${encodeURIComponent(url)}`;
+}
+
+// ------------------------------------------------------------------
+// Copiar enlace al portapapeles
+// ------------------------------------------------------------------
+async function copyLink(url, btn) {
+    try {
+        await navigator.clipboard.writeText(url);
+        // Feedback visual
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓';
+        btn.classList.add('copied');
+        showToast('Enlace copiado al portapapeles.', 'success');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('copied');
+        }, 1500);
+    } catch (e) {
+        // Fallback: selecciona el texto en un input temporal
+        const tmp = document.createElement('input');
+        tmp.value = url;
+        document.body.appendChild(tmp);
+        tmp.select();
+        try {
+            document.execCommand('copy');
+            showToast('Enlace copiado.', 'success');
+        } catch (err) {
+            showToast('No se pudo copiar. URL: ' + url, 'error', 5000);
+        }
+        document.body.removeChild(tmp);
+    }
+}
+
+// ------------------------------------------------------------------
+// Refrescar playlist
+// ------------------------------------------------------------------
+async function refreshPlaylist(id, btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+        const data = await postJSON(`/api/saved-playlist/${id}/refresh`, {});
+        if (data.saved) {
+            showToast(`Refrescada: ${data.saved.track_count} canciones`, 'success');
+            loadSavedPlaylists();
+            sessionStorage.setItem('playlists_changed', '1');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '↻';
+    }
+}
+
+// ------------------------------------------------------------------
+// Renombrar playlist
+// ------------------------------------------------------------------
+async function renamePlaylist(id, currentName) {
+    const newName = prompt('Nuevo nombre para la playlist:', currentName);
+    if (!newName || newName === currentName) return;
+    try {
+        await postJSON(`/api/saved-playlist/${id}/rename`, { name: newName });
+        showToast('Renombrada.', 'success');
+        loadSavedPlaylists();
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// ------------------------------------------------------------------
+// Eliminar playlist
+// ------------------------------------------------------------------
+async function deletePlaylist(id, name) {
+    if (!confirm(`¿Eliminar "${name}" de tus playlists guardadas?\nEsto no borra ningun archivo local, solo el acceso guardado.`)) return;
+    try {
+        await postJSON(`/api/saved-playlist/${id}/delete`, {});
+        showToast('Playlist eliminada.', 'success');
+        loadSavedPlaylists();
+        sessionStorage.setItem('playlists_changed', '1');
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// ------------------------------------------------------------------
+// Si la URL tiene ?open=ID, abrir el detalle al cargar
+// ------------------------------------------------------------------
+window.addEventListener('load', () => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (openId) {
+        showPlaylistDetail(openId);
+        // Limpiar query string
+        window.history.replaceState({}, '', '/saved');
+    }
+});

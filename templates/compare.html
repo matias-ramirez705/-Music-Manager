@@ -2,7 +2,7 @@
 
 {% block content %}
 <!-- ============================================
-     PESTANA 2: COMPARAR CON PLAYLIST
+     PESTANA 3: COMPARAR CON PLAYLIST
      ============================================ -->
 <section class="page">
     <header class="page-header">
@@ -23,9 +23,16 @@
             <input type="text" id="playlist-url" class="playlist-input"
                    placeholder="https://music.youtube.com/playlist?list=PL...  o  https://open.spotify.com/playlist/...">
             <button id="btn-fetch-playlist" class="btn btn-primary">Cargar Playlist</button>
+            <button id="btn-import-csv-compare" class="btn btn-secondary" title="Importar CSV de Exportify para playlists grandes de Spotify">📄 CSV</button>
+            <input type="file" id="csv-file-input-compare" accept=".csv" style="display:none;">
+            <button id="btn-save-comparison" class="btn btn-secondary hidden">Guardar en favoritos</button>
         </div>
         <p class="help-text">
-            Funciona con playlists <strong>publicas</strong>. No requiere iniciar sesion.
+            Funciona con playlists <strong>públicas</strong>. No requiere iniciar sesión.
+            <a href="/saved" style="color:var(--accent);">Ver playlists guardadas →</a><br>
+            <strong>¿Playlist de Spotify con +100 canciones?</strong> Expórtala como CSV desde
+            <a href="https://exportify.app/" target="_blank" style="color:var(--accent);">exportify.app</a>
+            y usa el botón "📄 CSV" para cargar TODAS las canciones.
         </p>
     </div>
 
@@ -65,19 +72,20 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Titulo</th>
+                    <th>Título</th>
                     <th>Artista</th>
-                    <th>Album</th>
-                    <th>Duracion</th>
+                    <th>Duración</th>
                     <th>Estado</th>
-                    <th>Enlace</th>
+                    <th>Calidad local</th>
+                    <th>Formato</th>
+                    <th>Escuchar local</th>
+                    <th>Abrir online</th>
                 </tr>
             </thead>
             <tbody id="results-tbody"></tbody>
         </table>
     </div>
 
-    <!-- Estado vacio -->
     <div id="empty-compare" class="empty-state">
         <div class="empty-icon">⇄</div>
         <h3>Sin playlist cargada</h3>
@@ -87,5 +95,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/compare.js') }}"></script>
+<script src="{{ url_for('static', filename='js/compare.js') }}?v=23"></script>
 {% endblock %}

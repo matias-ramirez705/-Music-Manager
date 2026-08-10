@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: PLAYLISTS GUARDADAS
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Playlists Guardadas</h1>
+        <p class="subtitle">Guarda enlaces de playlists públicas de YouTube Music o importa playlists de Spotify desde un CSV.</p>
+    </header>
+
+    <!-- Banner informativo: como importar playlists de Spotify -->
+    <div class="info-banner">
+        <div class="info-banner-icon">💡</div>
+        <div class="info-banner-content">
+            <strong>¿Tienes playlists grandes en Spotify (+100 canciones)?</strong>
+            <p>Spotify no deja leer más de 100 canciones por link sin credenciales. La forma más fácil de importar TODAS las canciones es:</p>
+            <ol>
+                <li>Entra a <a href="https://exportify.app/" target="_blank" style="color:var(--accent);">exportify.app ↗</a></li>
+                <li>Inicia sesión con tu cuenta de Spotify (allí sí puedes, es la app oficial de Exportify)</li>
+                <li>Verás la lista de todas tus playlists — pulsa "Export" en la que quieras</li>
+                <li>Se descargará un archivo <code>.csv</code></li>
+                <li>Vuelve aquí y pulsa <strong>"📄 Importar CSV"</strong> para cargarla completa</li>
+            </ol>
+            <p class="info-banner-note">Para playlists de YouTube Music solo pega el link público directamente arriba.</p>
+        </div>
+    </div>
+
+    <!-- Agregar nueva playlist -->
+    <div class="saved-add-section">
+        <div class="folder-picker">
+            <input type="text" id="new-playlist-url" class="folder-input"
+                   placeholder="Pega aquí el link de YouTube Music (las de Spotify van por CSV)...">
+            <button id="btn-save-playlist" class="btn btn-primary">Guardar playlist</button>
+            <button id="btn-import-csv" class="btn btn-secondary" title="Importar CSV exportado desde Exportify">📄 Importar CSV</button>
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
+        </div>
+        <p class="help-text">
+            Las canciones se cachean localmente para acceso rápido sin internet.
+        </p>
+    </div>
+
+    <!-- Lista de playlists guardadas -->
+    <div id="saved-list" class="saved-list">
+        <div class="empty-state" id="saved-empty">
+            <div class="empty-icon">★</div>
+            <h3>Sin playlists guardadas</h3>
+            <p>Pega un enlace arriba para guardar tu primera playlist.</p>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=23"></script>
+{% endblock %}

@@ -82,3 +82,21 @@ function el(tag, className, textContent) {
     if (textContent != null) e.textContent = textContent;
     return e;
 }
+
+/**
+ * Abre el explorador de archivos del sistema en la carpeta del archivo.
+ * @param {string} encodedPath - ruta codificada con encodeURIComponent.
+ */
+async function revealInExplorer(encodedPath) {
+    const path = decodeURIComponent(encodedPath);
+    try {
+        const data = await postJSON('/api/reveal-in-explorer', { path: path });
+        if (data.success) {
+            showToast('Abriendo explorador...', '', 2000);
+        } else {
+            showToast('Error: ' + (data.message || 'No se pudo abrir'), 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}

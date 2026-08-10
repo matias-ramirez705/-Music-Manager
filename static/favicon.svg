@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Fondo redondeado verde oscuro tipo Spotify -->
+  <rect width="64" height="64" rx="12" fill="#1db954"/>
+  <!-- Doble nota musical blanca -->
+  <g fill="#ffffff">
+    <!-- Vertical izquierda -->
+    <rect x="18" y="14" width="4" height="30" rx="1"/>
+    <!-- Vertical derecha -->
+    <rect x="38" y="10" width="4" height="30" rx="1"/>
+    <!-- Conector superior (bandera) -->
+    <path d="M22 14 L42 10 L42 18 L22 22 Z"/>
+    <!-- Cabezas de nota (ovalos) -->
+    <ellipse cx="16" cy="44" rx="7" ry="5" transform="rotate(-20 16 44)"/>
+    <ellipse cx="36" cy="40" rx="7" ry="5" transform="rotate(-20 36 40)"/>
+  </g>
+</svg>

@@ -1,9 +1,13 @@
 # ============================================
-# Dependencias de Music Manager
+# Dependencias de Music Manager v1.6
 # ============================================
 # Instaladas automaticamente por setup_env.bat
 
 flask>=3.0.0          # Servidor web para la interfaz en navegador
 mutagen>=1.47.0       # Lectura y escritura de metadatos (ID3, FLAC, MP4, etc.)
 yt-dlp>=2024.8.6      # Lectura de playlists publicas de YouTube Music
-requests>=2.31.0      # Peticiones HTTP (Spotify embed, iTunes Search API)
+requests>=2.31.0      # Peticiones HTTP (iTunes, MusicBrainz, Last.fm)
+Pillow>=10.0.0        # Manipulacion de imagenes (redimensionar caratulas)
+spotipy>=2.23.0       # Lectura de playlists publicas de Spotify via API oficial
+python-dotenv>=1.0.0  # Carga credenciales desde archivo .env
+Send2Trash>=1.8.0     # Enviar archivos duplicados a papelera de reciclaje
