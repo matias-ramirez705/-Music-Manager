@@ -51,6 +51,14 @@ from web_app import create_app
 
 def main():
     """Crea y arranca la aplicacion Flask."""
+    # Crear carpeta data/ y archivos por defecto si no existen
+    try:
+        from download_sites import ensure_files
+        ensure_files()
+        print("[OK] Carpeta data/ y archivos verificados.")
+    except Exception as e:
+        print(f"[WARN] No se pudo crear data/: {e}")
+
     app = create_app()
 
     print()

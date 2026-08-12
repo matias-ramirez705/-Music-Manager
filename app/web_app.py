@@ -125,6 +125,11 @@ def create_app():
         """Pestaña 5: Organizar por playlist."""
         return render_template('organize.html', active_tab='organize')
 
+    @app.route('/downloads')
+    def downloads():
+        """Pestaña 6: Index de sitios para descargar FLAC."""
+        return render_template('downloads.html', active_tab='downloads')
+
     # ==================================================================
     # API: ESCANEO
     # ==================================================================
@@ -1254,5 +1259,86 @@ def create_app():
         resp.headers['Accept-Ranges'] = 'bytes'
         resp.headers['Content-Length'] = str(file_size)
         return resp
+
+    # ==================================================================
+    # API: SITIOS DE DESCARGA FLAC (NUEVO v2.0)
+    # ==================================================================
+
+    @app.route('/api/download-sites', methods=['GET'])
+    def api_download_sites_list():
+        """Devuelve la lista de sitios del archivo download_sites.txt."""
+        from download_sites import load_sites
+        return jsonify({'sites': load_sites()})
+
+    @app.route('/api/download-sites/save', methods=['POST'])
+    def api_download_sites_save():
+        """Guarda la lista de sitios en download_sites.txt."""
+        data = request.get_json(silent=True) or {}
+        sites = data.get('sites', [])
+        from download_sites import save_sites
+        save_sites(sites)
+        return jsonify({'success': True, 'message': 'Sitios guardados en data/download_sites.txt'})
+
+    @app.route('/api/download-sites/file', methods=['GET'])
+    def api_download_sites_file():
+        """Devuelve el contenido raw del archivo download_sites.txt."""
+        from download_sites import SITES_FILE
+        if not SITES_FILE.exists():
+            return jsonify({'exists': False, 'content': ''})
+        with open(SITES_FILE, 'r', encoding='utf-8') as f:
+            return jsonify({'exists': True, 'content': f.read()})
+
+    @app.route('/api/download-sites/file', methods=['POST'])
+    def api_download_sites_file_save():
+        """Guarda contenido raw en download_sites.txt."""
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '')
+        from download_sites import SITES_FILE, DATA_DIR
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        with open(SITES_FILE, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return jsonify({'success': True, 'message': 'Archivo guardado.'})
+
+    @app.route('/api/download-sites/add', methods=['POST'])
+    def api_download_sites_add():
+        """
+        Agrega un sitio nuevo al final del archivo download_sites.txt.
+        Verifica que el enlace no exista ya para evitar duplicados.
+
+        Body JSON:
+            { "name": "...", "link": "...", "description": "...", "status": "OK" }
+        """
+        data = request.get_json(silent=True) or {}
+        name = data.get('name', '').strip()
+        link = data.get('link', '').strip()
+        description = data.get('description', '').strip()
+        status = data.get('status', 'OK').strip().upper()
+
+        if not name or not link:
+            return jsonify({'error': 'Nombre y enlace son obligatorios.'}), 400
+        if status not in ('OK', 'CAIDO'):
+            status = 'OK'
+
+        from download_sites import load_sites, SITES_FILE
+
+        # Verificar si el enlace ya existe (comparar sin trailing slashes)
+        existing = load_sites()
+        link_normalized = link.rstrip('/').lower()
+        for s in existing:
+            if s['link'].rstrip('/').lower() == link_normalized:
+                return jsonify({
+                    'error': f'El enlace ya existe en la lista: "{s["name"]}"'
+                }), 400
+
+        # Agregar al archivo (append)
+        SITES_FILE.parent.mkdir(parents=True, exist_ok=True)
+        line = f"| {name} | {link} | {description} | {status} |\n"
+        with open(SITES_FILE, 'a', encoding='utf-8') as f:
+            f.write(line)
+
+        return jsonify({
+            'success': True,
+            'message': f'Sitio "{name}" agregado al final de la lista.',
+        })
 
     return app

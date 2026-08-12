@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: DESCARGAS FLAC (v2.1)
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Descargas FLAC</h1>
+        <p class="subtitle">Índice de sitios y programas para descargar música en FLAC. Lista extraída de <a href="https://fmhy.net/audio" target="_blank" style="color:var(--accent);">fmhy.net/audio</a>.</p>
+    </header>
+
+    <!-- Buscador -->
+    <div class="filter-bar">
+        <input type="text" id="site-search" class="search-input"
+               placeholder="Buscar sitio por nombre o descripción...">
+        <select id="filter-status" class="filter-select">
+            <option value="">Todos</option>
+            <option value="OK">OK</option>
+            <option value="CAIDO">Caído</option>
+        </select>
+        <button id="btn-add-site" class="btn btn-primary" title="Agregar un sitio nuevo a la lista">➕ Agregar enlace</button>
+        <button id="btn-edit-file" class="btn btn-ghost" title="Editar archivo data/download_sites.txt">📝 Editar TXT</button>
+        <button id="btn-reload" class="btn btn-secondary" title="Recargar desde archivo">↻ Recargar</button>
+    </div>
+
+    <!-- Tabla de sitios -->
+    <div class="table-container">
+        <table id="sites-table" class="music-table">
+            <thead>
+                <tr>
+                    <th style="width:3%;">#</th>
+                    <th style="width:20%;">Nombre</th>
+                    <th style="width:15%;">Enlace</th>
+                    <th style="width:40%;">Descripción</th>
+                    <th style="width:12%;">Estado</th>
+                    <th style="width:10%;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="sites-tbody">
+                <tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para agregar enlace -->
+    <div id="add-site-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2>Agregar enlace</h2>
+                <button class="modal-close" onclick="document.getElementById('add-site-modal').classList.add('hidden')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="add-site-name" class="form-input" placeholder="Ej: Mi Sitio FLAC">
+                </div>
+                <div class="form-group">
+                    <label>Enlace *</label>
+                    <input type="text" id="add-site-link" class="form-input" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="add-site-desc" class="form-input" placeholder="Ej: Deezer / FLAC">
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="add-site-status" class="filter-select">
+                        <option value="OK">OK</option>
+                        <option value="CAIDO">Caído</option>
+                    </select>
+                </div>
+                <p id="add-site-error" style="color:var(--danger); font-size:12px; margin-top:8px;"></p>
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button id="btn-confirm-add-site" class="btn btn-primary">➕ Agregar</button>
+                    <button class="btn btn-ghost" onclick="document.getElementById('add-site-modal').classList.add('hidden')">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar el archivo TXT -->
+    <div id="txt-edit-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:800px;">
+            <div class="modal-header">
+                <h2>Editar download_sites.txt</h2>
+                <button class="modal-close" onclick="document.getElementById('txt-edit-modal').classList.add('hidden')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="help-text" style="margin-bottom:8px;">
+                    Formato: <code>| NOMBRE | LINK | DESCRIPCION | ESTADO |</code><br>
+                    Las líneas con <code>#</code> son comentarios. ESTADO puede ser OK o CAIDO.
+                </p>
+                <textarea id="txt-edit-content" rows="20" class="form-input"
+                    style="font-family:var(--font-mono); font-size:11px; width:100%; resize:vertical;"></textarea>
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button id="btn-save-txt" class="btn btn-primary">💾 Guardar</button>
+                    <button id="btn-cancel-txt" class="btn btn-ghost" onclick="document.getElementById('txt-edit-modal').classList.add('hidden')">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/downloads.js') }}?v=2"></script>
+{% endblock %}
