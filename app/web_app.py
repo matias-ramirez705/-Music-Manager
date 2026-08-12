@@ -117,8 +117,9 @@ def create_app():
 
     @app.route('/editor')
     def editor():
-        """Pestaña 4: Editor de metadata."""
-        return render_template('editor.html', active_tab='editor')
+        """Pestaña 4: Editor de metadata (sub-pestaña individual)."""
+        sub = request.args.get('sub', 'edit')
+        return render_template('metadata_master.html', active_tab='editor', sub_tab=sub)
 
     @app.route('/organize')
     def organize():
@@ -1259,6 +1260,181 @@ def create_app():
         resp.headers['Accept-Ranges'] = 'bytes'
         resp.headers['Content-Length'] = str(file_size)
         return resp
+
+    # ==================================================================
+    # API: METADATA MASTER - BATCH ARTWORK + LYRICS (NUEVO v2.2)
+    # ==================================================================
+
+    @app.route('/api/batch/artwork-status', methods=['POST'])
+    def api_batch_artwork_status():
+        """Detecta que archivos tienen/faltan caratula."""
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu musica.'}), 400
+        from batch_artwork import detect_missing_artwork
+        result = detect_missing_artwork(LAST_SCAN['files'])
+        return jsonify({
+            'total': result['total'],
+            'missing_count': result['missing_count'],
+            'has_count': result['has_count'],
+            'all': [{'path': f['path'], 'name': f['name'], 'artist': f['artist'],
+                     'ext': f.get('ext', ''),
+                     'has_artwork': True,
+                     'artwork_ext': f.get('artwork_ext', '—'),
+                     'artwork_dimensions': f.get('artwork_dimensions', '?'),
+                     'artwork_size_kb': f.get('artwork_size_kb', 0)}
+                    for f in result['has_artwork'][:300]] +
+                   [{'path': f['path'], 'name': f['name'], 'artist': f['artist'],
+                     'ext': f.get('ext', ''),
+                     'has_artwork': False,
+                     'artwork_ext': '—', 'artwork_dimensions': '—',
+                     'artwork_size_kb': 0}
+                    for f in result['missing'][:300]],
+        })
+
+    @app.route('/api/batch/resize', methods=['POST'])
+    def api_batch_resize():
+        """Redimensiona caratulas masivamente."""
+        data = request.get_json(silent=True) or {}
+        max_size = int(data.get('max_size', 600))
+        fmt = data.get('fmt', 'JPEG')
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu musica.'}), 400
+        from batch_artwork import batch_resize
+        result = batch_resize(LAST_SCAN['files'], max_size=max_size, fmt=fmt)
+        return jsonify(result)
+
+    @app.route('/api/batch/download-artwork', methods=['POST'])
+    def api_batch_download_artwork():
+        """Descarga caratulas faltantes desde iTunes."""
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu musica.'}), 400
+        from batch_artwork import detect_missing_artwork, batch_download_artwork
+        status = detect_missing_artwork(LAST_SCAN['files'])
+        result = batch_download_artwork(status['missing'])
+        return jsonify(result)
+
+    @app.route('/api/artwork/search', methods=['POST'])
+    def api_artwork_search():
+        """
+        Busca caratulas manualmente con la fuente seleccionada.
+        Permite al usuario editar titulo/artista antes de buscar.
+
+        Body JSON:
+            { "title": "...", "artist": "...", "source": "itunes|musicbrainz|all" }
+
+        Returns:
+            JSON con lista de resultados con artwork_url.
+        """
+        data = request.get_json(silent=True) or {}
+        title = data.get('title', '').strip()
+        artist = data.get('artist', '').strip()
+        source = data.get('source', 'itunes')
+
+        if not title:
+            return jsonify({'error': 'Escribe un titulo.'}), 400
+
+        from auto_metadata import search_track
+        results = search_track(title, artist, limit=10, source=source)
+
+        # Filtrar solo los que tienen artwork_url
+        with_artwork = [r for r in results if r.get('artwork_url')]
+        if not with_artwork:
+            return jsonify({'results': [], 'message': 'Sin caratulas encontradas.'})
+
+        return jsonify({'results': with_artwork})
+
+    @app.route('/api/batch/lyrics-status', methods=['POST'])
+    def api_batch_lyrics_status():
+        """Detecta que archivos tienen/faltan letras."""
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu musica.'}), 400
+        from lyrics import detect_missing_lyrics
+        result = detect_missing_lyrics(LAST_SCAN['files'])
+        # Combinar en una sola lista con flag has_lyrics
+        all_files = []
+        for f in result['has_lyrics']:
+            all_files.append({
+                'path': f['path'], 'name': f['name'], 'artist': f['artist'],
+                'ext': f.get('ext', ''),
+                'duration': f.get('duration', 0),
+                'duration_str': f.get('duration_str', '0:00'),
+                'has_lyrics': True,
+            })
+        for f in result['missing']:
+            all_files.append({
+                'path': f['path'], 'name': f['name'], 'artist': f['artist'],
+                'ext': f.get('ext', ''),
+                'duration': f.get('duration', 0),
+                'duration_str': f.get('duration_str', '0:00'),
+                'has_lyrics': False,
+            })
+        return jsonify({
+            'total': result['total'],
+            'missing_count': result['missing_count'],
+            'has_count': result['has_count'],
+            'all': all_files[:300],
+        })
+
+    @app.route('/api/batch/download-lyrics', methods=['POST'])
+    def api_batch_download_lyrics():
+        """Descarga letras faltantes desde lrclib.net."""
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu musica.'}), 400
+        from lyrics import detect_missing_lyrics, batch_download_lyrics
+        status = detect_missing_lyrics(LAST_SCAN['files'])
+        result = batch_download_lyrics(status['missing'])
+        return jsonify(result)
+
+    @app.route('/api/lyrics/search', methods=['POST'])
+    def api_lyrics_search():
+        """Busca letra de una cancion individual."""
+        data = request.get_json(silent=True) or {}
+        title = data.get('title', '')
+        artist = data.get('artist', '')
+        duration = data.get('duration', 0)
+        if not title:
+            return jsonify({'error': 'Falta titulo.'}), 400
+        from lyrics import search_lyrics
+        result = search_lyrics(title, artist, duration=duration)
+        if not result:
+            return jsonify({'found': False})
+        return jsonify({'found': True, 'lyrics': result})
+
+    @app.route('/api/lyrics/read', methods=['POST'])
+    def api_lyrics_read():
+        """Lee la letra embebida de un archivo."""
+        data = request.get_json(silent=True) or {}
+        path = data.get('path', '')
+        if not path or not os.path.exists(path):
+            return jsonify({'error': 'Archivo no existe.'}), 400
+        from lyrics import read_lyrics
+        lyrics = read_lyrics(path)
+        if lyrics:
+            return jsonify({'has_lyrics': True, 'lyrics': lyrics})
+        return jsonify({'has_lyrics': False, 'lyrics': ''})
+
+    @app.route('/api/lyrics/save', methods=['POST'])
+    def api_lyrics_save():
+        """Guarda letra en un archivo."""
+        data = request.get_json(silent=True) or {}
+        path = data.get('path', '')
+        lyrics = data.get('lyrics', '')
+        if not path or not os.path.exists(path):
+            return jsonify({'error': 'Archivo no existe.'}), 400
+        from lyrics import save_lyrics
+        ok, msg = save_lyrics(path, lyrics)
+        return jsonify({'success': ok, 'message': msg})
+
+    @app.route('/api/lyrics/remove', methods=['POST'])
+    def api_lyrics_remove():
+        """Elimina la letra embebida de un archivo."""
+        data = request.get_json(silent=True) or {}
+        path = data.get('path', '')
+        if not path or not os.path.exists(path):
+            return jsonify({'error': 'Archivo no existe.'}), 400
+        from lyrics import remove_lyrics
+        ok, msg = remove_lyrics(path)
+        return jsonify({'success': ok, 'message': msg})
 
     # ==================================================================
     # API: SITIOS DE DESCARGA FLAC (NUEVO v2.0)

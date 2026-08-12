@@ -1103,7 +1103,7 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    z-index: 100;
+    z-index: 300;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
     height: 64px;
 }
@@ -1345,7 +1345,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 24px 24px 80px 24px;  /* padding bottom extra para no tapar el reproductor */
 }
 
 .modal-content {
@@ -2096,6 +2096,194 @@ body {
 .btn-move-one:disabled {
     opacity: 0.5;
     cursor: default;
+}
+
+/* ---------- Sub-pestañas Metadatos (v2.2) ---------- */
+.sub-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+}
+
+.sub-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all var(--transition);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.sub-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.sub-content {
+    min-height: 400px;
+}
+
+/* Batch actions */
+.batch-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.batch-resize-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.batch-resize-controls label {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.batch-resize-controls select {
+    padding: 6px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+/* Batch results */
+.batch-results {
+    margin-top: 16px;
+}
+
+.batch-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.batch-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.batch-item-clickable {
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.batch-item-clickable:hover {
+    background: var(--bg-hover);
+}
+
+.btn-search-artwork {
+    flex-shrink: 0;
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+}
+
+/* ---------- Letras: modales y tablas (v2.4) ---------- */
+.lyrics-player-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+}
+
+.lyrics-text {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.lyrics-plain {
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: var(--text-primary);
+    padding: 12px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+}
+
+.lyrics-synced {
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.lyrics-line {
+    padding: 2px 12px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.lyrics-line.active {
+    color: var(--accent);
+    font-weight: 700;
+    background: rgba(29, 185, 84, 0.15);
+    border-radius: 4px;
+    text-shadow: 0 0 8px rgba(29, 185, 84, 0.5);
+    transform: scale(1.02);
+}
+
+.lyrics-line:hover {
+    color: var(--text-primary);
+}
+
+details summary {
+    user-select: none;
+}
+
+details summary:hover {
+    color: var(--accent);
+}
+
+.batch-item-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.batch-item-artist {
+    color: var(--text-secondary);
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.batch-item-meta {
+    color: var(--text-muted);
+    font-size: 11px;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
 }
 
 /* ---------- Pestana Organizar (v1.12) ---------- */

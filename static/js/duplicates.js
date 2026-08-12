@@ -156,6 +156,7 @@ function renderGroups() {
             playBtn.className = 'play-btn';
             playBtn.title = 'Reproducir';
             playBtn.textContent = '▶';
+            playBtn.dataset.path = f.path;
             playBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 playFile(f.path, f.name || '', f.artist || '');

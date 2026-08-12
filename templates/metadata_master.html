@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: METADATOS (v2.7) con sub-pestañas
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Metadatos</h1>
+        <p class="subtitle">Edita metadata, ajusta carátulas masivamente y descarga letras faltantes.</p>
+    </header>
+
+    <!-- Sub-pestañas -->
+    <div class="sub-tabs">
+        <a href="/editor?sub=edit" class="sub-tab {{ 'active' if sub_tab == 'edit' else '' }}">
+            ✎ Editar Metadata
+        </a>
+        <a href="/editor?sub=artwork" class="sub-tab {{ 'active' if sub_tab == 'artwork' else '' }}">
+            🖼 Carátulas
+        </a>
+        <a href="/editor?sub=lyrics" class="sub-tab {{ 'active' if sub_tab == 'lyrics' else '' }}">
+            📝 Letras
+        </a>
+    </div>
+
+    <!-- ================================================================
+         SUB-PESTAÑA: EDITAR METADATA (carga el editor original via iframe)
+         ================================================================ -->
+    {% if sub_tab == 'edit' %}
+    <div class="sub-content">
+        <!-- Selector de archivo -->
+        <div class="editor-file-section">
+            <div class="folder-picker">
+                <input type="text" id="file-input" placeholder="Ruta del archivo de audio..."
+                       class="folder-input">
+                <button id="btn-browse-file" class="btn btn-secondary">Explorar</button>
+                <button id="btn-load-file" class="btn btn-primary">Cargar</button>
+            </div>
+            <p class="help-text">O selecciona un archivo desde la pestaña "Mi Música" (clic en una fila).</p>
+        </div>
+
+        <div id="editor-panel" class="editor-panel-3col hidden">
+            <div class="editor-col editor-col-form">
+                <div class="artwork-section">
+                    <h3>Carátula</h3>
+                    <div class="artwork-layout">
+                        <div class="artwork-preview-wrapper">
+                            <img id="artwork-preview" class="artwork-preview" alt="Sin carátula">
+                            <div id="artwork-placeholder" class="artwork-placeholder">Sin carátula</div>
+                        </div>
+                        <div class="artwork-controls">
+                            <div class="artwork-info" id="artwork-info">—</div>
+                            <div class="artwork-buttons-grid">
+                                <button id="btn-artwork-local" class="btn btn-secondary btn-sm">📁 <span>Desde archivo</span></button>
+                                <button id="btn-artwork-resize" class="btn btn-secondary btn-sm">⤢ <span>Redim.</span></button>
+                                <button id="btn-artwork-remove" class="btn btn-ghost btn-sm">🗑 <span>Eliminar</span></button>
+                            </div>
+                            <input type="file" id="artwork-file-input" accept="image/*" style="display:none;">
+                            <div class="artwork-url-section">
+                                <input type="text" id="artwork-url-input" placeholder="https://...jpg" class="artwork-url-input">
+                                <button id="btn-artwork-download" class="btn btn-secondary btn-sm">⬇ URL</button>
+                            </div>
+                            <div class="artwork-resize-options hidden" id="artwork-resize-panel">
+                                <label>Tamaño:</label>
+                                <select id="resize-size"><option value="300">300</option><option value="500">500</option><option value="600" selected>600</option><option value="1000">1000</option><option value="1500">1500</option></select>
+                                <label>Formato:</label>
+                                <select id="resize-fmt"><option value="JPEG" selected>JPEG</option><option value="PNG">PNG</option><option value="WEBP">WEBP</option></select>
+                                <button id="btn-resize-confirm" class="btn btn-primary btn-sm">Aplicar</button>
+                                <button id="btn-resize-cancel" class="btn btn-ghost btn-sm">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h3>Metadata</h3>
+                <p class="file-path" id="current-file-path">—</p>
+                <div class="form-group"><label>Título</label><input type="text" id="meta-title" class="form-input"></div>
+                <div class="form-group"><label>Artista</label><input type="text" id="meta-artist" class="form-input"></div>
+                <div class="form-group"><label>Álbum</label><input type="text" id="meta-album" class="form-input"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Año</label><input type="text" id="meta-date" class="form-input"></div>
+                    <div class="form-group"><label>Pista</label><input type="text" id="meta-track" class="form-input"></div>
+                </div>
+                <div class="form-group"><label>Género</label><input type="text" id="meta-genre" class="form-input"></div>
+                <div class="form-actions">
+                    <button id="btn-save-meta" class="btn btn-primary">Guardar cambios</button>
+                    <button id="btn-rename-file" class="btn btn-secondary">📄 Renombrar</button>
+                </div>
+            </div>
+            <div class="editor-col editor-col-tech">
+                <h3>Información técnica</h3>
+                <div class="tech-grid-vertical" id="tech-grid"></div>
+            </div>
+            <div class="editor-col editor-col-search">
+                <div class="editor-search-header"><h3>Búsqueda de metadata</h3></div>
+                <button id="btn-auto-search" class="btn btn-search">🔍 Buscar</button>
+                <div class="source-selector"><label>Fuente:</label>
+                    <select id="source-select" class="filter-select">
+                        <option value="itunes" selected>iTunes</option>
+                        <option value="musicbrainz">MusicBrainz</option>
+                        <option value="lastfm">Last.fm</option>
+                        <option value="all">Todas</option>
+                    </select>
+                </div>
+                <div id="itunes-results" class="itunes-results"><p class="empty-hint">Sin resultados aún.</p></div>
+            </div>
+        </div>
+        <div id="empty-editor" class="empty-state">
+            <div class="empty-icon">✎</div>
+            <h3>Sin archivo cargado</h3>
+            <p>Selecciona un archivo de audio para editar su metadata.</p>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         SUB-PESTAÑA: CARÁTULAS (masivo)
+         ================================================================ -->
+    {% elif sub_tab == 'artwork' %}
+    <div class="sub-content">
+        <div id="artwork-stats" class="stats-bar hidden">
+            <div class="stat"><span class="stat-label">Total archivos</span><span class="stat-value" id="aw-total">0</span></div>
+            <div class="stat"><span class="stat-label">Con carátula</span><span class="stat-value" id="aw-has" style="color:var(--accent)">0</span></div>
+            <div class="stat"><span class="stat-label">Sin carátula</span><span class="stat-value" id="aw-missing" style="color:var(--danger)">0</span></div>
+        </div>
+
+        <div class="batch-actions">
+            <button id="btn-aw-check" class="btn btn-primary">🔍 Analizar carátulas</button>
+            <button id="btn-aw-download" class="btn btn-secondary" disabled>⬇ Descargar faltantes (iTunes)</button>
+            <div class="batch-resize-controls">
+                <label>Redimensionar todas a:</label>
+                <select id="aw-resize-size"><option value="300">300px</option><option value="500">500px</option><option value="600" selected>600px</option><option value="1000">1000px</option></select>
+                <select id="aw-resize-fmt"><option value="JPEG" selected>JPEG</option><option value="PNG">PNG</option><option value="WEBP">WEBP</option></select>
+                <button id="btn-aw-resize" class="btn btn-secondary" disabled>⤢ Redimensionar</button>
+            </div>
+        </div>
+
+        <div id="aw-results" class="batch-results"></div>
+    </div>
+
+    <!-- ================================================================
+         SUB-PESTAÑA: LETRAS (masivo)
+         ================================================================ -->
+    {% elif sub_tab == 'lyrics' %}
+    <div class="sub-content">
+        <div id="lyrics-stats" class="stats-bar hidden">
+            <div class="stat"><span class="stat-label">Total archivos</span><span class="stat-value" id="ly-total">0</span></div>
+            <div class="stat"><span class="stat-label">Con letra</span><span class="stat-value" id="ly-has" style="color:var(--accent)">0</span></div>
+            <div class="stat"><span class="stat-label">Sin letra</span><span class="stat-value" id="ly-missing" style="color:var(--danger)">0</span></div>
+        </div>
+
+        <div class="batch-actions">
+            <button id="btn-ly-check" class="btn btn-primary">🔍 Analizar letras</button>
+            <button id="btn-ly-download" class="btn btn-secondary" disabled>⬇ Descargar faltantes (lrclib.net)</button>
+        </div>
+
+        <div id="ly-results" class="batch-results"></div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if sub_tab == 'edit' %}
+<script src="{{ url_for('static', filename='js/editor.js') }}?v=81"></script>
+{% elif sub_tab == 'artwork' %}
+<script src="{{ url_for('static', filename='js/batch_artwork.js') }}?v=7"></script>
+{% elif sub_tab == 'lyrics' %}
+<script src="{{ url_for('static', filename='js/batch_lyrics.js') }}?v=7"></script>
+{% endif %}
+{% endblock %}

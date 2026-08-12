@@ -344,6 +344,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = $('player-close');
     if (closeBtn) closeBtn.addEventListener('click', closePlayer);
 
+    // Boton ver letra
+    const lyricsBtn = $('player-lyrics');
+    if (lyricsBtn) lyricsBtn.addEventListener('click', showPlayerLyrics);
+
     const audio = $('player-audio');
 
     // Volumen
@@ -497,3 +501,225 @@ window.addEventListener('beforeunload', () => {
             !audio.paused);
     }
 });
+
+// ------------------------------------------------------------------
+// Ver letra de la cancion en reproduccion
+// ------------------------------------------------------------------
+async function showPlayerLyrics() {
+    if (!currentPlayingPath) {
+        showToast('No hay cancion reproduciendose.', 'error');
+        return;
+    }
+    const title = $('player-title')?.textContent || '';
+    const artist = $('player-artist')?.textContent || '';
+
+    const modalId = 'player-lyrics-modal';
+    const existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h2>📖 ${escapeHtml(title)}</h2>
+                <button class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="lyrics-text" id="player-lyrics-content"><p class="empty-hint">Cargando...</p></div>
+                <div id="player-lyrics-actions" style="margin-top:12px;"></div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+
+    // Intentar leer letra embebida
+    try {
+        const data = await postJSON('/api/lyrics/read', { path: currentPlayingPath });
+        const content = document.getElementById('player-lyrics-content');
+        const actions = document.getElementById('player-lyrics-actions');
+
+        if (data.has_lyrics && data.lyrics) {
+            const text = data.lyrics;
+            if (text.includes('[') && text.match(/\[\d{2}:\d{2}/)) {
+                // Es LRC sincronizado — construir seguidor
+                content.innerHTML = formatPlayerLrc(text);
+                // Iniciar seguidor de letra
+                startLyricsSync(text, modal);
+            } else {
+                content.innerHTML = `<pre class="lyrics-plain">${escapeHtml(text)}</pre>`;
+            }
+            actions.innerHTML = `<button id="btn-player-ly-search" class="btn btn-secondary btn-sm">🔄 Buscar otra</button>
+                <button id="btn-player-ly-delete" class="btn btn-ghost btn-sm">🗑 Borrar</button>`;
+            document.getElementById('btn-player-ly-search').addEventListener('click', () => {
+                modal.remove();
+                searchPlayerLyrics(currentPlayingPath, title, artist);
+            });
+            document.getElementById('btn-player-ly-delete').addEventListener('click', async () => {
+                if (!confirm('¿Borrar la letra?')) return;
+                const r = await postJSON('/api/lyrics/remove', { path: currentPlayingPath });
+                showToast(r.message, 'success');
+                modal.remove();
+            });
+        } else {
+            content.innerHTML = '<p class="empty-hint">Sin letra embebida.</p>';
+            actions.innerHTML = `<button id="btn-player-ly-search" class="btn btn-primary btn-sm">🔍 Buscar en lrclib.net</button>`;
+            document.getElementById('btn-player-ly-search').addEventListener('click', () => {
+                modal.remove();
+                searchPlayerLyrics(currentPlayingPath, title, artist);
+            });
+        }
+    } catch (e) {
+        document.getElementById('player-lyrics-content').innerHTML =
+            `<p style="color:var(--danger);">${escapeHtml(e.message)}</p>`;
+    }
+}
+
+async function searchPlayerLyrics(filePath, title, artist) {
+    const audio = $('player-audio');
+    const duration = audio ? audio.duration || 0 : 0;
+
+    const modalId = 'player-lyrics-search-modal';
+    const existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h2>🔍 Buscar letra</h2>
+                <button class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"><label>Titulo</label><input type="text" id="ply-title" class="form-input" value="${escapeHtml(title)}"></div>
+                <div class="form-group"><label>Artista</label><input type="text" id="ply-artist" class="form-input" value="${escapeHtml(artist)}"></div>
+                <button id="btn-ply-search" class="btn btn-primary">🔍 Buscar</button>
+                <div id="ply-results" style="margin-top:16px;"></div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+
+    document.getElementById('btn-ply-search').addEventListener('click', async () => {
+        const t = document.getElementById('ply-title').value.trim();
+        const a = document.getElementById('ply-artist').value.trim();
+        const rDiv = document.getElementById('ply-results');
+        rDiv.innerHTML = '<p class="empty-hint">Buscando...</p>';
+        try {
+            const data = await postJSON('/api/lyrics/search', { title: t, artist: a, duration });
+            if (!data.found || !data.lyrics) {
+                rDiv.innerHTML = '<p class="empty-hint">No encontrada.</p>';
+                return;
+            }
+            const ly = data.lyrics;
+            const plain = ly.plain || '(sin letra)';
+            const synced = ly.synced || '';
+            let html = `<div style="margin-bottom:8px;"><strong style="color:var(--accent);">Encontrada</strong></div>`;
+            if (synced) {
+                html += '<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Sincronizada (LRC)</summary>';
+                html += `<pre class="lyrics-plain" style="max-height:200px;">${escapeHtml(synced)}</pre></details>`;
+            }
+            html += '<details open style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Letra plana</summary>';
+            html += `<pre class="lyrics-plain" style="max-height:250px;">${escapeHtml(plain)}</pre></details>`;
+            html += `<button id="btn-ply-save" class="btn btn-primary">💾 Guardar</button>`;
+            rDiv.innerHTML = html;
+            document.getElementById('btn-ply-save').addEventListener('click', async () => {
+                const r = await postJSON('/api/lyrics/save', { path: filePath, lyrics: plain });
+                if (r.success) {
+                    showToast('Letra guardada.', 'success');
+                    modal.remove();
+                    showPlayerLyrics(); // Mostrar la letra guardada
+                }
+            });
+        } catch (e) {
+            rDiv.innerHTML = `<p style="color:var(--danger);">${escapeHtml(e.message)}</p>`;
+        }
+    });
+}
+
+function formatPlayerLrc(text) {
+    const lines = text.split('\n');
+    let html = '<div class="lyrics-synced" id="player-lrc-container">';
+    lines.forEach((line, idx) => {
+        const clean = line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim();
+        html += `<div class="lyrics-line" data-idx="${idx}">${clean ? escapeHtml(clean) : '&nbsp;'}</div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+// ------------------------------------------------------------------
+// Seguidor de letra sincronizada (LRC)
+// ------------------------------------------------------------------
+let lyricsSyncInterval = null;
+
+function startLyricsSync(lrcText, modal) {
+    // Parsear timestamps del LRC
+    const lines = lrcText.split('\n');
+    const timestamps = [];
+    lines.forEach((line, idx) => {
+        const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/);
+        if (match) {
+            const min = parseInt(match[1]);
+            const sec = parseInt(match[2]);
+            const ms = parseInt(match[3].padEnd(3, '0'));
+            const time = min * 60 + sec + ms / 1000;
+            const clean = line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim();
+            timestamps.push({ time, idx, text: clean });
+        }
+    });
+
+    if (timestamps.length === 0) return;
+
+    // Limpiar interval anterior
+    if (lyricsSyncInterval) clearInterval(lyricsSyncInterval);
+
+    // Funcion para actualizar la linea activa
+    const updateActiveLine = () => {
+        if (!document.body.contains(modal)) {
+            clearInterval(lyricsSyncInterval);
+            return;
+        }
+        const audio = $('player-audio');
+        if (!audio) return;
+        const currentTime = audio.currentTime;
+
+        // Encontrar la linea activa
+        let activeIdx = -1;
+        for (let i = 0; i < timestamps.length; i++) {
+            if (timestamps[i].time <= currentTime) {
+                activeIdx = timestamps[i].idx;
+            } else {
+                break;
+            }
+        }
+
+        // Actualizar clases
+        const allLines = modal.querySelectorAll('.lyrics-line');
+        allLines.forEach(line => line.classList.remove('active'));
+
+        if (activeIdx >= 0) {
+            const activeLine = modal.querySelector(`.lyrics-line[data-idx="${activeIdx}"]`);
+            if (activeLine) {
+                activeLine.classList.add('active');
+                // Auto-scroll suave
+                activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    };
+
+    // Ejecutar inmediatamente y luego cada 500ms
+    updateActiveLine();
+    lyricsSyncInterval = setInterval(updateActiveLine, 500);
+
+    // Limpiar al cerrar el modal
+    const origClose = modal.querySelector('.modal-close').onclick;
+    modal.querySelector('.modal-close').addEventListener('click', () => {
+        clearInterval(lyricsSyncInterval);
+    }, { once: true });
+}

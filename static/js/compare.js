@@ -325,6 +325,7 @@ function renderResults(view) {
             playBtn.className = 'play-btn';
             playBtn.title = 'Reproducir local';
             playBtn.textContent = '▶';
+            playBtn.dataset.path = track.local_path;
             const localName = track.local_name || track.title || '';
             const localArtist = track.local_artist || track.artist || '';
             playBtn.addEventListener('click', (e) => {

@@ -113,8 +113,8 @@ def write_default_sites():
         "#",
     ]
     lines.append("")
-    lines.append("#| NOMBRE | LINK | DESCRIPCION | ESTADO |")
-    lines.append("#|--------|------|-------------|--------|")
+    lines.append("# | NOMBRE | LINK | DESCRIPCION | ESTADO |")
+    lines.append("# |--------|------|-------------|--------|")
     for name, link, desc, status in DEFAULT_SITES:
         lines.append(f"| {name} | {link} | {desc} | {status} |")
 
@@ -172,8 +172,8 @@ def save_sites(sites):
         "# Extraido de https://fmhy.net/audio",
         "#",
         "",
-        "#| NOMBRE | LINK | DESCRIPCION | ESTADO |",
-        "#|--------|------|-------------|--------|",
+        "| NOMBRE | LINK | DESCRIPCION | ESTADO |",
+        "|--------|------|-------------|--------|",
     ]
     for s in sites:
         lines.append(f"| {s['name']} | {s['link']} | {s['description']} | {s['status']} |")

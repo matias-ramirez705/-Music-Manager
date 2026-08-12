@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Manager</title>
     <!-- Favicon: nota musical sobre fondo verde -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=28">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=28">
-    <!-- Cache-busting: el ?v=28 fuerza al navegador a cargar fresco -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=28">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=88">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=88">
+    <!-- Cache-busting: el ?v=88 fuerza al navegador a cargar fresco -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=88">
 </head>
 <body>
     <!-- ============================================
@@ -33,7 +33,7 @@
                 <span class="tab-icon">⇄</span><span class="tab-label">Comparar Playlist</span>
             </a>
             <a href="/editor" class="tab {{ 'active' if active_tab == 'editor' else '' }}">
-                <span class="tab-icon">✎</span><span class="tab-label">Editar Metadata</span>
+                <span class="tab-icon">✎</span><span class="tab-label">Metadatos</span>
             </a>
             <a href="/organize" class="tab {{ 'active' if active_tab == 'organize' else '' }}">
                 <span class="tab-icon">📁</span><span class="tab-label">Organizar</span>
@@ -43,7 +43,7 @@
             </a>
         </nav>
         <div class="topbar-right">
-            <span class="version-tag">v2.1</span>
+            <span class="version-tag">v2.7</span>
         </div>
     </header>
 
@@ -80,6 +80,7 @@
             <span id="player-volume-icon" class="player-volume-icon" title="Silenciar">🔊</span>
             <input type="range" id="player-volume" class="player-volume" min="0" max="100" value="80" title="Volumen">
         </div>
+        <button id="player-lyrics" class="player-btn" title="Ver letra" style="font-size:14px;">📖</button>
         <audio id="player-audio" style="display:none;"></audio>
         <button id="player-close" class="player-close" title="Cerrar">✕</button>
     </div>
@@ -87,8 +88,8 @@
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=28"></script>
-    <script src="{{ url_for('static', filename='js/player.js') }}?v=28"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=88"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=88"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
