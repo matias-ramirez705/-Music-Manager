@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Manager</title>
     <!-- Favicon: nota musical sobre fondo verde -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=23">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=23">
-    <!-- Cache-busting: el ?v=23 fuerza al navegador a cargar fresco -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=23">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=28">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=28">
+    <!-- Cache-busting: el ?v=28 fuerza al navegador a cargar fresco -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=28">
 </head>
 <body>
     <!-- ============================================
@@ -35,9 +35,12 @@
             <a href="/editor" class="tab {{ 'active' if active_tab == 'editor' else '' }}">
                 <span class="tab-icon">✎</span><span class="tab-label">Editar Metadata</span>
             </a>
+            <a href="/organize" class="tab {{ 'active' if active_tab == 'organize' else '' }}">
+                <span class="tab-icon">📁</span><span class="tab-label">Organizar</span>
+            </a>
         </nav>
         <div class="topbar-right">
-            <span class="version-tag">v1.11</span>
+            <span class="version-tag">v1.16</span>
         </div>
     </header>
 
@@ -81,8 +84,8 @@
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=23"></script>
-    <script src="{{ url_for('static', filename='js/player.js') }}?v=23"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=28"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=28"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

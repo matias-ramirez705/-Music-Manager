@@ -130,50 +130,101 @@ function renderGroups() {
         return;
     }
 
-    let html = '';
+    dupList.innerHTML = '';
     filteredGroups.forEach((group, groupIdx) => {
-        const best = group.files[0];
-        html += `<div class="dup-group">
-            <div class="dup-group-header">
-                <span class="dup-group-title">${escapeHtml(group.key)}</span>
-                <span class="dup-group-count">${group.count} versiones</span>
-            </div>`;
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'dup-group';
+        const header = document.createElement('div');
+        header.className = 'dup-group-header';
+        header.innerHTML = `
+            <span class="dup-group-title">${escapeHtml(group.key)}</span>
+            <span class="dup-group-count">${group.count} versiones</span>
+        `;
+        groupDiv.appendChild(header);
 
         group.files.forEach((f, idx) => {
             const isBest = idx === 0;
             const qLabel = (f.quality && f.quality.label) ? f.quality.label : 'N/A';
             const qDesc = (f.quality && f.quality.description) ? f.quality.description : '';
-            const encodedPath = encodeURIComponent(f.path);
-            const safeName = (f.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const safeArtist = (f.artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-            // Badge de formato con color (como en Mi Musica)
             const ext = (f.ext || '').toLowerCase();
-            const formatBadge = `<span class="format-badge ${escapeHtml(ext)}">${escapeHtml(ext.toUpperCase())}</span>`;
 
-            const playBtn = `<button class="play-btn" data-path="${escapeHtml(f.path)}"
-                onclick="event.stopPropagation(); playFile(decodeURIComponent('${encodedPath}'), '${safeName}', '${safeArtist}');"
-                title="Reproducir">▶</button>`;
-            const editBtn = `<a href="/editor?path=${encodedPath}" class="action-btn action-editar" title="Editar metadata" style="padding:4px 8px;font-size:11px;">✎</a>`;
-            // Boton borrar (con confirmacion para evitar miss-click)
-            // Usamos encodeURIComponent para evitar problemas con backslashes de Windows
-            const deleteBtn = `<button class="action-btn action-eliminar" title="Borrar archivo"
-                onclick="event.stopPropagation(); deleteDuplicateFile(decodeURIComponent('${encodedPath}'), ${groupIdx}, ${idx});"
-                style="padding:4px 8px;font-size:11px;">🗑</button>`;
-            html += `<div class="dup-file-row ${isBest ? 'best' : ''}">
-                ${playBtn}
-                <span class="dup-best-tag">${isBest ? 'MEJOR' : ''}</span>
-                <span class="dup-file-path" title="${escapeHtml(f.path)} — clic para abrir en explorador" onclick="event.stopPropagation(); revealInExplorer('${encodedPath}');" style="cursor:pointer;">${escapeHtml(f.path)}</span>
-                <span class="dup-file-format">${formatBadge}</span>
-                <span class="dup-file-quality" title="${escapeHtml(qDesc)}">${escapeHtml(qLabel)}</span>
-                <span class="dup-file-size">${escapeHtml(f.size_str || '')}</span>
-                ${editBtn}
-                ${deleteBtn}
-            </div>`;
+            const row = document.createElement('div');
+            row.className = 'dup-file-row' + (isBest ? ' best' : '');
+
+            // Boton play (event listener, no onclick inline)
+            const playBtn = document.createElement('button');
+            playBtn.className = 'play-btn';
+            playBtn.title = 'Reproducir';
+            playBtn.textContent = '▶';
+            playBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playFile(f.path, f.name || '', f.artist || '');
+            });
+            row.appendChild(playBtn);
+
+            // Etiqueta MEJOR
+            const bestTag = document.createElement('span');
+            bestTag.className = 'dup-best-tag';
+            bestTag.textContent = isBest ? 'MEJOR' : '';
+            row.appendChild(bestTag);
+
+            // Path (clickable para abrir explorador)
+            const pathSpan = document.createElement('span');
+            pathSpan.className = 'dup-file-path';
+            pathSpan.title = f.path + ' — clic para abrir en explorador';
+            pathSpan.textContent = f.path;
+            pathSpan.style.cursor = 'pointer';
+            pathSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                revealInExplorer(encodeURIComponent(f.path));
+            });
+            row.appendChild(pathSpan);
+
+            // Formato
+            const formatSpan = document.createElement('span');
+            formatSpan.className = 'dup-file-format';
+            formatSpan.innerHTML = `<span class="format-badge ${escapeHtml(ext)}">${escapeHtml(ext.toUpperCase())}</span>`;
+            row.appendChild(formatSpan);
+
+            // Calidad
+            const qualitySpan = document.createElement('span');
+            qualitySpan.className = 'dup-file-quality';
+            qualitySpan.title = qDesc;
+            qualitySpan.textContent = qLabel;
+            row.appendChild(qualitySpan);
+
+            // Tamano
+            const sizeSpan = document.createElement('span');
+            sizeSpan.className = 'dup-file-size';
+            sizeSpan.textContent = f.size_str || '';
+            row.appendChild(sizeSpan);
+
+            // Boton editar
+            const editLink = document.createElement('a');
+            editLink.href = '/editor?path=' + encodeURIComponent(f.path);
+            editLink.className = 'action-btn action-editar';
+            editLink.title = 'Editar metadata';
+            editLink.style.cssText = 'padding:4px 8px;font-size:11px;';
+            editLink.textContent = '✎';
+            editLink.addEventListener('click', (e) => e.stopPropagation());
+            row.appendChild(editLink);
+
+            // Boton borrar
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'action-btn action-eliminar';
+            deleteBtn.title = 'Borrar archivo';
+            deleteBtn.style.cssText = 'padding:4px 8px;font-size:11px;';
+            deleteBtn.textContent = '🗑';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteDuplicateFile(f.path, groupIdx, idx);
+            });
+            row.appendChild(deleteBtn);
+
+            groupDiv.appendChild(row);
         });
-        html += '</div>';
+        dupList.appendChild(groupDiv);
     });
-    dupList.innerHTML = html;
 }
 
 /**

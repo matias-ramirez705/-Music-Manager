@@ -256,17 +256,34 @@ function renderRows() {
             ? ` <a href="/duplicates" class="dup-badge" title="Ver en Duplicados">DUP</a>`
             : '';
 
-        // El path se debe codificar para evitar problemas con caracteres especiales
-        const encodedPath = encodeURIComponent(file.path);
-        const safePathAttr = file.path.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        // Boton play: usamos data-* attributes y event listener (no onclick inline)
+        // para evitar problemas con apóstrofos y comillas en nombres
+        const playBtn = document.createElement('button');
+        playBtn.className = 'play-btn';
+        playBtn.title = 'Reproducir';
+        playBtn.textContent = '▶';
+        playBtn.dataset.path = file.path;
+        playBtn.dataset.name = file.name || '';
+        playBtn.dataset.artist = file.artist || '';
+        playBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playFile(file.path, file.name || '', file.artist || '');
+        });
 
-        const playBtn = `<button class="play-btn" data-path="${safePathAttr}"
-                            onclick="event.stopPropagation(); playFile(decodeURIComponent('${encodedPath}'), '${escapeHtml(file.name).replace(/'/g, "\\'")}', '${escapeHtml(file.artist).replace(/'/g, "\\'")}');"
-                            title="Reproducir">▶</button>`;
+        // Celda de ruta: clickable para abrir explorador
+        const pathCell = document.createElement('td');
+        pathCell.className = 'path-cell';
+        pathCell.title = file.path + ' — clic para abrir en explorador';
+        pathCell.textContent = file.path;
+        pathCell.style.cursor = 'pointer';
+        pathCell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            revealInExplorer(encodeURIComponent(file.path));
+        });
 
         tr.innerHTML = `
             <td>${index + 1}</td>
-            <td>${playBtn}</td>
+            <td></td>
             <td><strong>${escapeHtml(file.name)}</strong>${file.has_error ? ' <span style="color:var(--warning)" title="No se pudo leer metadata completa">⚠</span>' : ''}</td>
             <td>${escapeHtml(file.artist || '—')}</td>
             <td>${escapeHtml(file.album || '—')}</td>
@@ -275,8 +292,11 @@ function renderRows() {
             <td class="quality-col ${showQuality ? '' : 'hidden'}">${qualityHtml}</td>
             <td>${playlistsHtml}</td>
             <td class="size-cell">${escapeHtml(file.size_str)}${dupHtml}</td>
-            <td class="path-cell" title="${escapeHtml(file.path)} — clic para abrir en explorador" onclick="event.stopPropagation(); revealInExplorer('${encodedPath}');">${escapeHtml(file.path)}</td>
         `;
+        // Insertar el boton play en la segunda celda (td vacio)
+        tr.children[1].appendChild(playBtn);
+        // Insertar la celda de ruta al final
+        tr.appendChild(pathCell);
 
         tr.style.cursor = 'pointer';
         tr.addEventListener('click', () => {

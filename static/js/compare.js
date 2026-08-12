@@ -316,13 +316,26 @@ function renderResults(view) {
             : '—';
 
         // Columna Escuchar local (solo para matched)
-        let listenLocalHtml = '—';
+        // Usamos DOM API para evitar problemas con apóstrofos en nombres
+        let listenLocalTd;
         if (view === 'matched' && track.local_path) {
-            const encodedPath = encodeURIComponent(track.local_path);
-            const safeName = (track.local_name || track.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const safeArtist = (track.local_artist || track.artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            listenLocalHtml = `<button class="play-btn" title="Reproducir local"
-                onclick="event.stopPropagation(); playFile(decodeURIComponent('${encodedPath}'), '${safeName}', '${safeArtist}');">▶</button>`;
+            listenLocalTd = document.createElement('td');
+            listenLocalTd.style.textAlign = 'center';
+            const playBtn = document.createElement('button');
+            playBtn.className = 'play-btn';
+            playBtn.title = 'Reproducir local';
+            playBtn.textContent = '▶';
+            const localName = track.local_name || track.title || '';
+            const localArtist = track.local_artist || track.artist || '';
+            playBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playFile(track.local_path, localName, localArtist);
+            });
+            listenLocalTd.appendChild(playBtn);
+        } else {
+            listenLocalTd = document.createElement('td');
+            listenLocalTd.style.textAlign = 'center';
+            listenLocalTd.textContent = '—';
         }
 
         // Columna Abrir online (con icono y color de plataforma)
@@ -342,9 +355,11 @@ function renderResults(view) {
             <td>${statusHtml}</td>
             <td>${qualityHtml}</td>
             <td>${formatHtml}</td>
-            <td style="text-align:center;">${listenLocalHtml}</td>
-            <td>${onlineLinkHtml}</td>
+            <td></td>
+            <td style="text-align:center;">${onlineLinkHtml}</td>
         `;
+        // Insertar el td de escuchar local (creado con DOM API) en la posicion 8
+        tr.children[7].replaceWith(listenLocalTd);
         resultsTbody.appendChild(tr);
     });
 }

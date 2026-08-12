@@ -33,6 +33,139 @@ function bindEvents() {
     const csvFileInput = document.getElementById('csv-file-input');
     if (btnImportCsv) btnImportCsv.addEventListener('click', () => csvFileInput.click());
     if (csvFileInput) csvFileInput.addEventListener('change', handleCsvImport);
+    // Boton importar TXT
+    const btnImportTxt = document.getElementById('btn-import-txt');
+    const txtFileInput = document.getElementById('txt-file-input');
+    if (btnImportTxt) btnImportTxt.addEventListener('click', () => openTxtModal());
+    if (txtFileInput) txtFileInput.addEventListener('change', handleTxtFileUpload);
+    // Botones del modal TXT
+    const btnTxtLoad = document.getElementById('btn-txt-load-default');
+    const btnTxtSave = document.getElementById('btn-txt-save-default');
+    const btnTxtImport = document.getElementById('btn-txt-import');
+    if (btnTxtLoad) btnTxtLoad.addEventListener('click', loadDefaultTxt);
+    if (btnTxtSave) btnTxtSave.addEventListener('click', saveDefaultTxt);
+    if (btnTxtImport) btnTxtImport.addEventListener('click', importFromTxt);
+}
+
+// ------------------------------------------------------------------
+// Modal TXT: cargar/guardar/importar playlists
+// ------------------------------------------------------------------
+function openTxtModal() {
+    const modal = document.getElementById('txt-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    // Intentar cargar el archivo por defecto automaticamente
+    loadDefaultTxt();
+}
+
+async function loadDefaultTxt() {
+    const textarea = document.getElementById('txt-content');
+    if (!textarea) return;
+    try {
+        const data = await getJSON('/api/txt-playlists/load');
+        if (data.exists && data.content) {
+            textarea.value = data.content;
+            showToast('playlists.txt cargado.', 'success');
+        } else {
+            // Cargar plantilla de ejemplo
+            textarea.value = '# Mis playlists\n' +
+                '# Las líneas con # son comentarios\n\n' +
+                '# YouTube Music\n' +
+                'https://music.youtube.com/playlist?list=PL...\n\n' +
+                '# Spotify (máx 100 canciones por URL)\n' +
+                '# Para playlists grandes, exporta como CSV desde exportify.app\n' +
+                'https://open.spotify.com/playlist/...\n\n' +
+                '# CSV de Exportify (rutas locales, una por línea)\n' +
+                '# C:\\Users\\Matias\\Music\\mi_playlist.csv\n';
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+async function saveDefaultTxt() {
+    const textarea = document.getElementById('txt-content');
+    if (!textarea) return;
+    try {
+        const data = await postJSON('/api/txt-playlists/save', { content: textarea.value });
+        showToast(data.message, data.success ? 'success' : 'error');
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+async function importFromTxt() {
+    const textarea = document.getElementById('txt-content');
+    if (!textarea || !textarea.value.trim()) {
+        showToast('El campo está vacío.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-txt-import');
+    const resultsDiv = document.getElementById('txt-results');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Importando...';
+    }
+    if (resultsDiv) resultsDiv.innerHTML = '<p class="empty-hint">Importando playlists... esto puede tardar.</p>';
+
+    try {
+        const data = await postJSON('/api/import-txt-playlists', { content: textarea.value });
+        if (data.error) {
+            if (resultsDiv) resultsDiv.innerHTML = `<p style="color:var(--danger);">Error: ${escapeHtml(data.error)}</p>`;
+            return;
+        }
+
+        // Mostrar resultados
+        let html = `<div style="margin-bottom:12px;">
+            <strong style="color:var(--accent);">${data.success_count}</strong> exitosas,
+            <strong style="color:var(--danger);">${data.error_count}</strong> errores,
+            ${data.total} total
+        </div>`;
+
+        if (data.results && data.results.length > 0) {
+            html += '<div style="max-height:300px; overflow-y:auto;">';
+            data.results.forEach(r => {
+                const icon = r.success ? '✓' : '✗';
+                const color = r.success ? 'var(--accent)' : 'var(--danger)';
+                const name = r.name ? ` — ${escapeHtml(r.name)} (${r.track_count} canciones)` : '';
+                const err = r.error ? ` — ${escapeHtml(r.error)}` : '';
+                const warning = r.warning ? ` <span style="color:var(--warning); font-size:10px;">⚠ ${escapeHtml(r.warning.substring(0, 80))}</span>` : '';
+                html += `<div style="padding:4px 0; font-size:12px; color:${color};">${icon} Línea ${r.line}: ${escapeHtml(r.url.substring(0, 60))}${name}${err}${warning}</div>`;
+            });
+            html += '</div>';
+        }
+
+        if (resultsDiv) resultsDiv.innerHTML = html;
+
+        // Recargar lista de playlists guardadas
+        loadSavedPlaylists();
+        sessionStorage.setItem('playlists_changed', '1');
+
+        showToast(`Importadas ${data.success_count} de ${data.total} playlists`, 'success', 5000);
+    } catch (e) {
+        if (resultsDiv) resultsDiv.innerHTML = `<p style="color:var(--danger);">Error: ${escapeHtml(e.message)}</p>`;
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '▶ Importar todas';
+        }
+    }
+}
+
+async function handleTxtFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const textarea = document.getElementById('txt-content');
+        if (textarea) {
+            textarea.value = e.target.result;
+            openTxtModal();
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
 }
 
 // ------------------------------------------------------------------

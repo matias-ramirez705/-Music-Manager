@@ -34,11 +34,37 @@
                    placeholder="Pega aquí el link de YouTube Music (las de Spotify van por CSV)...">
             <button id="btn-save-playlist" class="btn btn-primary">Guardar playlist</button>
             <button id="btn-import-csv" class="btn btn-secondary" title="Importar CSV exportado desde Exportify">📄 Importar CSV</button>
+            <button id="btn-import-txt" class="btn btn-secondary" title="Cargar varias playlists desde un archivo TXT">📝 Cargar desde TXT</button>
             <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
+            <input type="file" id="txt-file-input" accept=".txt" style="display:none;">
         </div>
         <p class="help-text">
             Las canciones se cachean localmente para acceso rápido sin internet.
         </p>
+    </div>
+
+    <!-- Modal para editar/cargar TXT -->
+    <div id="txt-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Cargar playlists desde TXT</h2>
+                <button class="modal-close" onclick="document.getElementById('txt-modal').classList.add('hidden')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="help-text" style="margin-bottom:12px;">
+                    Pega o edita aquí tus URLs de playlists (una por línea). Las líneas que empiecen con <code>#</code> son comentarios.
+                    También puedes poner rutas a archivos CSV locales (una por línea).
+                </p>
+                <textarea id="txt-content" rows="14" class="form-input" style="font-family:var(--font-mono); font-size:12px; width:100%; resize:vertical;"
+                    placeholder="# Mis playlists&#10;&#10;# YouTube Music&#10;https://music.youtube.com/playlist?list=PL...&#10;&#10;# Spotify (máx 100 canciones por URL)&#10;https://open.spotify.com/playlist/...&#10;&#10;# CSV de Exportify (rutas locales)&#10;C:\Users\Matias\Music\mi_playlist.csv"></textarea>
+                <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                    <button id="btn-txt-load-default" class="btn btn-ghost btn-sm" title="Cargar data/playlists.txt si existe">📂 Cargar playlists.txt</button>
+                    <button id="btn-txt-save-default" class="btn btn-ghost btn-sm" title="Guardar en data/playlists.txt">💾 Guardar en playlists.txt</button>
+                    <button id="btn-txt-import" class="btn btn-primary">▶ Importar todas</button>
+                </div>
+                <div id="txt-results" style="margin-top:16px;"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Lista de playlists guardadas -->
@@ -54,5 +80,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=23"></script>
+<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=28"></script>
 {% endblock %}

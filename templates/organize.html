@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: ORGANIZAR POR PLAYLIST (v1.16)
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Organizar por Playlist</h1>
+        <p class="subtitle">Mueve tus canciones a subcarpetas según las playlists en las que aparecen.</p>
+    </header>
+
+    <!-- Estado de la musica local -->
+    <div id="local-status" class="local-status">
+        <span class="status-icon">♪</span>
+        <span id="local-status-text">No has escaneado tu música local. Ve a "Mi Música" primero.</span>
+        <a href="/" class="btn btn-ghost btn-sm">Ir a Mi Música</a>
+    </div>
+
+    <!-- Configuracion del organizador -->
+    <div class="organizer-config">
+        <div class="folder-picker">
+            <input type="text" id="base-dir-input" placeholder="C:\Users\Matias\Music\Orden"
+                   class="folder-input">
+            <button id="btn-browse-base" class="btn btn-secondary">Explorar</button>
+            <button id="btn-preview" class="btn btn-primary">Generar plan</button>
+        </div>
+        <p class="help-text">
+            Directorio base donde se crearán las subcarpetas por playlist.
+            Ej: si pones <code>C:\Users\Matias\Music\Orden</code> y tienes una playlist "Rock",
+            las canciones se moverán a <code>C:\Users\Matias\Music\Orden\Rock\</code>.
+        </p>
+
+        <!-- Opciones avanzadas -->
+        <div class="organizer-options">
+            <div class="option-group">
+                <label>Canciones en varias playlists:</label>
+                <select id="duplicate-policy" class="filter-select">
+                    <option value="ask" selected>Preguntar una por una</option>
+                    <option value="first">Mover a la primera playlist</option>
+                    <option value="all">Copiar a todas las playlists</option>
+                    <option value="none">Dejar donde están</option>
+                </select>
+            </div>
+            <div class="option-group">
+                <label>
+                    <input type="checkbox" id="move-unmatched">
+                    Mover canciones sin playlist a subcarpeta "Sin playlist"
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen del plan -->
+    <div id="plan-summary" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">Total archivos</span>
+            <span class="stat-value" id="stat-total">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">En 1 playlist</span>
+            <span class="stat-value" id="stat-single">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">En varias playlists</span>
+            <span class="stat-value" id="stat-multi">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Sin playlist</span>
+            <span class="stat-value" id="stat-unmatched">0</span>
+        </div>
+    </div>
+
+    <!-- Conflictos (canciones en varias playlists) - ahora integrado en la tabla -->
+    <div id="conflicts-section" class="hidden"></div>
+
+    <!-- Lista de movimientos -->
+    <div id="moves-section" class="hidden">
+        <div class="moves-header">
+            <h3>Organizar canciones</h3>
+            <div>
+                <button id="btn-execute" class="btn btn-primary">▶ Ejecutar plan masivo</button>
+            </div>
+        </div>
+        <p class="help-text" style="margin-bottom:12px;">
+            Cada fila tiene un botón <strong>📁 Mover</strong> para mover esa canción individualmente.
+            O usa el selector de playlist para conflictos y luego "Ejecutar plan masivo".
+            Los puntos de color indican en qué playlists aparece cada canción (rojo = YouTube Music, verde = Spotify).
+        </p>
+        <div class="table-container">
+            <table class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Canción</th>
+                        <th>Playlist destino</th>
+                        <th>Acción</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
+                    </tr>
+                </thead>
+                <tbody id="moves-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Resultado -->
+    <div id="result-section" class="hidden">
+        <h3>Resultado</h3>
+        <div id="result-content"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-organize" class="empty-state">
+        <div class="empty-icon">📁</div>
+        <h3>Sin plan generado</h3>
+        <p>Selecciona un directorio base y haz clic en "Generar plan" para ver cómo se organizarán tus canciones.</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/organize.js') }}?v=28"></script>
+{% endblock %}

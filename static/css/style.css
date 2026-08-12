@@ -1986,6 +1986,340 @@ body {
     white-space: nowrap;
 }
 
+/* ---------- Tabla de Comparar con anchos personalizados (v1.14) ---------- */
+/* Aplica solo a la tabla dentro de #results-container en /compare */
+#results-container .music-table {
+    table-layout: fixed;  /* respetar los anchos definidos */
+}
+
+#results-container .music-table th:nth-child(1),
+#results-container .music-table td:nth-child(1) {
+    width: 3%;   /* # */
+    min-width: 30px;
+}
+
+#results-container .music-table th:nth-child(2),
+#results-container .music-table td:nth-child(2) {
+    width: 24%;  /* Título */
+    min-width: 180px;
+}
+
+#results-container .music-table th:nth-child(3),
+#results-container .music-table td:nth-child(3) {
+    width: 16%;  /* Artista */
+    min-width: 100px;
+}
+
+#results-container .music-table th:nth-child(4),
+#results-container .music-table td:nth-child(4) {
+    width: 7%;   /* Duración */
+    min-width: 50px;
+    text-align: center;
+}
+
+#results-container .music-table th:nth-child(5),
+#results-container .music-table td:nth-child(5) {
+    width: 8%;   /* Estado */
+    min-width: 60px;
+    text-align: center;
+}
+
+#results-container .music-table th:nth-child(6),
+#results-container .music-table td:nth-child(6) {
+    width: 9%;   /* Calidad local */
+    min-width: 70px;
+    text-align: center;
+}
+
+#results-container .music-table th:nth-child(7),
+#results-container .music-table td:nth-child(7) {
+    width: 8%;   /* Formato */
+    min-width: 55px;
+    text-align: center;
+}
+
+#results-container .music-table th:nth-child(8),
+#results-container .music-table td:nth-child(8) {
+    width: 10%;  /* Escuchar local */
+    min-width: 70px;
+    text-align: center;
+}
+
+#results-container .music-table th:nth-child(9),
+#results-container .music-table td:nth-child(9) {
+    width: 15%;  /* Abrir online */
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Permitir que el contenido de las celdas se trunque con ellipsis */
+#results-container .music-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Pero la celda de título puede envolver en 2 líneas si es muy larga */
+#results-container .music-table td:nth-child(2) {
+    white-space: normal;
+    word-break: break-word;
+}
+
+#results-container .music-table td:nth-child(3) {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* ---------- Selector de playlist en Organizar (v1.13) ---------- */
+.playlist-select {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 11px;
+    padding: 4px 6px;
+    margin-top: 4px;
+    max-width: 150px;
+    cursor: pointer;
+}
+
+.playlist-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.btn-move-one {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+}
+
+.btn-move-one:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ---------- Pestana Organizar (v1.12) ---------- */
+.organizer-config {
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+}
+
+.organizer-options {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.option-group label {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0;
+}
+
+.option-group select {
+    min-width: 200px;
+}
+
+.moves-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 12px;
+}
+
+.moves-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.move-action {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.action-move {
+    background: rgba(29, 185, 84, 0.15);
+    color: var(--accent-hover);
+    border: 1px solid var(--accent);
+}
+
+.action-copy {
+    background: rgba(67, 97, 238, 0.15);
+    color: #7a9eff;
+    border: 1px solid #4361ee;
+}
+
+.action-skip {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+.action-pending {
+    background: rgba(255, 165, 0, 0.15);
+    color: #ffb84d;
+    border: 1px solid var(--warning);
+}
+
+/* Conflictos */
+#conflicts-section {
+    background: rgba(255, 165, 0, 0.05);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+#conflicts-section h3 {
+    color: var(--warning);
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.conflict-item {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.conflict-item-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.conflict-item-artist {
+    color: var(--text-secondary);
+    font-size: 11px;
+    margin-bottom: 8px;
+}
+
+.conflict-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.conflict-choice-btn {
+    padding: 6px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all var(--transition);
+}
+
+.conflict-choice-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.conflict-choice-btn.selected {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+}
+
+.conflict-choice-btn.conflict-skip {
+    color: var(--text-muted);
+}
+
+/* Resultado */
+.result-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.result-stat {
+    flex: 1;
+    min-width: 120px;
+    padding: 16px;
+    border-radius: var(--radius);
+    text-align: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+}
+
+.result-stat.success {
+    border-color: var(--accent);
+    background: rgba(29, 185, 84, 0.05);
+}
+
+.result-stat.error {
+    border-color: var(--danger);
+    background: rgba(233, 20, 41, 0.05);
+}
+
+.result-stat.skipped {
+    border-color: var(--text-muted);
+}
+
+.result-num {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.result-stat.success .result-num { color: var(--accent-hover); }
+.result-stat.error .result-num { color: #ff6b7a; }
+
+.result-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+#result-section h4 {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 16px 0 8px;
+}
+
+#result-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+#result-section ul li {
+    padding: 4px 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+#result-section ul li code {
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
     .tab-label {

@@ -120,6 +120,11 @@ def create_app():
         """Pestaña 4: Editor de metadata."""
         return render_template('editor.html', active_tab='editor')
 
+    @app.route('/organize')
+    def organize():
+        """Pestaña 5: Organizar por playlist."""
+        return render_template('organize.html', active_tab='organize')
+
     # ==================================================================
     # API: ESCANEO
     # ==================================================================
@@ -590,6 +595,135 @@ def create_app():
             'total_expected': playlist.get('total_expected'),
         })
 
+    @app.route('/api/import-txt-playlists', methods=['POST'])
+    def api_import_txt_playlists():
+        """
+        Importa playlists desde un archivo TXT que contiene URLs
+        (una por linea) con soporte para comentarios (lineas con #).
+
+        Body JSON:
+            { "content": "# comentario\nhttps://..." }
+
+        Tambien procesa rutas a archivos CSV locales.
+
+        Returns:
+            JSON con:
+                - 'results': [{url, platform, success, name, track_count, error}]
+                - 'success_count': N
+                - 'error_count': N
+        """
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '')
+
+        if not content.strip():
+            return jsonify({'error': 'El archivo TXT está vacío.'}), 400
+
+        from txt_playlist import parse_txt_file
+        from csv_playlist import parse_exportify_csv
+
+        entries = parse_txt_file(content)
+        if not entries:
+            return jsonify({
+                'error': 'No se encontraron URLs de playlists ni rutas CSV en el archivo. Recuerda: las líneas con # son comentarios.'
+            }), 400
+
+        results = []
+        success_count = 0
+        error_count = 0
+
+        for entry in entries:
+            entry_type = entry['type']
+            url = entry['url']
+            line_num = entry['line']
+
+            result = {
+                'url': url,
+                'type': entry_type,
+                'line': line_num,
+                'success': False,
+                'name': '',
+                'track_count': 0,
+                'error': '',
+            }
+
+            try:
+                if entry_type == 'csv':
+                    # Cargar archivo CSV local
+                    csv_path = url
+                    if not os.path.exists(csv_path):
+                        result['error'] = f'Archivo CSV no encontrado: {csv_path}'
+                        error_count += 1
+                        results.append(result)
+                        continue
+
+                    with open(csv_path, 'r', encoding='utf-8-sig') as f:
+                        csv_content = f.read()
+
+                    csv_name = Path(csv_path).stem
+                    playlist = parse_exportify_csv(csv_content, name=csv_name)
+                    if playlist.get('error'):
+                        result['error'] = playlist['error']
+                        error_count += 1
+                        results.append(result)
+                        continue
+
+                    synthetic_url = f"csv://{csv_name}"
+                    saved = save_playlist('spotify', synthetic_url, playlist)
+                    result['success'] = True
+                    result['name'] = saved.get('name', csv_name)
+                    result['track_count'] = saved.get('track_count', 0)
+                    success_count += 1
+
+                else:
+                    # URL de YouTube Music o Spotify
+                    platform, playlist = _fetch_playlist_by_url(url)
+                    if playlist.get('error'):
+                        result['error'] = playlist['error'][:200]
+                        error_count += 1
+                        results.append(result)
+                        continue
+
+                    saved = save_playlist(platform, url, playlist)
+                    result['success'] = True
+                    result['name'] = saved.get('name', '')
+                    result['track_count'] = saved.get('track_count', 0)
+                    result['platform'] = platform
+                    if playlist.get('warning'):
+                        result['warning'] = playlist['warning']
+                    success_count += 1
+
+            except Exception as e:
+                result['error'] = str(e)[:200]
+                error_count += 1
+
+            results.append(result)
+
+        return jsonify({
+            'results': results,
+            'success_count': success_count,
+            'error_count': error_count,
+            'total': len(entries),
+        })
+
+    @app.route('/api/txt-playlists/load', methods=['GET'])
+    def api_txt_playlists_load():
+        """Lee el archivo data/playlists.txt si existe."""
+        from txt_playlist import load_default_txt
+        content = load_default_txt()
+        if content is None:
+            return jsonify({'exists': False, 'content': ''})
+        return jsonify({'exists': True, 'content': content})
+
+    @app.route('/api/txt-playlists/save', methods=['POST'])
+    def api_txt_playlists_save():
+        """Guarda el contenido en data/playlists.txt."""
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '')
+        from txt_playlist import save_default_txt
+        if save_default_txt(content):
+            return jsonify({'success': True, 'message': 'Archivo guardado en data/playlists.txt'})
+        return jsonify({'success': False, 'message': 'No se pudo guardar.'}), 500
+
     @app.route('/api/saved-playlist/<playlist_id>', methods=['GET'])
     def api_saved_detail(playlist_id):
         """Devuelve una playlist guardada completa (con tracks)."""
@@ -939,6 +1073,78 @@ def create_app():
             'mime': downloaded['mime'],
             'size_kb': downloaded['size_kb'],
         })
+
+    # ==================================================================
+    # API: ORGANIZADOR (NUEVO v1.12)
+    # ==================================================================
+
+    @app.route('/api/organizer/preview', methods=['POST'])
+    def api_organizer_preview():
+        """
+        Genera un plan de movimientos para organizar canciones por playlist.
+
+        Body JSON:
+            {
+                "base_dir": "C:\\Users\\Matias\\Music\\Orden",
+                "options": {
+                    "move_unmatched": false,
+                    "duplicate_policy": "ask"  // ask|first|all|none
+                }
+            }
+
+        Returns:
+            JSON con el plan completo (ver organizer.build_move_plan).
+        """
+        data = request.get_json(silent=True) or {}
+        base_dir = data.get('base_dir', '').strip()
+        options = data.get('options', {}) or {}
+        options['files'] = LAST_SCAN['files']
+
+        from organizer import build_move_plan
+        plan = build_move_plan(base_dir, options)
+        return jsonify(plan)
+
+    @app.route('/api/organizer/move', methods=['POST'])
+    def api_organizer_move():
+        """
+        Ejecuta los movimientos del plan.
+
+        Body JSON:
+            {
+                "base_dir": "C:\\Users\\Matias\\Music\\Orden",
+                "moves": [ ... ]  // lista de movimientos con action y new_path
+            }
+
+        Returns:
+            JSON con resultado (ver organizer.execute_move_plan).
+        """
+        data = request.get_json(silent=True) or {}
+        base_dir = data.get('base_dir', '').strip()
+        moves = data.get('moves', [])
+
+        if not base_dir:
+            return jsonify({'error': 'Falta base_dir.'}), 400
+        if not moves:
+            return jsonify({'error': 'No hay movimientos que ejecutar.'}), 400
+
+        from organizer import execute_move_plan
+        result = execute_move_plan(moves, base_dir)
+
+        # Si se movieron archivos, actualizar LAST_SCAN quitandolos
+        # (los que se copiaron siguen existiendo en su lugar original)
+        moved_paths = set()
+        for m in moves:
+            if m.get('action') == 'move' and m.get('current_path'):
+                moved_paths.add(m['current_path'])
+
+        if moved_paths:
+            before = len(LAST_SCAN['files'])
+            LAST_SCAN['files'] = [f for f in LAST_SCAN['files']
+                                  if f.get('path') not in moved_paths]
+            after = len(LAST_SCAN['files'])
+            result['removed_from_scan'] = before - after
+
+        return jsonify(result)
 
     # ==================================================================
     # API: REPRODUCTOR (NUEVO)
