@@ -58,6 +58,7 @@
             <option value="">Metadata: todas</option>
             <option value="error">⚠ Metadata con error</option>
             <option value="ok">✓ Metadata OK</option>
+            <option value="missing_tech">⚠ Falta info técnica</option>
         </select>
         <select id="sort-by" class="filter-select">
             <option value="name">Ordenar: Nombre</option>
@@ -108,5 +109,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/local.js') }}?v=184"></script>
+<script src="{{ url_for('static', filename='js/local.js') }}?v=189"></script>
 {% endblock %}

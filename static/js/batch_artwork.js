@@ -44,6 +44,112 @@ async function checkArtwork() {
     }
 }
 
+// ------------------------------------------------------------------
+// Refresh preservando estado del buscador y scroll (v3.13)
+// ------------------------------------------------------------------
+// Llama al backend para refrescar allArtworkData, pero antes guarda:
+//   - texto del input #aw-search
+//   - valor del select #aw-filter
+//   - valor del select #aw-filter-ext
+//   - scrollTop de la tabla
+// Y después de re-renderizar, restaura todo.
+// Esto evita el bug de "cambiar una carátula me borra el buscador".
+// ------------------------------------------------------------------
+async function refreshArtworkPreservingState() {
+    // 1. Capturar estado actual de la UI antes de recargar
+    const searchInput = document.getElementById('aw-search');
+    const filterSelect = document.getElementById('aw-filter');
+    const filterExtSelect = document.getElementById('aw-filter-ext');
+    const tbody = document.getElementById('aw-tbody');
+
+    const savedSearch = searchInput ? searchInput.value : '';
+    const savedFilter = filterSelect ? filterSelect.value : 'all';
+    const savedFilterExt = filterExtSelect ? filterExtSelect.value : '';
+    // Scroll position: puede estar en .table-container o en la ventana
+    const tableContainer = tbody ? tbody.closest('.table-container') : null;
+    const savedScrollTop = tableContainer ? tableContainer.scrollTop : 0;
+    // También capturamos la posición del archivo recién modificado para
+    // intentar mantenerlo a la vista (buscamos por path)
+    const savedFilePath = window._artworkSearchFilePath || '';
+    let savedRowOffsetTop = 0;
+    if (tbody && savedFilePath) {
+        // Buscar la fila que contiene el path (en el dataset del botón buscar)
+        const rows = tbody.querySelectorAll('tr');
+        for (const tr of rows) {
+            const btn = tr.querySelector('button[title="Buscar carátula"]');
+            if (btn && btn.dataset.path === savedFilePath) {
+                savedRowOffsetTop = tr.offsetTop;
+                break;
+            }
+        }
+    }
+
+    // 2. Recargar datos del backend SIN mostrar el spinner grande
+    try {
+        const data = await postJSON('/api/batch/artwork-status', {});
+        if (data.error) {
+            showToast('Error al refrescar: ' + data.error, 'error');
+            return;
+        }
+        // Actualizar stats
+        document.getElementById('aw-total').textContent = data.total;
+        document.getElementById('aw-has').textContent = data.has_count;
+        document.getElementById('aw-missing').textContent = data.missing_count;
+        document.getElementById('btn-aw-download').disabled = data.missing_count === 0;
+        document.getElementById('btn-aw-resize').disabled = data.has_count === 0;
+
+        allArtworkData = data.all || [];
+        // Re-renderizar la tabla completa (lo que reconstruye el HTML del buscador)
+        renderArtworkTable(savedFilter);
+
+        // 3. Restaurar el estado de la UI
+        const newSearchInput = document.getElementById('aw-search');
+        const newFilterExtSelect = document.getElementById('aw-filter-ext');
+        if (newSearchInput) {
+            newSearchInput.value = savedSearch;
+            // El oninput del input ya está bindeado en el HTML inline
+        }
+        if (newFilterExtSelect) {
+            newFilterExtSelect.value = savedFilterExt;
+        }
+        // El select #aw-filter ya viene pre-seleccionado por renderArtworkTable(savedFilter)
+
+        // 4. Re-aplicar el filtro manualmente (porque cambiaron los datos
+        //    subyacentes y los <option> counts, pero el input sigue igual)
+        //    Esto re-renderiza las filas con el filtro correcto.
+        filterArtworkTable(savedFilter);
+
+        // 5. Restaurar scroll
+        //    Intentamos llevar la vista a la fila del archivo recién modificado
+        //    si lo encontramos, sino al scrollTop anterior.
+        const newTbody = document.getElementById('aw-tbody');
+        const newTableContainer = newTbody ? newTbody.closest('.table-container') : null;
+        if (newTableContainer) {
+            if (savedRowOffsetTop && savedFilePath) {
+                // Buscar la fila otra vez en el nuevo tbody
+                const newRows = newTbody.querySelectorAll('tr');
+                for (const tr of newRows) {
+                    const btn = tr.querySelector('button[title="Buscar carátula"]');
+                    if (btn && btn.dataset.path === savedFilePath) {
+                        // Hacer scroll suave a esa fila
+                        newTableContainer.scrollTop = tr.offsetTop - 50;
+                        // Resaltar brevemente la fila para que el usuario la vea
+                        tr.style.transition = 'background 0.3s';
+                        const originalBg = tr.style.background;
+                        tr.style.background = 'rgba(29, 185, 84, 0.25)';
+                        setTimeout(() => { tr.style.background = originalBg; }, 1200);
+                        return;
+                    }
+                }
+            }
+            // Si no encontramos la fila, restaurar el scroll anterior
+            newTableContainer.scrollTop = savedScrollTop;
+        }
+    } catch (e) {
+        showToast('Error al refrescar: ' + e.message, 'error');
+    }
+}
+
 function renderArtworkTable(filter) {
     const resultsDiv = document.getElementById('aw-results');
     if (!resultsDiv) return;
@@ -145,6 +251,9 @@ function renderArtworkRows(items) {
         searchBtn.className = 'btn btn-secondary btn-sm';
         searchBtn.title = 'Buscar carátula';
         searchBtn.textContent = '🔍';
+        // Guardamos el path en el dataset para poder localizar la fila
+        // después de un refresh (v3.13: preservar estado al cambiar carátula)
+        searchBtn.dataset.path = f.path;
         searchBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             openArtworkSearchModal(encodeURIComponent(f.path), f.name, f.artist || '');
@@ -272,10 +381,12 @@ async function doArtworkSearch(filePath) {
                     const data = await postJSON('/api/artwork/save', { path: window._artworkSearchFilePath, image_url: r.artwork_url });
                     if (data.success) {
                         btn.textContent = '✓'; showToast('Carátula guardada.', 'success');
-                        // Recargar tabla
+                        // Recargar tabla PERO preservando el texto del buscador,
+                        // el filtro activo y la posición de scroll (v3.13).
+                        // Antes se llamaba checkArtwork() directo y se perdía todo.
                         const modal = document.getElementById('artwork-search-modal');
                         if (modal) modal.remove();
-                        checkArtwork();
+                        await refreshArtworkPreservingState();
                     } else { btn.textContent = '⬇'; btn.disabled = false; showToast(data.message || 'Error', 'error'); }
                 } catch (err) { btn.textContent = '⬇'; btn.disabled = false; showToast('Error: ' + err.message, 'error'); }
             });

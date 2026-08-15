@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Manager</title>
     <!-- Favicon: nota musical sobre fondo verde -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=184">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=184">
-    <!-- Cache-busting: el ?v=184 fuerza al navegador a cargar fresco -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=184">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=189">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=189">
+    <!-- Cache-busting: el ?v=189 fuerza al navegador a cargar fresco -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=189">
 </head>
 <body>
     <!-- ============================================
@@ -44,9 +44,15 @@
             <a href="/deleted" class="tab {{ 'active' if active_tab == 'deleted' else '' }}">
                 <span class="tab-icon">🗑</span><span class="tab-label">Eliminados</span>
             </a>
+            <a href="/folder-compare" class="tab {{ 'active' if active_tab == 'folder-compare' else '' }}">
+                <span class="tab-icon">⇄</span><span class="tab-label">Comparar Carpetas</span>
+            </a>
+            <a href="/spotiflac" class="tab {{ 'active' if active_tab == 'spotiflac' else '' }}">
+                <span class="tab-icon">📦</span><span class="tab-label">Spotiflac</span>
+            </a>
         </nav>
         <div class="topbar-right">
-            <span class="version-tag">v3.11</span>
+            <span class="version-tag">v3.16</span>
         </div>
     </header>
 
@@ -91,8 +97,8 @@
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=184"></script>
-    <script src="{{ url_for('static', filename='js/player.js') }}?v=184"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=189"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=189"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -48,6 +48,7 @@ APIs:
 
 import os
 import csv
+import json
 import io
 import base64
 from pathlib import Path
@@ -74,6 +75,11 @@ from deleted_songs import (
     list_deleted_songs, add_deleted_song, update_comment,
     remove_deleted_song, clear_all_deleted,
     detect_deleted_from_scan, build_deleted_index, is_song_deleted,
+)
+from folder_compare import compare_folders
+from spotiflac_dummy import (
+    preview_generation, generate_dummy_zip,
+    get_history as get_dummy_history, clear_history as clear_dummy_history,
 )
 
 
@@ -141,6 +147,16 @@ def create_app():
         """Pestaña 7: Canciones eliminadas del disco (detectadas)."""
         return render_template('deleted.html', active_tab='deleted')
 
+    @app.route('/folder-compare')
+    def folder_compare():
+        """Pestaña 8: Comparar carpetas (PC vs DAP, etc.)."""
+        return render_template('folder_compare.html', active_tab='folder-compare')
+
+    @app.route('/spotiflac')
+    def spotiflac():
+        """Pestaña 9: Generador de dummies para Spotiflac."""
+        return render_template('spotiflac.html', active_tab='spotiflac')
+
     # ==================================================================
     # API: ESCANEO
     # ==================================================================
@@ -190,6 +206,13 @@ def create_app():
                 'has_error': meta.get('error') is not None,
                 'error_msg': meta.get('error'),
                 'playlists': in_playlists,  # [{id, name, platform}, ...]
+                # v3.15: flag para detectar canciones con info técnica incompleta
+                'missing_tech': (
+                    meta.get('duration', 0) == 0 or
+                    meta.get('bitrate', 0) == 0 or
+                    meta.get('sample_rate', 0) == 0 or
+                    meta.get('channels', 0) == 0
+                ),
             })
 
         # DETECCION DE ELIMINADOS (v3.8):
@@ -1038,6 +1061,11 @@ def create_app():
         Tambien lo quita de LAST_SCAN para que no siga apareciendo en
         Duplicados y Mi Musica despues de recargar.
 
+        v3.15: Antes de borrarlo, captura su metadata y la guarda en
+        data/deleted_songs.json para que aparezca en la pestaña
+        "Eliminados". Antes solo se registraba al re-escanear, pero
+        si el usuario borraba via Duplicados no se registraba.
+
         Body JSON:
             { "path": "..." }
 
@@ -1049,6 +1077,46 @@ def create_app():
 
         if not file_path or not os.path.exists(file_path):
             return jsonify({'success': False, 'message': 'Archivo no existe.'}), 400
+
+        # v3.15: Capturar metadata ANTES de borrar el archivo.
+        # Buscamos el archivo en LAST_SCAN para tener la info enriquecida
+        # (playlists, duration, etc.) que ya calculamos al escanear.
+        # Si no está en LAST_SCAN, leemos metadata fresca del archivo.
+        song_to_delete = None
+        for f in LAST_SCAN['files']:
+            if f.get('path') == file_path:
+                song_to_delete = f
+                break
+
+        # Si no estaba en LAST_SCAN, leer metadata del archivo (aún existe)
+        if not song_to_delete:
+            try:
+                meta = read_metadata(file_path)
+                from scanner import human_size as _human_size
+                from audio_quality import format_duration as _fmt_dur
+                file_size = os.path.getsize(file_path)
+                song_to_delete = {
+                    'path': file_path,
+                    'name': meta.get('title') or Path(file_path).stem,
+                    'artist': meta.get('artist', 'Desconocido'),
+                    'album': meta.get('album', ''),
+                    'ext': Path(file_path).suffix.lstrip('.').lower(),
+                    'size': file_size,
+                    'size_str': _human_size(file_size),
+                    'duration': meta.get('duration', 0),
+                    'duration_str': _fmt_dur(meta.get('duration', 0)),
+                    'playlists': [],
+                }
+            except Exception as e:
+                # Si ni siquiera podemos leer la metadata, registramos con
+                # la info mínima para que al menos aparezca en la lista
+                song_to_delete = {
+                    'path': file_path,
+                    'name': Path(file_path).stem,
+                    'artist': 'Desconocido',
+                    'ext': Path(file_path).suffix.lstrip('.').lower(),
+                    'playlists': [],
+                }
 
         # Intentar mandar a papelera de reciclaje (mas seguro)
         deleted_method = None
@@ -1071,8 +1139,32 @@ def create_app():
             except OSError as e2:
                 return jsonify({'success': False, 'message': f'Error: {str(e2)}'}), 500
 
-        # Si se elimino correctamente, quitarlo de LAST_SCAN
+        # Si se elimino correctamente:
+        # 1. Registrar en deleted_songs.json (v3.15)
+        # 2. Quitar de LAST_SCAN
         if deleted_method:
+            # 1. Registrar en Eliminados
+            try:
+                add_deleted_song({
+                    'path': song_to_delete.get('path', file_path),
+                    'name': song_to_delete.get('name', ''),
+                    'artist': song_to_delete.get('artist', ''),
+                    'album': song_to_delete.get('album', ''),
+                    'ext': song_to_delete.get('ext', ''),
+                    'size': song_to_delete.get('size', 0),
+                    'size_str': song_to_delete.get('size_str', ''),
+                    'duration': song_to_delete.get('duration', 0),
+                    'duration_str': song_to_delete.get('duration_str', ''),
+                    'playlists': song_to_delete.get('playlists', []),
+                    'comment': '',
+                    'detected_at_scan': LAST_SCAN.get('folder', ''),
+                })
+            except Exception as e:
+                # Si falla el registro en Eliminados, no abortamos el delete
+                # que ya se hizo. Solo logueamos.
+                print(f'[WARN] No se pudo registrar en deleted_songs: {e}')
+
+            # 2. Quitar de LAST_SCAN
             before = len(LAST_SCAN['files'])
             LAST_SCAN['files'] = [f for f in LAST_SCAN['files']
                                   if f.get('path') != file_path]
@@ -1086,9 +1178,10 @@ def create_app():
                    else 'Archivo eliminado.')
             return jsonify({
                 'success': True,
-                'message': msg,
+                'message': msg + ' También se registró en la pestaña "Eliminados".',
                 'method': deleted_method,
                 'removed_from_scan': before != after,
+                'registered_in_deleted': True,
             })
         return jsonify({'success': False, 'message': 'No se pudo eliminar.'}), 500
 
@@ -1412,6 +1505,8 @@ def create_app():
             return jsonify({'error': 'Primero escanea tu musica.'}), 400
         from batch_artwork import detect_missing_artwork
         result = detect_missing_artwork(LAST_SCAN['files'])
+        # v3.14: se quitó el límite [:300] que truncaba la lista a 600 archivos máximo.
+        # Ahora se devuelven TODOS los archivos para que el usuario vea su biblioteca completa.
         return jsonify({
             'total': result['total'],
             'missing_count': result['missing_count'],
@@ -1422,13 +1517,13 @@ def create_app():
                      'artwork_ext': f.get('artwork_ext', '—'),
                      'artwork_dimensions': f.get('artwork_dimensions', '?'),
                      'artwork_size_kb': f.get('artwork_size_kb', 0)}
-                    for f in result['has_artwork'][:300]] +
+                    for f in result['has_artwork']] +
                    [{'path': f['path'], 'name': f['name'], 'artist': f['artist'],
                      'ext': f.get('ext', ''),
                      'has_artwork': False,
                      'artwork_ext': '—', 'artwork_dimensions': '—',
                      'artwork_size_kb': 0}
-                    for f in result['missing'][:300]],
+                    for f in result['missing']],
         })
 
     @app.route('/api/batch/resize', methods=['POST'])
@@ -1512,7 +1607,7 @@ def create_app():
             'total': result['total'],
             'missing_count': result['missing_count'],
             'has_count': result['has_count'],
-            'all': all_files[:300],
+            'all': all_files,  # v3.14: sin límite, mostrar todo
         })
 
     @app.route('/api/batch/download-lyrics', methods=['POST'])
@@ -1727,6 +1822,108 @@ def create_app():
             'comment': data.get('comment', ''),
         })
         return jsonify({'success': True, 'song': song})
+
+    # ==================================================================
+    # API: COMPARAR CARPETAS (v3.12)
+    # Compara los archivos de audio de dos carpetas (ej: PC vs DAP)
+    # ==================================================================
+
+    @app.route('/api/folder-compare', methods=['POST'])
+    def api_folder_compare():
+        """
+        Compara archivos de audio de dos carpetas.
+
+        Body JSON:
+            { "folder_a": "C:\\Music", "folder_b": "E:\\Hiby R1\\Music" }
+
+        Returns:
+            JSON con: a_files, b_files, a_only, b_only, common, stats,
+            folder_a, folder_b
+        """
+        data = request.get_json(silent=True) or {}
+        folder_a = (data.get('folder_a') or '').strip()
+        folder_b = (data.get('folder_b') or '').strip()
+
+        if not folder_a or not folder_b:
+            return jsonify({'error': 'Debes indicar las dos carpetas.'}), 400
+
+        try:
+            result = compare_folders(folder_a, folder_b)
+            if 'error' in result:
+                return jsonify({'error': result['error']}), 400
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': f'Error al comparar: {str(e)}'}), 500
+
+    # ==================================================================
+    # API: SPOTIFLAC DUMMY GENERATOR (v3.16)
+    # Genera archivos dummy para engañar a Spotiflac y que detecte
+    # canciones como ya descargadas.
+    # ==================================================================
+
+    @app.route('/api/spotiflac/preview', methods=['POST'])
+    def api_spotiflac_preview():
+        """Previsualiza qué archivos se generarían como dummy.
+
+        Body JSON:
+            { "only_new": true (default) }
+        Returns:
+            JSON con: to_generate, already_generated, total, by_format
+        """
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu música en "Mi Música".'}), 400
+        data = request.get_json(silent=True) or {}
+        only_new = data.get('only_new', True)
+        result = preview_generation(LAST_SCAN['files'], only_new=only_new)
+        return jsonify(result)
+
+    @app.route('/api/spotiflac/generate', methods=['POST'])
+    def api_spotiflac_generate():
+        """Genera el ZIP con archivos dummy y lo devuelve como descarga.
+
+        Body JSON:
+            { "only_new": true, "naming_mode": "original" }
+        Returns:
+            application/zip (descarga directa)
+        """
+        if not LAST_SCAN['files']:
+            return jsonify({'error': 'Primero escanea tu música en "Mi Música".'}), 400
+        data = request.get_json(silent=True) or {}
+        only_new = data.get('only_new', True)
+        naming_mode = data.get('naming_mode', 'original')
+
+        try:
+            zip_bytes, stats = generate_dummy_zip(
+                LAST_SCAN['files'],
+                only_new=only_new,
+                naming_mode=naming_mode,
+            )
+            # Devolver como descarga
+            from datetime import datetime as _dt
+            filename = f'spotiflac_dummies_{_dt.now().strftime("%Y%m%d_%H%M%S")}.zip'
+            # Guardar stats en un header para que el frontend los lea
+            resp = Response(
+                zip_bytes,
+                mimetype='application/zip',
+                headers={
+                    'Content-Disposition': f'attachment; filename="{filename}"',
+                    'X-Spotiflac-Stats': json.dumps(stats),
+                }
+            )
+            return resp
+        except Exception as e:
+            return jsonify({'error': f'Error al generar: {str(e)}'}), 500
+
+    @app.route('/api/spotiflac/history', methods=['GET'])
+    def api_spotiflac_history():
+        """Devuelve el historial de dummies ya generados."""
+        return jsonify(get_dummy_history())
+
+    @app.route('/api/spotiflac/clear-history', methods=['POST'])
+    def api_spotiflac_clear_history():
+        """Vacía el historial de dummies generados."""
+        n = clear_dummy_history()
+        return jsonify({'success': True, 'removed': n})
 
     # ==================================================================
     # HEADERS ANTI-CACHE (v3.6)

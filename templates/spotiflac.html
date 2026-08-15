@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: SPOTIFLAC DUMMY GENERATOR (v3.16)
+     Genera archivos dummy tiny para engañar a Spotiflac
+     y que detecte canciones como "ya descargadas".
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Spotiflac Dummies</h1>
+        <p class="subtitle">
+            Genera archivos dummy (señuelo) tiny a partir de tu música real.
+            Estos archivos engañan a Spotiflac para que marque como duplicadas
+            las canciones que ya pasaste al Hiby R1, sin ocupar espacio real.
+        </p>
+    </header>
+
+    <!-- Instrucciones de uso -->
+    <div class="local-status" style="margin-bottom:16px;">
+        <span class="status-icon">💡</span>
+        <div style="flex:1;">
+            <strong>Cómo funciona:</strong><br>
+            <span style="font-size:12px; color:var(--text-secondary);">
+                1. Escaneá tu música en "Mi Música" (la que ya pasaste al Hiby R1)<br>
+                2. Generá el ZIP de dummies acá<br>
+                3. Pasá el ZIP a tu teléfono y descomprimilo en
+                <code style="background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">/storage/emulated/0/Music/SpotyFlac/</code><br>
+                4. En Spotiflac: Biblioteca Local → escanear<br>
+                5. Al buscar canciones, las que ya tenés aparecen con etiqueta de duplicado
+            </span>
+        </div>
+    </div>
+
+    <!-- Estado de la música local -->
+    <div id="sp-status" class="local-status">
+        <span class="status-icon">♪</span>
+        <span id="sp-status-text">No has escaneado tu música local. Ve a "Mi Música" primero.</span>
+        <a href="/" class="btn btn-ghost btn-sm">Ir a Mi Música</a>
+    </div>
+
+    <!-- Stats -->
+    <div id="sp-stats" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">Total en biblioteca</span>
+            <span class="stat-value" id="sp-total">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">A generar (nuevos)</span>
+            <span class="stat-value" id="sp-to-generate" style="color:var(--accent);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Ya generados antes</span>
+            <span class="stat-value" id="sp-already" style="color:var(--text-muted);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Dummies en historial</span>
+            <span class="stat-value" id="sp-history-count" style="color:var(--text-secondary);">0</span>
+        </div>
+    </div>
+
+    <!-- Opciones -->
+    <div id="sp-options" class="filter-bar hidden">
+        <label style="font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="sp-only-new" checked>
+            Solo generar nuevos (saltar los ya generados antes)
+        </label>
+        <select id="sp-naming" class="filter-select" title="Modo de nombres de archivo">
+            <option value="original" selected>Nombre original del archivo</option>
+            <option value="spotiflac">Formato Spotiflac: "Título - Artista.ext"</option>
+        </select>
+        <button id="btn-sp-preview" class="btn btn-secondary">🔍 Previsualizar</button>
+        <button id="btn-sp-generate" class="btn btn-primary">⬇ Generar ZIP</button>
+        <button id="btn-sp-clear-history" class="btn btn-ghost" title="Vaciar el historial de dummies generados">🗑 Limpiar historial</button>
+    </div>
+
+    <!-- Preview -->
+    <div id="sp-preview-container" class="hidden" style="margin-top:16px;">
+        <div class="table-container">
+            <table id="sp-table" class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre del archivo</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th>Formato</th>
+                    </tr>
+                </thead>
+                <tbody id="sp-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="sp-empty" class="empty-state hidden">
+        <div class="empty-icon">📦</div>
+        <h3>Sin música escaneada</h3>
+        <p>Ve a <a href="/" style="color:var(--accent);">Mi Música</a> y escanea la carpeta donde tenés la música que ya pasaste al Hiby R1.</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="sp-loading" class="empty-state hidden">
+        <div class="spinner"></div>
+        <h3 id="sp-loading-text">Generando ZIP...</h3>
+        <p>Esto puede tardar según cuántas canciones tengas.</p>
+    </div>
+
+    <!-- Resultado de generación -->
+    <div id="sp-result" class="hidden" style="margin-top:16px; padding:16px; background:var(--bg-elevated); border-radius:8px; border-left:3px solid var(--accent);">
+        <h3 style="margin:0 0 8px 0; color:var(--accent);">✓ ZIP generado</h3>
+        <div id="sp-result-content"></div>
+    </div>
+
+    <!-- Historial -->
+    <div id="sp-history-container" class="hidden" style="margin-top:24px;">
+        <h3 style="font-size:14px; color:var(--text-secondary); margin-bottom:8px;">Historial de dummies generados</h3>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+            Las canciones en este historial se saltan al generar (salvo que desmarques "Solo generar nuevos").
+        </p>
+        <div class="table-container">
+            <table class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Archivo dummy</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th>Generado el</th>
+                    </tr>
+                </thead>
+                <tbody id="sp-history-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/spotiflac.js') }}?v=189"></script>
+{% endblock %}

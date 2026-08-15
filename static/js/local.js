@@ -244,6 +244,7 @@ function applyFilters() {
         if (dupFilter === 'unique' && duplicatePaths.has(f.path)) return false;
         if (metaFilter === 'error' && !f.has_error) return false;
         if (metaFilter === 'ok' && f.has_error) return false;
+        if (metaFilter === 'missing_tech' && !f.missing_tech) return false;
         if (query) {
             const haystack = `${f.name} ${f.artist} ${f.album}`.toLowerCase();
             if (!haystack.includes(query)) return false;

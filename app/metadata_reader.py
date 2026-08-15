@@ -139,6 +139,28 @@ def read_metadata(file_path):
         channels = int(getattr(info, 'channels', 0) or 0)
         bits_per_sample = int(getattr(info, 'bits_per_sample', 0) or 0)
 
+        # ---------- Workaround para Opus (v3.15) ----------
+        # Opus es un formato lossy con sample_rate nativo fijo de 48000 Hz
+        # y bitrate variable. mutagen.OggOpusInfo solo expone length y channels,
+        # NO expone sample_rate ni bitrate. Por eso aparecian como N/A.
+        # Solucion:
+        #   - sample_rate = 48000 (es lo que Opus usa internamente)
+        #   - bitrate = estimar desde (size * 8) / duration
+        #   - bits_per_sample = 0 (no aplica, es lossy)
+        ext = Path(file_path).suffix.lower()
+        if ext == '.opus':
+            # Sample rate nativo de Opus
+            if sample_rate == 0:
+                sample_rate = 48000
+            # Bitrate estimado desde el tamaño del archivo y la duración
+            if bitrate == 0 and duration > 0:
+                try:
+                    file_size = Path(file_path).stat().st_size
+                    bitrate = int((file_size * 8) / duration)
+                except OSError:
+                    pass
+            # bits_per_sample no aplica para Opus (lossy), queda en 0
+
         return {
             'title': title,
             'artist': artist or 'Desconocido',

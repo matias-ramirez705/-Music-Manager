@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: COMPARAR CARPETAS (v3.12)
+     Compara archivos de audio de 2 carpetas (PC vs DAP, etc.)
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Comparar Carpetas</h1>
+        <p class="subtitle">Compara los archivos de audio de dos carpetas distintas (ej: tu PC vs tu DAP Hiby R1) para ver qué canciones te faltan pasar.</p>
+    </header>
+
+    <!-- Selector de 2 carpetas -->
+    <div class="folder-picker">
+        <input type="text" id="folder-a-input" placeholder="Carpeta A (PC): C:\Users\TU_USUARIO\Music\..."
+               class="folder-input">
+        <button id="btn-browse-a" class="btn btn-secondary">Explorar A</button>
+    </div>
+    <div class="folder-picker" style="margin-top:8px;">
+        <input type="text" id="folder-b-input" placeholder="Carpeta B (DAP Hiby R1): E:\Music\..."
+               class="folder-input">
+        <button id="btn-browse-b" class="btn btn-secondary">Explorar B</button>
+    </div>
+    <div class="folder-picker" style="margin-top:8px;">
+        <button id="btn-compare-folders" class="btn btn-primary">⇄ Comparar carpetas</button>
+        <button id="btn-clear-folders" class="btn btn-ghost" title="Limpiar todo">✕ Limpiar</button>
+    </div>
+
+    <!-- Stats -->
+    <div id="fc-stats" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">Carpeta A</span>
+            <span class="stat-value" id="fc-a-total">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Carpeta B</span>
+            <span class="stat-value" id="fc-b-total">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Comunes</span>
+            <span class="stat-value" id="fc-common" style="color:var(--accent);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Solo en A (faltan en B)</span>
+            <span class="stat-value" id="fc-a-only" style="color:var(--danger);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Solo en B (faltan en A)</span>
+            <span class="stat-value" id="fc-b-only" style="color:var(--warning);">0</span>
+        </div>
+    </div>
+
+    <!-- Opciones de vista -->
+    <div id="fc-options" class="filter-bar hidden">
+        <input type="text" id="fc-search" class="search-input" placeholder="Buscar en ambas listas...">
+        <label style="font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="fc-show-common" checked> Mostrar comunes
+        </label>
+        <label style="font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="fc-show-only" checked> Mostrar solo faltantes
+        </label>
+        <button id="btn-refresh-fc" class="btn btn-secondary" title="Volver a comparar las mismas carpetas">↻ Recargar</button>
+    </div>
+
+    <!-- Dos paneles en paralelo -->
+    <div id="fc-panels" class="fc-panels hidden">
+        <!-- Panel A -->
+        <div class="fc-panel">
+            <div class="fc-panel-header">
+                <h3>Carpeta A</h3>
+                <p class="fc-folder-path" id="fc-folder-a-path">—</p>
+            </div>
+            <div class="table-container">
+                <table class="music-table fc-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre del archivo</th>
+                            <th>Formato</th>
+                            <th>Duración</th>
+                            <th>Peso</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fc-tbody-a"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel B -->
+        <div class="fc-panel">
+            <div class="fc-panel-header">
+                <h3>Carpeta B</h3>
+                <p class="fc-folder-path" id="fc-folder-b-path">—</p>
+            </div>
+            <div class="table-container">
+                <table class="music-table fc-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre del archivo</th>
+                            <th>Formato</th>
+                            <th>Duración</th>
+                            <th>Peso</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fc-tbody-b"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="fc-empty" class="empty-state">
+        <div class="empty-icon">⇄</div>
+        <h3>Sin comparación</h3>
+        <p>Indica las dos carpetas arriba y haz clic en "Comparar carpetas".</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="fc-loading" class="empty-state hidden">
+        <div class="spinner"></div>
+        <h3>Comparando carpetas...</h3>
+        <p>Esto puede tardar según cuántas canciones haya en cada una.</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/folder_compare.js') }}?v=189"></script>
+{% endblock %}
