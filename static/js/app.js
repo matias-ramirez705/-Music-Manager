@@ -100,3 +100,29 @@ async function revealInExplorer(encodedPath) {
         showToast('Error: ' + e.message, 'error');
     }
 }
+
+/**
+ * Copia "titulo - artista" al portapapeles.
+ * @param {string} name - nombre/titulo de la cancion.
+ * @param {string} artist - artista.
+ */
+async function copySongInfo(name, artist) {
+    const text = artist ? name + ' - ' + artist : name;
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copiado: ' + text, 'success', 2000);
+    } catch (e) {
+        // Fallback
+        const tmp = document.createElement('input');
+        tmp.value = text;
+        document.body.appendChild(tmp);
+        tmp.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copiado: ' + text, 'success', 2000);
+        } catch (err) {
+            showToast('No se pudo copiar.', 'error');
+        }
+        document.body.removeChild(tmp);
+    }
+}

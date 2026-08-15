@@ -1,4 +1,50 @@
-# Music Manager v2.1
+# Music Manager v3.2
+
+Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
+archivos de audio, compararlos con playlists publicas de YouTube Music o
+Spotify, guardar accesos directos a playlists, detectar duplicados,
+reproducir canciones, editar metadata + caratulas, organizar por
+carpetas, acceder a un indice de sitios para descargar musica FLAC,
+gestionar caratulas y letras masivamente.
+
+## Novedades en v3.2
+
+- **Boton "↻ Actualizar" en Mi Musica**: re-escanea la ultima carpeta
+  usada sin tener que volver a seleccionarla. La carpeta se mantiene
+  entre pestanas (guardada en localStorage).
+- **Scroll solo en la tabla**: la cabecera, filtros, buscador y titulos
+  de columnas se mantienen visibles. Solo la lista hace scroll vertical.
+- **Scroll en modal de playlist**: el buscador y los titulos de columnas
+  se mantienen fijos; solo la lista de canciones hace scroll.
+- **Buscador en Playlists Guardadas**: filtra playlists por nombre o
+  plataforma en tiempo real.
+- **Filtro de metadata con error** en Mi Musica: nuevo dropdown para
+  ver solo las canciones que no pudieron cargar metadatos (⚠).
+- **Error具体 visible**: al pasar el raton sobre el ⚠ se ve el mensaje
+  de error具体 (formato no soportado, archivo corrupto, etc.).
+- **Dots de playlist clicables**: al hacer clic en un dot de color en
+  la columna Playlists de Mi Musica, se abre el detalle de esa playlist
+  con todas sus canciones y un buscador integrado.
+- **Columna Copiar (📋)** en Mi Musica y Comparar Playlist: copia
+  "titulo - artista" al portapapeles para buscar facilmente.
+- **Alineacion y anchos corregidos** en Mi Musica, Comparar Playlist y
+  modal de playlist:
+  - Mi Musica: duracion, formato y copiar centrados; artista reducido;
+    ruta mas ancha.
+  - Comparar: titulo alineado a la izquierda; bug de columna Copiar/
+    Abrir online intercambiados corregido.
+  - Modal de playlist: titulo a la izquierda; album y duracion
+    centrados; columnas redimensionadas.
+
+## Novedades en v3.0–v3.1
+
+- **Pestana "Metadatos" con 3 sub-pestañas**: Editar Metadata,
+  Caratulas (masivo) y Letras (masivo).
+- **Caratulas masivo**: analizar, redimensionar todas, descargar
+  faltantes desde iTunes, busqueda manual con multiple fuente.
+- **Letras masivo**: analizar, descargar faltantes desde lrclib.net,
+  ver letra con reproductor integrado, busqueda manual con preview.
+- **Seguidor de letra sincronizada** (LRC) en el reproductor principal.
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o

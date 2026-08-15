@@ -16,6 +16,7 @@
                class="folder-input">
         <button id="btn-browse" class="btn btn-secondary">Explorar</button>
         <button id="btn-scan" class="btn btn-primary">Escanear</button>
+        <button id="btn-refresh" class="btn btn-secondary" title="Re-escanear la última carpeta usada">↻ Actualizar</button>
     </div>
 
     <!-- Estadisticas -->
@@ -53,6 +54,11 @@
             <option value="duplicates">Solo duplicadas</option>
             <option value="unique">Solo únicas</option>
         </select>
+        <select id="filter-meta" class="filter-select" title="Filtrar por estado de metadata">
+            <option value="">Metadata: todas</option>
+            <option value="error">⚠ Metadata con error</option>
+            <option value="ok">✓ Metadata OK</option>
+        </select>
         <select id="sort-by" class="filter-select">
             <option value="name">Ordenar: Nombre</option>
             <option value="artist">Ordenar: Artista</option>
@@ -79,6 +85,7 @@
                     <th class="quality-col hidden">Calidad</th>
                     <th>Playlists</th>
                     <th>Tamaño</th>
+                    <th>Copiar</th>
                     <th>Ruta</th>
                 </tr>
             </thead>
@@ -101,5 +108,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/local.js') }}?v=88"></script>
+<script src="{{ url_for('static', filename='js/local.js') }}?v=184"></script>
 {% endblock %}

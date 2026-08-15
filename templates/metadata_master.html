@@ -2,7 +2,7 @@
 
 {% block content %}
 <!-- ============================================
-     PESTANA: METADATOS (v2.7) con sub-pestañas
+     PESTANA: METADATOS (v3.6) con sub-pestañas
      ============================================ -->
 <section class="page">
     <header class="page-header">
@@ -20,6 +20,9 @@
         </a>
         <a href="/editor?sub=lyrics" class="sub-tab {{ 'active' if sub_tab == 'lyrics' else '' }}">
             📝 Letras
+        </a>
+        <a href="/editor?sub=rename" class="sub-tab {{ 'active' if sub_tab == 'rename' else '' }}">
+            🔤 Renombrar
         </a>
     </div>
 
@@ -84,6 +87,8 @@
                 <div class="form-actions">
                     <button id="btn-save-meta" class="btn btn-primary">Guardar cambios</button>
                     <button id="btn-rename-file" class="btn btn-secondary">📄 Renombrar</button>
+                    <button id="btn-editor-play" class="btn btn-secondary" title="Reproducir esta canción">▶ Reproducir</button>
+                    <button id="btn-editor-lyrics" class="btn btn-secondary" title="Ver letra de esta canción">📖 Letra</button>
                 </div>
             </div>
             <div class="editor-col editor-col-tech">
@@ -154,16 +159,81 @@
 
         <div id="ly-results" class="batch-results"></div>
     </div>
+
+    <!-- ================================================================
+         SUB-PESTAÑA: RENOMBRAR (Analizador de Nombres) - v3.11
+         ================================================================ -->
+    {% elif sub_tab == 'rename' %}
+    <div class="sub-content">
+        <header class="page-header" style="margin-bottom:12px;">
+            <h2 style="font-size:18px;">Analizador de Nombres</h2>
+            <p class="subtitle" style="font-size:12px;">
+                Compara el <strong>nombre del archivo en disco</strong> con el título/artista de la metadata.
+                Las canciones marcadas con ⚠ podrían necesitar renombrarse.
+            </p>
+        </header>
+
+        <!-- Estado de la música local -->
+        <div id="an-status" class="local-status">
+            <span class="status-icon">♪</span>
+            <span id="an-status-text">No has escaneado tu música local. Ve a "Mi Música" primero.</span>
+            <a href="/" class="btn btn-ghost btn-sm">Ir a Mi Música</a>
+        </div>
+
+        <!-- Barra de búsqueda + filtros -->
+        <div id="an-filter-bar" class="filter-bar hidden">
+            <input type="text" id="an-search" class="search-input"
+                   placeholder="Buscar por nombre, título o artista...">
+            <select id="an-filter-need" class="filter-select" title="Filtrar por estado de renombrado">
+                <option value="">Todas las canciones</option>
+                <option value="need">⚠ Solo las que necesitan renombrar</option>
+                <option value="ok">✓ Solo las que están OK</option>
+            </select>
+            <button id="btn-an-refresh" class="btn btn-secondary" title="Recargar lista desde Mi Música">↻ Recargar</button>
+            <span id="an-count-badge" class="stat-value" style="font-size:12px; color:var(--text-muted); padding:4px 8px;">0 canciones</span>
+        </div>
+
+        <!-- Tabla -->
+        <div id="an-table-container" class="table-container hidden">
+            <table id="analyze-table" class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre del archivo</th>
+                        <th>Nombre canción (metadata)</th>
+                        <th>Artista</th>
+                        <th>Renombrar</th>
+                    </tr>
+                </thead>
+                <tbody id="an-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- Empty state -->
+        <div id="an-empty" class="empty-state hidden">
+            <div class="empty-icon">🔤</div>
+            <h3>Sin escaneo local</h3>
+            <p>Ve a <a href="/" style="color:var(--accent);">Mi Música</a> y escanea tu biblioteca para analizar los nombres de archivo.</p>
+        </div>
+
+        <!-- Loading -->
+        <div id="an-loading" class="empty-state hidden">
+            <div class="spinner"></div>
+            <h3>Analizando nombres...</h3>
+        </div>
+    </div>
     {% endif %}
 </section>
 {% endblock %}
 
 {% block scripts %}
 {% if sub_tab == 'edit' %}
-<script src="{{ url_for('static', filename='js/editor.js') }}?v=81"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}?v=184"></script>
 {% elif sub_tab == 'artwork' %}
-<script src="{{ url_for('static', filename='js/batch_artwork.js') }}?v=7"></script>
+<script src="{{ url_for('static', filename='js/batch_artwork.js') }}?v=184"></script>
 {% elif sub_tab == 'lyrics' %}
-<script src="{{ url_for('static', filename='js/batch_lyrics.js') }}?v=7"></script>
+<script src="{{ url_for('static', filename='js/batch_lyrics.js') }}?v=184"></script>
+{% elif sub_tab == 'rename' %}
+<script src="{{ url_for('static', filename='js/rename.js') }}?v=184"></script>
 {% endif %}
 {% endblock %}

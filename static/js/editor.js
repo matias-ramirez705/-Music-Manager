@@ -56,6 +56,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (inputFile) inputFile.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') loadFile();
     });
+    // Boton reproducir
+    var btnPlay = $('btn-editor-play');
+    if (btnPlay) btnPlay.addEventListener('click', function() {
+        if (!currentFilePath) { showToast('Carga un archivo primero.', 'error'); return; }
+        var title = $('meta-title') ? $('meta-title').value : '';
+        var artist = $('meta-artist') ? $('meta-artist').value : '';
+        playFile(currentFilePath, title, artist);
+    });
+    // Boton ver letra
+    var btnLyrics = $('btn-editor-lyrics');
+    if (btnLyrics) btnLyrics.addEventListener('click', function() {
+        if (!currentFilePath) { showToast('Carga un archivo primero.', 'error'); return; }
+        showEditorLyrics();
+    });
 
     // Si venimos con ?path=... (desde Mi Musica), cargar el archivo
     var params = new URLSearchParams(window.location.search);
@@ -119,6 +133,8 @@ async function renameFile() {
             if (fi) fi.value = newPath;
             var fp = $('current-file-path');
             if (fp) fp.textContent = newPath;
+            // Marcar flag para que Mi Musica se actualice
+            sessionStorage.setItem('metadata_changed', '1');
         } else {
             showToast(data.message || 'No se pudo renombrar.', 'error');
         }
@@ -463,9 +479,32 @@ function renderResults(results, best) {
                 '<div class="itunes-result-title">' + sourceBadge + escapeHtml(r.title) + '</div>' +
                 '<div class="itunes-result-meta">' + escapeHtml(r.artist) + (r.year ? ' • ' + escapeHtml(r.year) : '') + '</div>' +
                 (r.album ? '<div class="itunes-result-album">' + escapeHtml(r.album) + '</div>' : '') +
-                (r.artwork_url ? '<button class="btn btn-ghost btn-sm" style="margin-top:4px;" onclick="event.stopPropagation(); applyArtworkFromResult(' + idx + ');">Usar esta carátula</button>' : '') +
+                '<div class="itunes-result-actions" style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">' +
+                    (r.preview_url ? '<button class="btn btn-ghost btn-sm btn-preview-result" data-url="' + escapeHtml(r.preview_url) + '" title="Escuchar preview (30s)">▶ Preview</button>' : '') +
+                    '<button class="btn btn-ghost btn-sm btn-yt-result" data-title="' + escapeHtml(r.title) + '" data-artist="' + escapeHtml(r.artist) + '" title="Buscar en YouTube">▶ YouTube</button>' +
+                    (r.artwork_url ? '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); applyArtworkFromResult(' + idx + ');">🖼 Carátula</button>' : '') +
+                '</div>' +
             '</div>';
         div.addEventListener('click', function() { applyResult(r); });
+
+        // Boton preview
+        var previewBtn = div.querySelector('.btn-preview-result');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                togglePreview(previewBtn, previewBtn.dataset.url);
+            });
+        }
+        // Boton YouTube
+        var ytBtn = div.querySelector('.btn-yt-result');
+        if (ytBtn) {
+            ytBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var q = ytBtn.dataset.title + ' ' + ytBtn.dataset.artist;
+                window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), '_blank');
+            });
+        }
+
         resultsEl.appendChild(div);
     });
 }
@@ -538,6 +577,8 @@ async function saveMetadata() {
             metadata: metadata,
         });
         showToast(data.message, 'success');
+        // Marcar flag para que Mi Musica sepa que hay que actualizar
+        sessionStorage.setItem('metadata_changed', '1');
     } catch (e) {
         showToast('Error al guardar: ' + e.message, 'error', 5000);
     } finally {
@@ -547,3 +588,223 @@ async function saveMetadata() {
         }
     }
 }
+
+// ------------------------------------------------------------------
+// Ver letra desde el editor
+// ------------------------------------------------------------------
+async function showEditorLyrics() {
+    var title = $('meta-title') ? $('meta-title').value : '';
+    var artist = $('meta-artist') ? $('meta-artist').value : '';
+
+    var modalId = 'editor-lyrics-modal';
+    var existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal';
+    modal.innerHTML = '<div class="modal-content" style="max-width:700px;">' +
+        '<div class="modal-header"><h2>📖 ' + escapeHtml(title) + '</h2>' +
+        '<button class="modal-close">✕</button></div>' +
+        '<div class="modal-body">' +
+        '<div class="lyrics-text" id="editor-lyrics-content"><p class="empty-hint">Cargando...</p></div>' +
+        '<div id="editor-lyrics-actions" style="margin-top:12px;"></div>' +
+        '</div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.modal-close').addEventListener('click', function() { modal.remove(); });
+
+    try {
+        var data = await postJSON('/api/lyrics/read', { path: currentFilePath });
+        var content = document.getElementById('editor-lyrics-content');
+        var actions = document.getElementById('editor-lyrics-actions');
+
+        if (data.has_lyrics && data.lyrics) {
+            var text = data.lyrics;
+            if (text.indexOf('[') >= 0 && text.match(/\[\d{2}:\d{2}/)) {
+                content.innerHTML = '<p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">✓ Letra sincronizada.</p>' + formatEditorLrc(text);
+            } else {
+                content.innerHTML = '<p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">⚠ Letra sin sincronización.</p>' + formatEditorPlain(text);
+            }
+            actions.innerHTML = '<button id="btn-ed-ly-search" class="btn btn-secondary btn-sm">🔄 Buscar otra</button> ' +
+                '<button id="btn-ed-ly-delete" class="btn btn-ghost btn-sm">🗑 Borrar</button>';
+            document.getElementById('btn-ed-ly-search').addEventListener('click', function() {
+                modal.remove();
+                searchEditorLyrics(currentFilePath, title, artist);
+            });
+            document.getElementById('btn-ed-ly-delete').addEventListener('click', async function() {
+                if (!confirm('¿Borrar la letra?')) return;
+                var r = await postJSON('/api/lyrics/remove', { path: currentFilePath });
+                showToast(r.message, 'success');
+                modal.remove();
+            });
+        } else {
+            content.innerHTML = '<p class="empty-hint">Sin letra embebida.</p>';
+            actions.innerHTML = '<button id="btn-ed-ly-search" class="btn btn-primary btn-sm">🔍 Buscar en lrclib.net</button>';
+            document.getElementById('btn-ed-ly-search').addEventListener('click', function() {
+                modal.remove();
+                searchEditorLyrics(currentFilePath, title, artist);
+            });
+        }
+    } catch (e) {
+        document.getElementById('editor-lyrics-content').innerHTML =
+            '<p style="color:var(--danger);">' + escapeHtml(e.message) + '</p>';
+    }
+}
+
+async function searchEditorLyrics(filePath, title, artist) {
+    var modalId = 'editor-lyrics-search-modal';
+    var existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal';
+    modal.innerHTML = '<div class="modal-content" style="max-width:700px;">' +
+        '<div class="modal-header"><h2>🔍 Buscar letra</h2>' +
+        '<button class="modal-close">✕</button></div>' +
+        '<div class="modal-body">' +
+        '<div class="form-group"><label>Titulo</label><input type="text" id="ed-ly-title" class="form-input" value="' + escapeHtml(title) + '"></div>' +
+        '<div class="form-group"><label>Artista</label><input type="text" id="ed-ly-artist" class="form-input" value="' + escapeHtml(artist) + '"></div>' +
+        '<button id="btn-ed-ly-do-search" class="btn btn-primary">🔍 Buscar</button>' +
+        '<div id="ed-ly-results" style="margin-top:16px;"></div>' +
+        '</div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.modal-close').addEventListener('click', function() { modal.remove(); });
+
+    document.getElementById('btn-ed-ly-do-search').addEventListener('click', async function() {
+        var t = document.getElementById('ed-ly-title').value.trim();
+        var a = document.getElementById('ed-ly-artist').value.trim();
+        var rDiv = document.getElementById('ed-ly-results');
+        rDiv.innerHTML = '<p class="empty-hint">Buscando...</p>';
+        try {
+            var data = await postJSON('/api/lyrics/search', { title: t, artist: a });
+            if (!data.found || !data.lyrics) {
+                rDiv.innerHTML = '<p class="empty-hint">No encontrada.</p>';
+                return;
+            }
+            var ly = data.lyrics;
+            var plain = ly.plain || '(sin letra)';
+            var synced = ly.synced || '';
+            var html = '<div style="margin-bottom:8px;"><strong style="color:var(--accent);">Encontrada</strong></div>';
+            if (synced) {
+                html += '<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Sincronizada (LRC) — recomendada</summary>';
+                html += '<pre class="lyrics-plain" style="max-height:200px;">' + escapeHtml(synced) + '</pre></details>';
+            }
+            if (plain && plain !== '(sin letra)') {
+                html += '<details open style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Letra plana</summary>';
+                html += '<pre class="lyrics-plain" style="max-height:250px;">' + escapeHtml(plain) + '</pre></details>';
+            }
+            html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+            if (synced) {
+                html += '<button id="btn-ed-ly-save-sync" class="btn btn-primary">💾 Guardar sync</button>';
+            }
+            if (plain && plain !== '(sin letra)') {
+                html += '<button id="btn-ed-ly-save-plain" class="btn btn-secondary">💾 Guardar plana</button>';
+            }
+            html += '</div>';
+            rDiv.innerHTML = html;
+            var saveSyncEd = document.getElementById('btn-ed-ly-save-sync');
+            if (saveSyncEd) saveSyncEd.addEventListener('click', async function() {
+                var r = await postJSON('/api/lyrics/save', { path: filePath, lyrics: synced });
+                if (r.success) { showToast('Letra sincronizada guardada.', 'success'); modal.remove(); }
+            });
+            var savePlainEd = document.getElementById('btn-ed-ly-save-plain');
+            if (savePlainEd) savePlainEd.addEventListener('click', async function() {
+                var r = await postJSON('/api/lyrics/save', { path: filePath, lyrics: plain });
+                if (r.success) { showToast('Letra plana guardada.', 'success'); modal.remove(); }
+            });
+        } catch (e) {
+            rDiv.innerHTML = '<p style="color:var(--danger);">' + escapeHtml(e.message) + '</p>';
+        }
+    });
+}
+
+function formatEditorLrc(text) {
+    var lines = text.split('\n');
+    var html = '<div class="lyrics-synced">';
+    lines.forEach(function(line) {
+        var clean = line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim();
+        html += '<div class="lyrics-line">' + (clean ? escapeHtml(clean) : '&nbsp;') + '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function formatEditorPlain(text) {
+    var lines = text.split('\n');
+    var html = '<div class="lyrics-synced">';
+    lines.forEach(function(line) {
+        var clean = line.trim();
+        html += '<div class="lyrics-line">' + (clean ? escapeHtml(clean) : '&nbsp;') + '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+// ------------------------------------------------------------------
+// Preview de cancion (30s desde iTunes)
+// ------------------------------------------------------------------
+var previewAudio = null;
+
+function togglePreview(btn, url) {
+    // Si ya hay un preview sonando, detenerlo
+    if (previewAudio) {
+        previewAudio.pause();
+        previewAudio = null;
+        _detachPreviewVolSync();
+        // Restaurar todos los botones
+        document.querySelectorAll('.btn-preview-result').forEach(function(b) {
+            b.textContent = '▶ Preview';
+        });
+        // Si es el mismo boton, solo detener
+        if (btn.dataset.url === url) return;
+    }
+    // Crear nuevo audio
+    previewAudio = new Audio(url);
+    // Aplicar el volumen del reproductor principal (v3.10)
+    // lastVolume está definido en player.js y va de 0 a 1.
+    try {
+        if (typeof lastVolume === 'number') {
+            // Si está muteado, lastMuted=true, usamos volumen 0
+            var effectiveVol = (typeof lastMuted === 'boolean' && lastMuted) ? 0 : lastVolume;
+            previewAudio.volume = Math.max(0, Math.min(1, effectiveVol));
+        }
+    } catch (e) {
+        // Si por alguna razón no podemos acceder a lastVolume, dejamos volumen default
+        previewAudio.volume = 0.5;
+    }
+    // Escuchar cambios de volumen del reproductor mientras suena el preview
+    // para que se actualice en tiempo real
+    var volSlider = document.getElementById('player-volume');
+    if (volSlider) {
+        volSlider.addEventListener('input', _previewVolSync);
+    }
+    previewAudio.addEventListener('ended', function() {
+        btn.textContent = '▶ Preview';
+        previewAudio = null;
+        _detachPreviewVolSync();
+    });
+    previewAudio.addEventListener('error', function() {
+        btn.textContent = '▶ Preview';
+        previewAudio = null;
+        showToast('No se pudo cargar el preview.', 'error');
+        _detachPreviewVolSync();
+    });
+    previewAudio.play();
+    btn.textContent = '❚❚ Stop';
+}
+
+// Funciones auxiliares para sincronizar volumen del preview con el slider del reproductor
+function _previewVolSync(e) {
+    if (previewAudio) {
+        var v = parseInt(e.target.value, 10) / 100;
+        previewAudio.volume = Math.max(0, Math.min(1, v));
+    }
+}
+function _detachPreviewVolSync() {
+    var volSlider = document.getElementById('player-volume');
+    if (volSlider) {
+        volSlider.removeEventListener('input', _previewVolSync);
+    }
+}
+

@@ -545,11 +545,11 @@ async function showPlayerLyrics() {
             const text = data.lyrics;
             if (text.includes('[') && text.match(/\[\d{2}:\d{2}/)) {
                 // Es LRC sincronizado — construir seguidor
-                content.innerHTML = formatPlayerLrc(text);
-                // Iniciar seguidor de letra
+                content.innerHTML = '<p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">✓ Letra sincronizada — la línea activa se resaltará automáticamente.</p>' + formatPlayerLrc(text);
                 startLyricsSync(text, modal);
             } else {
-                content.innerHTML = `<pre class="lyrics-plain">${escapeHtml(text)}</pre>`;
+                // Letra plana (sin timestamps)
+                content.innerHTML = '<p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">⚠ Letra sin sincronización — no se puede seguir automáticamente.</p>' + formatPlayerPlainLyrics(text);
             }
             actions.innerHTML = `<button id="btn-player-ly-search" class="btn btn-secondary btn-sm">🔄 Buscar otra</button>
                 <button id="btn-player-ly-delete" class="btn btn-ghost btn-sm">🗑 Borrar</button>`;
@@ -621,21 +621,48 @@ async function searchPlayerLyrics(filePath, title, artist) {
             const synced = ly.synced || '';
             let html = `<div style="margin-bottom:8px;"><strong style="color:var(--accent);">Encontrada</strong></div>`;
             if (synced) {
-                html += '<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Sincronizada (LRC)</summary>';
+                html += '<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Sincronizada (LRC) — recomendada</summary>';
                 html += `<pre class="lyrics-plain" style="max-height:200px;">${escapeHtml(synced)}</pre></details>`;
             }
-            html += '<details open style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Letra plana</summary>';
-            html += `<pre class="lyrics-plain" style="max-height:250px;">${escapeHtml(plain)}</pre></details>`;
-            html += `<button id="btn-ply-save" class="btn btn-primary">💾 Guardar</button>`;
+            if (plain && plain !== '(sin letra)') {
+                html += '<details open style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary);">Letra plana</summary>';
+                html += `<pre class="lyrics-plain" style="max-height:250px;">${escapeHtml(plain)}</pre></details>`;
+            }
+            // Botones de guardado: mostrar segun lo disponible
+            html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+            if (synced) {
+                html += '<button id="btn-ply-save-sync" class="btn btn-primary">💾 Guardar sync</button>';
+            }
+            if (plain && plain !== '(sin letra)') {
+                html += '<button id="btn-ply-save-plain" class="btn btn-secondary">💾 Guardar plana</button>';
+            }
+            html += '</div>';
             rDiv.innerHTML = html;
-            document.getElementById('btn-ply-save').addEventListener('click', async () => {
-                const r = await postJSON('/api/lyrics/save', { path: filePath, lyrics: plain });
-                if (r.success) {
-                    showToast('Letra guardada.', 'success');
-                    modal.remove();
-                    showPlayerLyrics(); // Mostrar la letra guardada
-                }
-            });
+
+            // Boton guardar sincronizada
+            const saveSyncBtn = document.getElementById('btn-ply-save-sync');
+            if (saveSyncBtn) {
+                saveSyncBtn.addEventListener('click', async () => {
+                    const r = await postJSON('/api/lyrics/save', { path: filePath, lyrics: synced });
+                    if (r.success) {
+                        showToast('Letra sincronizada guardada.', 'success');
+                        modal.remove();
+                        showPlayerLyrics();
+                    }
+                });
+            }
+            // Boton guardar plana
+            const savePlainBtn = document.getElementById('btn-ply-save-plain');
+            if (savePlainBtn) {
+                savePlainBtn.addEventListener('click', async () => {
+                    const r = await postJSON('/api/lyrics/save', { path: filePath, lyrics: plain });
+                    if (r.success) {
+                        showToast('Letra plana guardada.', 'success');
+                        modal.remove();
+                        showPlayerLyrics();
+                    }
+                });
+            }
         } catch (e) {
             rDiv.innerHTML = `<p style="color:var(--danger);">${escapeHtml(e.message)}</p>`;
         }
@@ -648,6 +675,17 @@ function formatPlayerLrc(text) {
     lines.forEach((line, idx) => {
         const clean = line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim();
         html += `<div class="lyrics-line" data-idx="${idx}">${clean ? escapeHtml(clean) : '&nbsp;'}</div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function formatPlayerPlainLyrics(text) {
+    const lines = text.split('\n');
+    let html = '<div class="lyrics-synced">';
+    lines.forEach(line => {
+        const clean = line.trim();
+        html += `<div class="lyrics-line">${clean ? escapeHtml(clean) : '&nbsp;'}</div>`;
     });
     html += '</div>';
     return html;

@@ -43,6 +43,12 @@
         </p>
     </div>
 
+    <!-- Buscador de playlists guardadas -->
+    <div class="filter-bar" style="margin-bottom:16px;">
+        <input type="text" id="saved-search" class="search-input"
+               placeholder="Buscar playlist por nombre o plataforma...">
+    </div>
+
     <!-- Modal para editar/cargar TXT -->
     <div id="txt-modal" class="modal hidden">
         <div class="modal-content" style="max-width: 700px;">
@@ -80,5 +86,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=88"></script>
+<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=184"></script>
 {% endblock %}

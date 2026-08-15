@@ -280,7 +280,7 @@ function renderResults(view) {
         const msg = view === 'missing'
             ? '¡Tienes todas las canciones de la playlist!'
             : 'No hay coincidencias con tu biblioteca local.';
-        resultsTbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">${msg}</td></tr>`;
+        resultsTbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:32px; color:var(--text-muted);">${msg}</td></tr>`;
         return;
     }
 
@@ -350,17 +350,32 @@ function renderResults(view) {
 
         tr.innerHTML = `
             <td>${index + 1}</td>
-            <td><strong>${escapeHtml(track.title)}</strong></td>
+            <td style="text-align:left;"><strong>${escapeHtml(track.title)}</strong></td>
             <td>${escapeHtml(track.artist)}</td>
             <td>${formatDuration(track.duration)}</td>
             <td>${statusHtml}</td>
             <td>${qualityHtml}</td>
             <td>${formatHtml}</td>
             <td></td>
+            <td style="text-align:center;"></td>
             <td style="text-align:center;">${onlineLinkHtml}</td>
         `;
         // Insertar el td de escuchar local (creado con DOM API) en la posicion 8
         tr.children[7].replaceWith(listenLocalTd);
+        // Insertar boton copiar en la posicion 8 (columna Copiar, indice 8)
+        // Antes estaba en tr.children[9] lo cual caia en "Abrir online" - bug arreglado v3.6
+        const copyCell = tr.children[8];
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-ghost btn-sm';
+        copyBtn.title = 'Copiar "' + (track.artist ? track.title + ' - ' + track.artist : track.title) + '"';
+        copyBtn.textContent = '📋';
+        copyBtn.style.padding = '2px 4px';
+        copyBtn.style.fontSize = '11px';
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copySongInfo(track.title, track.artist || '');
+        });
+        copyCell.appendChild(copyBtn);
         resultsTbody.appendChild(tr);
     });
 }

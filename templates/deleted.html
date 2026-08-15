@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: ELIMINADOS
+     Canciones que el usuario borro del disco y que
+     Music Manager detecto automaticamente.
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Canciones Eliminadas</h1>
+        <p class="subtitle">Canciones que borraste del disco. Se detectan automáticamente al re-escanear tu biblioteca.</p>
+    </header>
+
+    <!-- Stats -->
+    <div id="del-stats" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">Eliminadas</span>
+            <span class="stat-value" id="del-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Con comentario</span>
+            <span class="stat-value" id="del-commented">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Aún en playlists</span>
+            <span class="stat-value" id="del-still-in-pl">0</span>
+        </div>
+    </div>
+
+    <!-- Opciones -->
+    <div id="del-options" class="filter-bar hidden">
+        <input type="text" id="del-search" class="search-input" placeholder="Buscar en eliminadas...">
+        <select id="del-filter-comment" class="filter-select">
+            <option value="">Todos los comentarios</option>
+            <option value="none">Sin comentario</option>
+            <option value="No me gustó">No me gustó</option>
+            <option value="Repetida">Repetida</option>
+            <option value="custom">Comentario personalizado</option>
+        </select>
+        <button id="btn-refresh-del" class="btn btn-secondary" title="Recargar lista">↻ Recargar</button>
+        <button id="btn-clear-del" class="btn btn-ghost" title="Vaciar toda la lista de eliminados">🗑 Vaciar lista</button>
+    </div>
+
+    <!-- Tabla de eliminados -->
+    <div id="del-table-container" class="table-container hidden">
+        <table id="deleted-table" class="music-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Artista</th>
+                    <th>Formato</th>
+                    <th>Playlists</th>
+                    <th>Comentario</th>
+                    <th>Eliminar</th>
+                </tr>
+            </thead>
+            <tbody id="del-tbody"></tbody>
+        </table>
+    </div>
+
+    <!-- Empty state -->
+    <div id="del-empty" class="empty-state">
+        <div class="empty-icon">🗑</div>
+        <h3>Sin canciones eliminadas</h3>
+        <p>Cuando borres un archivo de audio de tu biblioteca y vuelvas a escanear en <a href="/" style="color:var(--accent);">Mi Música</a>, aparecerá acá.</p>
+    </div>
+
+    <!-- Loading state -->
+    <div id="del-loading" class="empty-state hidden">
+        <div class="spinner"></div>
+        <h3>Cargando eliminados...</h3>
+    </div>
+</section>
+
+<!-- ============================================
+     MODAL: Comentario de canción eliminada
+     ============================================ -->
+<div id="comment-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+            <h2>Comentar eliminación</h2>
+            <button class="modal-close" id="comment-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary); margin-bottom:12px;">
+                <strong id="comment-song-name">—</strong><br>
+                <span id="comment-song-artist" style="font-size:12px; color:var(--text-muted);"></span>
+            </p>
+
+            <label style="display:block; margin-bottom:6px; font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                Comentario
+            </label>
+
+            <!-- Opciones rápidas -->
+            <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm comment-preset" data-comment="No me gustó">No me gustó</button>
+                <button type="button" class="btn btn-secondary btn-sm comment-preset" data-comment="Repetida">Repetida</button>
+            </div>
+
+            <!-- Input de comentario personalizado -->
+            <input type="text" id="comment-input" class="search-input"
+                   placeholder="Escribe un comentario o elige uno de arriba..."
+                   style="width:100%; margin-bottom:16px;">
+
+            <!-- Preview -->
+            <div id="comment-preview" style="display:none; padding:8px 12px; background:var(--bg-elevated); border-radius:6px; margin-bottom:16px; font-size:13px;">
+                <span style="color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Vista previa:</span><br>
+                <span id="comment-preview-text" style="color:var(--text-primary);"></span>
+            </div>
+
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button type="button" class="btn btn-ghost" id="comment-clear-btn">Sin comentario</button>
+                <button type="button" class="btn btn-primary" id="comment-save-btn">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/deleted.js') }}?v=184"></script>
+{% endblock %}

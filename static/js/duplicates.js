@@ -40,6 +40,10 @@ async function loadDuplicates() {
     if (loading) return;
     loading = true;
 
+    // Guardar posicion del scroll antes de recargar
+    const scrollContainer = document.querySelector('.main');
+    const savedScroll = scrollContainer ? scrollContainer.scrollTop : 0;
+
     // Mostrar estado de carga
     dupList.innerHTML = `
         <div class="empty-state" style="padding: 40px;">
@@ -80,6 +84,13 @@ async function loadDuplicates() {
         dupEmpty.classList.add('hidden');
 
         renderGroups();
+
+        // Restaurar posicion del scroll despues de renderizar
+        if (scrollContainer && savedScroll > 0) {
+            requestAnimationFrame(() => {
+                scrollContainer.scrollTop = savedScroll;
+            });
+        }
     } catch (e) {
         dupList.innerHTML = `
             <div class="empty-state" style="padding: 40px;">

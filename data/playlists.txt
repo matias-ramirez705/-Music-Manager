@@ -1,0 +1,71 @@
+# Mis playlists
+# Las líneas con # son comentarios
+
+# YouTube Music
+
+# 2026-2
+https://music.youtube.com/playlist?list=PLJCkad8TrnTCyG_yA6A5uOPq_31IYpn-4&si=GGd32kAbSJSZSUAs
+
+# 2026-1
+https://music.youtube.com/playlist?list=PLJCkad8TrnTA4-gFlHej2kmsGh2RwXrM_&si=kHNmERlfInvJvorN
+
+# Epicas YT Music
+https://music.youtube.com/playlist?list=PLJCkad8TrnTBGLnhPatVVv_j2wrqvQ2r-&si=mm-CPHDF_IGmSiqn
+
+# En Bucle
+https://music.youtube.com/playlist?list=PLJCkad8TrnTDxpeVuQ7LcKTqkOpAxfxTe&si=sXkdDxO-EbBDsONz
+
+#____________  De Spotify exportados a YT Music  ______________________
+
+# 2026-2 
+https://music.youtube.com/playlist?list=PLacGbyzmIVXE&si=mo6eIjQU2KVlMZ3H
+
+# 2025-1
+https://music.youtube.com/playlist?list=PLJCkad8TrnTC1Ke9UM12kxf9DLB8vfZTP&si=dazXJ3x1UtQz-u0m
+
+# 2025-2
+https://music.youtube.com/playlist?list=PLJCkad8TrnTD-9B2vrmkBd_kwHipQpMHy&si=2YRQqYiUOhZrBSHd
+
+# 2024-2
+https://music.youtube.com/playlist?list=PLJCkad8TrnTDIHCE67em3khDESzEQXvCL&si=wbdUw4lThWlm_qPQ
+
+# 2024-1
+https://music.youtube.com/playlist?list=PLJCkad8TrnTDd9XqGngV8XIbDT41aVVsX&si=v3p_6bIIHkvrZ71h
+
+# 2023-2
+https://music.youtube.com/playlist?list=PLJCkad8TrnTCM6-1t73FbGWNaslUMfpPF&si=sgGQo5bL8XQrD1GU
+
+# 2023-1
+https://music.youtube.com/playlist?list=PLJCkad8TrnTBiDcgRc4hzjdZsSnvs2VUQ&si=-Z6jn0fflOTsb2Ns
+
+# 2022-2
+https://music.youtube.com/playlist?list=PLJCkad8TrnTDgumQsqhsaxw0UnAheO8wn&si=2DqWzdiswhBmAIoC
+
+# 2022-1
+https://music.youtube.com/playlist?list=PLJCkad8TrnTBLvmQg1Fct7YjjPf7MEm8U&si=4aom9GNFZeSwBv7j
+
+# 2021-2
+https://music.youtube.com/playlist?list=PLJCkad8TrnTAs0r5naEcMQ7-iTqcPfUxa&si=FpAiTWmiEbp0-r5K
+
+# 2021-1
+https://music.youtube.com/playlist?list=PLJCkad8TrnTC3VYDbxBt4XZiikqmUR1za&si=d9qzWTKU26FetxWi
+
+# 2020
+https://music.youtube.com/playlist?list=PLJCkad8TrnTA6CerUs0r3B5LrJ0r5060w&si=j2YKIghIVtCD55Hy
+
+# Epicas 
+https://music.youtube.com/playlist?list=PLJCkad8TrnTBLg5MEivucb-DBDDy9-HGg&si=p5GVolJW7n0_zppi
+
+
+
+# Spotify (máx 100 canciones por URL)
+# Para playlists grandes, exporta como CSV desde exportify.app
+
+# 2026-2
+https://open.spotify.com/playlist/5YJ0p2O1xFZqMMygCQmYts?si=54acf098e5964e54
+
+# En Bucle
+https://open.spotify.com/playlist/1yIIxQn6UIPKFkVoIQzMWm?si=7ae6a25a0ddd4c53
+
+# CSV de Exportify (rutas locales, una por línea)
+# C:\Users\Matias\Music\mi_playlist.csv

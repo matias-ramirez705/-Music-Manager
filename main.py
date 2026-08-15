@@ -55,6 +55,8 @@ def main():
     try:
         from download_sites import ensure_files
         ensure_files()
+        from deleted_songs import ensure_file as ensure_deleted_file
+        ensure_deleted_file()
         print("[OK] Carpeta data/ y archivos verificados.")
     except Exception as e:
         print(f"[WARN] No se pudo crear data/: {e}")

@@ -45,6 +45,9 @@ function bindEvents() {
     if (btnTxtLoad) btnTxtLoad.addEventListener('click', loadDefaultTxt);
     if (btnTxtSave) btnTxtSave.addEventListener('click', saveDefaultTxt);
     if (btnTxtImport) btnTxtImport.addEventListener('click', importFromTxt);
+    // Buscador
+    const searchInput = document.getElementById('saved-search');
+    if (searchInput) searchInput.addEventListener('input', () => renderSavedList(window._allPlaylists || []));
 }
 
 // ------------------------------------------------------------------
@@ -215,20 +218,31 @@ async function handleCsvImport(event) {
 async function loadSavedPlaylists() {
     try {
         const data = await getJSON('/api/saved-playlists');
-        renderSavedList(data.playlists);
+        window._allPlaylists = data.playlists || [];
+        renderSavedList(window._allPlaylists);
     } catch (e) {
         showToast('Error al cargar playlists: ' + e.message, 'error');
     }
 }
 
 function renderSavedList(playlists) {
+    // Aplicar filtro del buscador
+    const searchInput = document.getElementById('saved-search');
+    const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    let filtered = playlists;
+    if (q) {
+        filtered = playlists.filter(p =>
+            (p.name + ' ' + p.platform).toLowerCase().includes(q)
+        );
+    }
+
     savedList.innerHTML = '';
-    if (playlists.length === 0) {
+    if (filtered.length === 0) {
         savedList.appendChild(savedEmpty);
         return;
     }
 
-    playlists.forEach(p => {
+    filtered.forEach(p => {
         const card = document.createElement('div');
         card.className = 'saved-card';
         const platformLabel = p.platform === 'youtube' ? 'YouTube Music' : 'Spotify';
@@ -337,12 +351,12 @@ async function showPlaylistDetail(id) {
                     </p>
                     <table class="music-table">
                         <thead><tr>
-                            <th>#</th>
-                            <th>Título</th>
-                            <th>Artista</th>
-                            <th>Álbum</th>
-                            <th>Duración</th>
-                            <th>Ir a canción</th>
+                            <th style="width:4%; text-align:center;">#</th>
+                            <th style="width:40%; text-align:left;">Título</th>
+                            <th style="width:18%; text-align:left;">Artista</th>
+                            <th style="width:18%; text-align:center;">Álbum</th>
+                            <th style="width:10%; text-align:center;">Duración</th>
+                            <th style="width:10%; text-align:center;">Ir a canción</th>
                         </tr></thead>
                         <tbody>`;
         p.tracks.forEach((t, i) => {
@@ -356,11 +370,11 @@ async function showPlaylistDetail(id) {
                 link = `<a href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="${tooltip}" class="track-link" style="color: ${color}; text-decoration: none; font-size: 16px; font-weight: bold;">${icon}</a>`;
             }
             html += `<tr>
-                <td>${i + 1}</td>
-                <td><strong>${escapeHtml(t.title)}</strong></td>
-                <td>${escapeHtml(t.artist)}</td>
-                <td>${escapeHtml(t.album || '—')}</td>
-                <td>${formatDuration(t.duration)}</td>
+                <td style="text-align:center;">${i + 1}</td>
+                <td style="text-align:left;"><strong>${escapeHtml(t.title)}</strong></td>
+                <td style="text-align:left;">${escapeHtml(t.artist)}</td>
+                <td style="text-align:center;">${escapeHtml(t.album || '—')}</td>
+                <td style="text-align:center;">${formatDuration(t.duration)}</td>
                 <td style="text-align:center;">${link}</td>
             </tr>`;
         });

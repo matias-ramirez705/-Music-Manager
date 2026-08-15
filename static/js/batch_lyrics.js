@@ -224,9 +224,9 @@ async function viewLyrics(filePath, name, artist) {
         if (data.has_lyrics && data.lyrics) {
             const text = data.lyrics;
             if (text.includes('[') && text.match(/\[\d{2}:\d{2}/)) {
-                content.innerHTML = formatLrcLyrics(text);
+                content.innerHTML = '<p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">✓ Letra sincronizada.</p>' + formatLrcLyrics(text);
             } else {
-                content.innerHTML = `<pre class="lyrics-plain">${escapeHtml(text)}</pre>`;
+                content.innerHTML = '<p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">⚠ Letra sin sincronización.</p>' + formatPlainLyrics(text);
             }
         } else {
             content.innerHTML = '<p class="empty-hint">Sin letra.</p>';
@@ -306,19 +306,28 @@ async function doLyricsSearch(filePath, duration) {
 
         let html = `<div style="margin-bottom:12px;"><strong style="color:var(--accent);">Encontrada</strong>${source ? ' — ' + source : ''}</div>`;
         if (syncedText) {
-            html += '<details style="margin-bottom:8px;"><summary style="cursor:pointer;color:var(--text-secondary);font-size:12px;">Letra sincronizada (LRC)</summary>';
+            html += '<details style="margin-bottom:8px;"><summary style="cursor:pointer;color:var(--text-secondary);font-size:12px;">Sincronizada (LRC) — recomendada</summary>';
             html += `<pre class="lyrics-plain" style="max-height:200px;">${escapeHtml(syncedText)}</pre></details>`;
         }
-        html += '<details open style="margin-bottom:12px;"><summary style="cursor:pointer;color:var(--text-secondary);font-size:12px;">Letra plana</summary>';
-        html += `<pre class="lyrics-plain" style="max-height:250px;">${escapeHtml(plainText)}</pre></details>`;
-        html += `<div style="display:flex;gap:8px;">
-            <button id="btn-ly-save-plain" class="btn btn-primary">💾 Guardar</button>
-            <button class="btn btn-ghost" onclick="document.getElementById('lyrics-search-modal').remove()">Cancelar</button>
-        </div>`;
+        if (plainText && plainText !== '(sin letra)') {
+            html += '<details open style="margin-bottom:12px;"><summary style="cursor:pointer;color:var(--text-secondary);font-size:12px;">Letra plana</summary>';
+            html += `<pre class="lyrics-plain" style="max-height:250px;">${escapeHtml(plainText)}</pre></details>`;
+        }
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+        if (syncedText) {
+            html += '<button id="btn-ly-save-sync" class="btn btn-primary">💾 Guardar sync</button>';
+        }
+        if (plainText && plainText !== '(sin letra)') {
+            html += '<button id="btn-ly-save-plain" class="btn btn-secondary">💾 Guardar plana</button>';
+        }
+        html += '<button class="btn btn-ghost" onclick="document.getElementById(\'lyrics-search-modal\').remove()">Cancelar</button>';
+        html += '</div>';
         if (resultsDiv) resultsDiv.innerHTML = html;
 
-        const saveBtn = document.getElementById('btn-ly-save-plain');
-        if (saveBtn) saveBtn.addEventListener('click', () => saveLyricsToFile(filePath, plainText, 'lyrics-search-modal'));
+        const saveSyncBtn = document.getElementById('btn-ly-save-sync');
+        if (saveSyncBtn) saveSyncBtn.addEventListener('click', () => saveLyricsToFile(filePath, syncedText, 'lyrics-search-modal'));
+        const savePlainBtn2 = document.getElementById('btn-ly-save-plain');
+        if (savePlainBtn2) savePlainBtn2.addEventListener('click', () => saveLyricsToFile(filePath, plainText, 'lyrics-search-modal'));
     } catch (e) {
         if (resultsDiv) resultsDiv.innerHTML = `<p style="color:var(--danger);">${escapeHtml(e.message)}</p>`;
     } finally {
@@ -343,6 +352,17 @@ function formatLrcLyrics(text) {
     let html = '<div class="lyrics-synced">';
     lines.forEach(line => {
         const clean = line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim();
+        html += `<div class="lyrics-line">${clean ? escapeHtml(clean) : '&nbsp;'}</div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function formatPlainLyrics(text) {
+    const lines = text.split('\n');
+    let html = '<div class="lyrics-synced">';
+    lines.forEach(line => {
+        const clean = line.trim();
         html += `<div class="lyrics-line">${clean ? escapeHtml(clean) : '&nbsp;'}</div>`;
     });
     html += '</div>';

@@ -327,8 +327,9 @@ body {
 .table-container {
     background: var(--bg-card);
     border-radius: var(--radius);
-    overflow: auto;  /* scroll horizontal si hace falta */
+    overflow: auto;
     width: 100%;
+    max-height: calc(100vh - 340px);  /* scroll vertical solo en la tabla */
 }
 
 .music-table {
@@ -1989,7 +1990,7 @@ body {
 /* ---------- Tabla de Comparar con anchos personalizados (v1.14) ---------- */
 /* Aplica solo a la tabla dentro de #results-container en /compare */
 #results-container .music-table {
-    table-layout: fixed;  /* respetar los anchos definidos */
+    table-layout: fixed;
 }
 
 #results-container .music-table th:nth-child(1),
@@ -2000,55 +2001,66 @@ body {
 
 #results-container .music-table th:nth-child(2),
 #results-container .music-table td:nth-child(2) {
-    width: 24%;  /* Título */
-    min-width: 180px;
+    width: 20%;  /* Título */
+    min-width: 150px;
 }
 
 #results-container .music-table th:nth-child(3),
 #results-container .music-table td:nth-child(3) {
-    width: 16%;  /* Artista */
-    min-width: 100px;
+    width: 14%;  /* Artista */
+    min-width: 90px;
 }
 
 #results-container .music-table th:nth-child(4),
 #results-container .music-table td:nth-child(4) {
-    width: 7%;   /* Duración */
-    min-width: 50px;
+    width: 6%;   /* Duración */
+    min-width: 45px;
     text-align: center;
 }
 
 #results-container .music-table th:nth-child(5),
 #results-container .music-table td:nth-child(5) {
-    width: 8%;   /* Estado */
-    min-width: 60px;
+    width: 7%;   /* Estado */
+    min-width: 55px;
     text-align: center;
 }
 
 #results-container .music-table th:nth-child(6),
 #results-container .music-table td:nth-child(6) {
-    width: 9%;   /* Calidad local */
-    min-width: 70px;
+    width: 8%;   /* Calidad local */
+    min-width: 60px;
     text-align: center;
 }
 
 #results-container .music-table th:nth-child(7),
 #results-container .music-table td:nth-child(7) {
-    width: 8%;   /* Formato */
-    min-width: 55px;
+    width: 7%;   /* Formato */
+    min-width: 50px;
     text-align: center;
 }
 
 #results-container .music-table th:nth-child(8),
 #results-container .music-table td:nth-child(8) {
-    width: 10%;  /* Escuchar local */
-    min-width: 70px;
+    width: 8%;  /* Escuchar local */
+    min-width: 60px;
     text-align: center;
+}
+/* Centrar el botón play dentro de Escuchar local (display:flex no obedece text-align) */
+#results-container .music-table td:nth-child(8) .play-btn {
+    margin: 0 auto;
 }
 
 #results-container .music-table th:nth-child(9),
 #results-container .music-table td:nth-child(9) {
-    width: 15%;  /* Abrir online */
-    min-width: 100px;
+    width: 5%;   /* Copiar */
+    min-width: 40px;
+    text-align: center;
+}
+
+#results-container .music-table th:nth-child(10),
+#results-container .music-table td:nth-child(10) {
+    width: 12%;  /* Abrir online */
+    min-width: 80px;
     text-align: center;
 }
 
@@ -2531,4 +2543,205 @@ details summary:hover {
     .player-info {
         min-width: 120px;
     }
+}
+
+/* ---------- Mi Música (#music-table): alineaciones y anchos v3.6 ---------- */
+/* Centrar headers Y celdas de Duración (col 6), Formato (col 7) y Copiar (col 11) */
+#music-table th:nth-child(6),
+#music-table td:nth-child(6) {
+    text-align: center;
+}
+#music-table th:nth-child(7),
+#music-table td:nth-child(7) {
+    text-align: center;
+}
+#music-table th:nth-child(11),
+#music-table td:nth-child(11) {
+    text-align: center;
+}
+/* Texto de Duración con fuente monoespaciada para que se vea como tiempo */
+#music-table td:nth-child(6) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+/* Columna Artista: ancha para que no se corte el nombre (v3.7 - revertido) */
+#music-table td:nth-child(4) {
+    max-width: 200px;
+    min-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Columna Ruta: mas angosta que v3.6 (v3.7 - revertido) */
+#music-table td:last-child,
+#music-table .path-cell {
+    max-width: 280px !important;
+    min-width: 150px !important;
+}
+
+/* ---------- Tabla de Eliminados (#deleted-table): anchos y alineaciones v3.9 ---------- */
+#deleted-table {
+    table-layout: fixed;
+}
+/* # (col 1) */
+#deleted-table th:nth-child(1),
+#deleted-table td:nth-child(1) {
+    width: 4%;
+    text-align: center;
+}
+/* Nombre (col 2) - agrandado 2.5x respecto a v3.8 */
+#deleted-table th:nth-child(2),
+#deleted-table td:nth-child(2) {
+    width: 35%;
+    min-width: 250px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+}
+/* Artista (col 3) */
+#deleted-table th:nth-child(3),
+#deleted-table td:nth-child(3) {
+    width: 18%;
+    min-width: 100px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+}
+/* Formato (col 4) - centrado */
+#deleted-table th:nth-child(4),
+#deleted-table td:nth-child(4) {
+    width: 8%;
+    text-align: center;
+}
+/* Playlists (col 5) - centrada */
+#deleted-table th:nth-child(5),
+#deleted-table td:nth-child(5) {
+    width: 12%;
+    text-align: center;
+}
+/* Comentario (col 6) - sin cambios (estaba bien) */
+#deleted-table th:nth-child(6),
+#deleted-table td:nth-child(6) {
+    width: 18%;
+    text-align: left;
+}
+/* Eliminar (col 7) - achicado a la mitad y centrado */
+#deleted-table th:nth-child(7),
+#deleted-table td:nth-child(7) {
+    width: 5%;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* ---------- Sub-pestanas internas en /editor (v3.10) ---------- */
+.editor-subtabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+    padding: 0 4px;
+}
+.subtab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--transition);
+    border-radius: 6px 6px 0 0;
+}
+.subtab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+.subtab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+.subtab-icon {
+    font-size: 14px;
+}
+.subtab-content {
+    display: none;
+}
+.subtab-content.active {
+    display: block;
+}
+
+/* ---------- Tabla del Analizador de Nombres (#analyze-table) v3.10 ---------- */
+#analyze-table {
+    table-layout: fixed;
+}
+#analyze-table th:nth-child(1),
+#analyze-table td:nth-child(1) {
+    width: 4%;
+    text-align: center;
+}
+/* Nombre del archivo (col 2) */
+#analyze-table th:nth-child(2),
+#analyze-table td:nth-child(2) {
+    width: 32%;
+    min-width: 200px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+/* Nombre canción metadata (col 3) */
+#analyze-table th:nth-child(3),
+#analyze-table td:nth-child(3) {
+    width: 28%;
+    min-width: 180px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+}
+/* Artista (col 4) */
+#analyze-table th:nth-child(4),
+#analyze-table td:nth-child(4) {
+    width: 22%;
+    min-width: 120px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+}
+/* Renombrar (col 5) */
+#analyze-table th:nth-child(5),
+#analyze-table td:nth-child(5) {
+    width: 14%;
+    text-align: center;
+}
+
+/* Badge para "needs rename" */
+.needs-rename-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255, 165, 0, 0.15);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+    margin-right: 4px;
+}
+.rename-ok-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(29, 185, 84, 0.1);
+    color: var(--accent-hover);
+    border: 1px solid var(--accent);
+    margin-right: 4px;
 }

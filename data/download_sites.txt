@@ -1,0 +1,58 @@
+# ============================================
+# Sitios y programas para descargar musica FLAC
+# ============================================
+# Formato: | NOMBRE | LINK | DESCRIPCION | ESTADO |
+# ESTADO puede ser: OK o CAIDO
+# Las lineas con # son comentarios
+# Edita este archivo libremente para anadir/quitar sitios.
+# Extraido de https://fmhy.net/audio
+#
+
+# | NOMBRE | LINK | DESCRIPCION | ESTADO |
+# |--------|------|-------------|--------|
+| lucida | https://lucida.to/ | Multi-Site / 320kb / MP3 / FLAC | OK |
+| DoubleDouble | https://doubledouble.top/ | Multi-Site / 320kb / FLAC | OK |
+| squid.wtf | https://squid.wtf/ | KHInsider / JioSaavn / FLAC | OK |
+| Firehawk52 | https://github.com/Firehawk52/Firehawk52 | Deezer / Qobuz / Tidal / Requiere registro / FLAC | OK |
+| OnTheSpot | https://github.com/justin025/onthespot | Apple Music / Bandcamp / Deezer / Qobuz / Spotify / Tidal / FLAC | OK |
+| Antra | https://github.com/antra-antra/antra | Qobuz / Tidal / Amazon Music / Soulseek / Convierte desde multiples sitios / FLAC | OK |
+| streamrip | https://github.com/nathom/streamrip | Deezer / Tidal / Qobuz / 128kb Free / FLAC / Usar Firehawk52 | OK |
+| OrpheusDL | https://github.com/OrfiTeam/OrpheusDL | Deezer / Qobuz / 128kb Free / FLAC / Usar Firehawk52 | OK |
+| SpotiFLAC | https://github.com/spotbye/SpotiFLAC | Qobuz / Tidal / Amazon Music / FLAC / Playlists / Convierte desde Spotify | OK |
+| DeemixFix | https://gitlab.com/deeplydrumming/DeemixFix | Deezer / FLAC | OK |
+| Deemix Revival | https://github.com/bambanah/deemix | Deezer / FLAC | OK |
+| SaturnMusic | https://github.com/SaturnMusic/SaturnMusic | Deezer / FLAC | OK |
+| QobuzDownloaderX-MOD | https://github.com/DJDoubleD/QobuzDownloaderX-MOD | Qobuz / 128kb Free / 256 AAC Premium / FLAC / Usar Firehawk52 | OK |
+| qobuz-dl | https://github.com/vitiko98/qobuz-dl | Qobuz / 128kb Free / FLAC / Usar Firehawk52 | OK |
+| DeezerMusicBot | https://t.me/DeezerMusicBot | Deezer / SoundCloud / VK / 320kb MP3 / FLAC | OK |
+| BeatSpotBot | https://t.me/BeatSpotBot | Spotify / Apple / YouTube / FLAC / 25 diarias | OK |
+| FLAC Attack | https://flacattack.net/ | FLAC | OK |
+| Lossless-Music | https://lossless-music.org/ | FLAC | OK |
+| FlacMusic | https://www.flacmusic.info/ | FLAC | OK |
+| DiscogC | https://discogc.com/ | FLAC | OK |
+| LosslessAlbums | https://losslessalbums.club/ | FLAC | OK |
+| Music and Books | https://musicandbooks.org/ | MP3 / FLAC | OK |
+| IntMusic | https://intmusic.net/ | MP3 / FLAC | OK |
+| Gangster | https://gangster.cc/ | MP3 / FLAC | OK |
+| GetRockMusic | https://getrockmusic.net/ | MP3 / FLAC | OK |
+| Core Radio | https://coreradio.ru/ | MP3 / FLAC | OK |
+| AlterPortal | https://alterportal.com/ | MP3 / FLAC | OK |
+| ShareMania | https://www.sharemania.us/ | FLAC / MP3 / M4A | OK |
+| Exystence | https://exystence.net/ | MP3 / FLAC | OK |
+| ThemFire | https://themfire.net/ | MP3 / FLAC | OK |
+| Canna | https://canna.to/ | MP3 / FLAC | OK |
+| Music Rider | https://musicrider.cc/ | MP3 / FLAC | OK |
+| GetMetal Club | https://getmetal.club/ | Metal / MP3 / FLAC | OK |
+| Nuclear Holocaust | https://nuclearholocaust.net/ | Metal / FLAC | OK |
+| We Need Match | https://weneedmatch.com/ | Metal / FLAC / M4A | OK |
+| Ektoplazm | https://ektoplazm.com/ | Electronica / MP3 / FLAC | OK |
+| KTI Music | https://ktimusic.net/ | Electronica / MP3 / FLAC | OK |
+| Bluegrass Archive | https://bluegrassarchive.com/ | Bluegrass / FLAC | OK |
+| BurningTheGround | https://burningtheground.com/ | 80s / 90s / FLAC | OK |
+| Classical Music Download | https://classicalmusicdownload.com/ | Clasica / FLAC | OK |
+| FoggyNotion | https://foggynotion.com/ | Musica clasica / MP3 / FLAC | OK |
+| FlatblackAndClassical | https://flatblackandclassical.com/ | Musica clasica india / FLAC | OK |
+| GoldHipHop | https://goldhiphop.com/ | Hip Hop / MP3 / FLAC | OK |
+| MusicRepublic | https://musicrepublic.net/ | World / MP3 / FLAC | OK |
+| KPopFLAC | https://www.kpopflac.xyz/ | K-Pop / FLAC | OK |
+| The T-SQUARE Plaza | https://t-squareplaza.com/ | Jazz Fusion / City Pop / FLAC | OK |

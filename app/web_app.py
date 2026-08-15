@@ -70,6 +70,11 @@ from saved_playlists import (
 from duplicates import find_duplicates, normalize_text
 from artwork import (extract_artwork, save_artwork, resize_image,
                      download_image, remove_artwork)
+from deleted_songs import (
+    list_deleted_songs, add_deleted_song, update_comment,
+    remove_deleted_song, clear_all_deleted,
+    detect_deleted_from_scan, build_deleted_index, is_song_deleted,
+)
 
 
 # ------------------------------------------------------------------
@@ -131,6 +136,11 @@ def create_app():
         """Pestaña 6: Index de sitios para descargar FLAC."""
         return render_template('downloads.html', active_tab='downloads')
 
+    @app.route('/deleted')
+    def deleted():
+        """Pestaña 7: Canciones eliminadas del disco (detectadas)."""
+        return render_template('deleted.html', active_tab='deleted')
+
     # ==================================================================
     # API: ESCANEO
     # ==================================================================
@@ -178,8 +188,24 @@ def create_app():
                 'parent': f['parent'],
                 'quality': quality,
                 'has_error': meta.get('error') is not None,
+                'error_msg': meta.get('error'),
                 'playlists': in_playlists,  # [{id, name, platform}, ...]
             })
+
+        # DETECCION DE ELIMINADOS (v3.8):
+        # Si habia un escaneo previo (LAST_SCAN no vacio), comparamos
+        # los archivos anteriores con los actuales y registramos en
+        # data/deleted_songs.json las canciones que ya no estan en el disco.
+        # Esto se hace ANTES de sobreescribir LAST_SCAN con los nuevos.
+        deleted_detected = []
+        if LAST_SCAN['files']:
+            try:
+                deleted_detected = detect_deleted_from_scan(
+                    current_files=enriched,
+                    scan_folder=folder,
+                )
+            except Exception as e:
+                print(f'[WARN] detect_deleted_from_scan fallo: {e}')
 
         LAST_SCAN['folder'] = folder
         LAST_SCAN['files'] = enriched
@@ -193,6 +219,7 @@ def create_app():
             'total_size': total_size,
             'total_size_str': human_size(total_size),
             'folder': folder,
+            'deleted_detected': len(deleted_detected),
         })
 
     @app.route('/api/last-scan', methods=['GET'])
@@ -406,6 +433,7 @@ def create_app():
 
         missing = []
         matched = []
+        skipped_deleted = []  # canciones eliminadas por el usuario (v3.8)
         for track in playlist['tracks']:
             t_norm = normalize_text(track['title'])
             a_norm = normalize_text(track['artist'])
@@ -464,6 +492,15 @@ def create_app():
                         'local_artist': local_file.get('artist', ''),
                     })
                 continue
+            # Antes de marcar como faltante, verificamos si la canción
+            # está en la lista de eliminadas. Si lo está, no la mostramos
+            # como faltante (el usuario ya decidió borrarla a propósito).
+            if is_song_deleted(track['title'], track.get('artist', '')):
+                # No la agregamos a missing ni a matched: simplemente la
+                # saltamos. Devolvemos info de cuántas se saltaron para
+                # que el frontend lo pueda mostrar si quiere.
+                skipped_deleted.append(track)
+                continue
             missing.append(track)
 
         return jsonify({
@@ -478,6 +515,8 @@ def create_app():
             },
             'missing': missing,
             'matched': matched,
+            'skipped_deleted': skipped_deleted,
+            'skipped_deleted_count': len(skipped_deleted),
             'total_local': len(LAST_SCAN['files']),
             'progress': round(len(matched) / max(1, playlist['count']) * 100, 1),
         })
@@ -859,15 +898,22 @@ def create_app():
         Renombra un archivo de audio en el disco.
 
         Body JSON:
-            { "old_path": "...", "new_path": "..." }
+            { "old_path": "...", "new_path": "...",
+              "overwrite": false (default) }
+
+        Si "overwrite" es false y ya existe un archivo con new_path,
+        se añade automáticamente un sufijo _1, _2, _3... al nombre
+        base hasta encontrar uno libre.
 
         Returns:
-            JSON: { 'success': bool, 'message': str, 'new_path': str }
+            JSON: { 'success': bool, 'message': str, 'new_path': str,
+                    'renamed_to': str (nombre final, puede diferir de new_path) }
         """
         import shutil
         data = request.get_json(silent=True) or {}
         old_path = data.get('old_path', '')
         new_path = data.get('new_path', '')
+        overwrite = bool(data.get('overwrite', False))
 
         if not old_path or not new_path:
             return jsonify({'success': False, 'message': 'Faltan rutas.'}), 400
@@ -875,19 +921,113 @@ def create_app():
             return jsonify({'success': False, 'message': 'Archivo original no existe.'}), 400
         if old_path == new_path:
             return jsonify({'success': False, 'message': 'Las rutas son iguales.'}), 400
-        if os.path.exists(new_path):
-            return jsonify({'success': False,
-                            'message': 'Ya existe un archivo con ese nombre.'}), 400
+
+        final_path = new_path
+
+        # Si ya existe y no se pidió sobreescribir, buscar sufijo libre
+        if os.path.exists(new_path) and not overwrite:
+            # Separar ruta en directorio + nombre + extensión
+            dirname = os.path.dirname(new_path)
+            basename = os.path.basename(new_path)
+            # Separar nombre y extensión (preservando la extensión completa)
+            name_part, ext = os.path.splitext(basename)
+            # Quitar sufijo _N si ya lo tenía (para no apilar _1_1_1)
+            import re
+            base_name_clean = re.sub(r'_\d+$', '', name_part)
+
+            # Buscar primer sufijo libre: _1, _2, _3, ...
+            counter = 1
+            while True:
+                candidate_name = f"{base_name_clean}_{counter}{ext}"
+                candidate_path = os.path.join(dirname, candidate_name)
+                if not os.path.exists(candidate_path):
+                    final_path = candidate_path
+                    break
+                counter += 1
+                # Protección: no entrar en loop infinito
+                if counter > 9999:
+                    return jsonify({'success': False,
+                                    'message': 'Demasiados archivos con ese nombre (10000+).'}), 400
 
         try:
-            os.rename(old_path, new_path)
+            os.rename(old_path, final_path)
+            renamed_to = os.path.basename(final_path)
+            msg = 'Archivo renombrado.'
+            if final_path != new_path:
+                msg = f'Archivo renombrado como "{renamed_to}" (ya existía uno con ese nombre).'
             return jsonify({
                 'success': True,
-                'message': 'Archivo renombrado.',
-                'new_path': new_path,
+                'message': msg,
+                'new_path': final_path,
+                'renamed_to': renamed_to,
             })
         except OSError as e:
             return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+    @app.route('/api/analyze-names', methods=['GET'])
+    def api_analyze_names():
+        """
+        Devuelve la lista de archivos del último escaneo con:
+          - filename (nombre del archivo en disco, sin ruta)
+          - title (metadata de título del archivo)
+          - artist (metadata de artista)
+          - path (ruta completa)
+          - ext (extensión)
+          - needs_rename (bool: ¿el nombre del archivo NO coincide con
+                          el patrón esperado "titulo - artista.ext"?)
+
+        Útil para la sub-pestaña "Analizador de nombres" en /editor.
+
+        Returns:
+            JSON: { 'files': [...], 'count': int, 'folder': str }
+        """
+        if not LAST_SCAN['files']:
+            return jsonify({
+                'error': 'Primero escanea tu música en "Mi Música".'
+            }), 400
+
+        files_out = []
+        for f in LAST_SCAN['files']:
+            path = f.get('path', '')
+            filename = os.path.basename(path) if path else ''
+            title = f.get('name', '') or ''
+            artist = f.get('artist', '') or ''
+            ext = f.get('ext', '')
+
+            # Determinar si necesita renombrar: si el filename NO contiene
+            # el título (normalizado) Y el artista, lo marcamos.
+            # Es solo una heurística visual para el usuario.
+            import unicodedata
+            def _norm(s):
+                if not s:
+                    return ''
+                s = unicodedata.normalize('NFD', s)
+                s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+                return s.lower().strip()
+            fn_norm = _norm(filename)
+            t_norm = _norm(title)
+            a_norm = _norm(artist)
+            needs_rename = False
+            if t_norm and a_norm:
+                # Si el filename tiene título Y artista, está OK
+                needs_rename = not (t_norm in fn_norm and a_norm in fn_norm)
+            elif t_norm:
+                needs_rename = t_norm not in fn_norm
+
+            files_out.append({
+                'path': path,
+                'filename': filename,
+                'title': title,
+                'artist': artist,
+                'ext': ext,
+                'needs_rename': needs_rename,
+            })
+
+        return jsonify({
+            'files': files_out,
+            'count': len(files_out),
+            'folder': LAST_SCAN.get('folder', ''),
+        })
 
     @app.route('/api/delete-file', methods=['POST'])
     def api_delete_file():
@@ -1516,5 +1656,92 @@ def create_app():
             'success': True,
             'message': f'Sitio "{name}" agregado al final de la lista.',
         })
+
+    # ==================================================================
+    # API: CANCIONES ELIMINADAS (v3.8)
+    # ==================================================================
+
+    @app.route('/api/deleted-songs', methods=['GET'])
+    def api_list_deleted():
+        """Lista todas las canciones eliminadas registradas."""
+        songs = list_deleted_songs()
+        # Añadir info de playlists actuales (por si cambiaron desde que
+        # se registró la eliminación)
+        playlist_index = build_local_playlist_index()
+        for s in songs:
+            title_norm = normalize_text(s.get('name', ''))
+            current_playlists = playlist_index.get(title_norm, [])
+            # Si la canción está en playlists ahora, significa que el usuario
+            # volvió a tenerla (re-agregó el archivo). Lo indicamos.
+            if current_playlists:
+                s['still_in_playlists'] = current_playlists
+            else:
+                s['still_in_playlists'] = []
+        return jsonify({'songs': songs, 'count': len(songs)})
+
+    @app.route('/api/deleted-songs/<song_id>/comment', methods=['POST'])
+    def api_update_deleted_comment(song_id):
+        """Actualiza el comentario de una canción eliminada."""
+        data = request.get_json(silent=True) or {}
+        comment = (data.get('comment') or '').strip()
+        updated = update_comment(song_id, comment)
+        if not updated:
+            return jsonify({'error': 'Canción eliminada no encontrada.'}), 404
+        return jsonify({'success': True, 'song': updated})
+
+    @app.route('/api/deleted-songs/<song_id>', methods=['DELETE'])
+    def api_remove_deleted(song_id):
+        """Quita una canción de la lista de eliminados (no toca el disco)."""
+        ok = remove_deleted_song(song_id)
+        if not ok:
+            return jsonify({'error': 'Canción no encontrada en la lista.'}), 404
+        return jsonify({'success': True})
+
+    @app.route('/api/deleted-songs/clear', methods=['POST'])
+    def api_clear_deleted():
+        """Vacía toda la lista de eliminados."""
+        n = clear_all_deleted()
+        return jsonify({'success': True, 'removed': n})
+
+    @app.route('/api/deleted-songs/manual', methods=['POST'])
+    def api_add_deleted_manual():
+        """Agrega manualmente una canción a la lista de eliminados.
+        Útil si el usuario quiere marcar como eliminada una canción que
+        ya no tiene en el disco sin esperar a un escaneo."""
+        data = request.get_json(silent=True) or {}
+        required = ['path', 'name']
+        for f in required:
+            if not data.get(f):
+                return jsonify({'error': f'Falta campo requerido: {f}'}), 400
+        song = add_deleted_song({
+            'path': data['path'],
+            'name': data['name'],
+            'artist': data.get('artist', ''),
+            'album': data.get('album', ''),
+            'ext': data.get('ext', ''),
+            'size': data.get('size', 0),
+            'size_str': data.get('size_str', ''),
+            'duration': data.get('duration', 0),
+            'duration_str': data.get('duration_str', ''),
+            'playlists': data.get('playlists', []),
+            'comment': data.get('comment', ''),
+        })
+        return jsonify({'success': True, 'song': song})
+
+    # ==================================================================
+    # HEADERS ANTI-CACHE (v3.6)
+    # Fuerza al navegador a siempre pedir HTML/JS/CSS frescos.
+    # Esto evita el bug de "veo la versión vieja del código" tras editar.
+    # ==================================================================
+    @app.after_request
+    def _no_cache_headers(resp):
+        # Aplicar solo a respuestas HTTP (no a /api/stream que es Range-aware)
+        if isinstance(resp, Response):
+            ct = resp.headers.get('Content-Type', '')
+            if ct.startswith('text/html') or 'javascript' in ct or 'css' in ct:
+                resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+                resp.headers['Pragma'] = 'no-cache'
+                resp.headers['Expires'] = '0'
+        return resp
 
     return app
