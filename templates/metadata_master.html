@@ -228,12 +228,12 @@
 
 {% block scripts %}
 {% if sub_tab == 'edit' %}
-<script src="{{ url_for('static', filename='js/editor.js') }}?v=189"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}?v=195"></script>
 {% elif sub_tab == 'artwork' %}
-<script src="{{ url_for('static', filename='js/batch_artwork.js') }}?v=189"></script>
+<script src="{{ url_for('static', filename='js/batch_artwork.js') }}?v=195"></script>
 {% elif sub_tab == 'lyrics' %}
-<script src="{{ url_for('static', filename='js/batch_lyrics.js') }}?v=189"></script>
+<script src="{{ url_for('static', filename='js/batch_lyrics.js') }}?v=195"></script>
 {% elif sub_tab == 'rename' %}
-<script src="{{ url_for('static', filename='js/rename.js') }}?v=189"></script>
+<script src="{{ url_for('static', filename='js/rename.js') }}?v=195"></script>
 {% endif %}
 {% endblock %}

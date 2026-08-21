@@ -168,6 +168,9 @@ async function scanFolder() {
         allFiles = data.files;
         // Guardar carpeta en localStorage para mantenerla entre pestanas
         localStorage.setItem('last_scan_folder', folder);
+        // v3.17: invalidar índice de títulos locales para que el modal
+        // de playlist se rebuild con los datos nuevos.
+        _localTitleIndex = null;
         await loadDuplicatePaths();
         renderTable();
         renderStats(data);
@@ -429,6 +432,13 @@ function showPlaylistDetailModal(p) {
                     ${escapeHtml(p.uploader || '')} • ${p.track_count} canciones • ${platformLabel}
                     ${p.url && !p.url.startsWith('csv://') ? `• <a href="${escapeHtml(p.url)}" target="_blank" style="color:var(--accent);">Abrir original ↗</a>` : ''}
                 </p>
+                <p id="pl-detail-downloaded-info" style="margin-bottom:12px; flex-shrink:0; font-size:13px; color:var(--text-secondary); display:none;">
+                    <span style="color:var(--accent); font-weight:600;" id="pl-detail-downloaded-count">0</span>
+                    <span> descargadas de ${p.track_count}</span>
+                    <span id="pl-detail-downloaded-bar-container" style="display:inline-block; width:120px; height:6px; background:var(--bg-elevated); border-radius:3px; margin-left:8px; vertical-align:middle; overflow:hidden;">
+                        <span id="pl-detail-downloaded-bar" style="display:block; height:100%; background:var(--accent); width:0%; transition: width 0.4s ease;"></span>
+                    </span>
+                </p>
                 <div class="filter-bar" style="margin-bottom:8px; flex-shrink:0;">
                     <input type="text" id="pl-detail-search" class="search-input"
                         placeholder="Buscar cancion en esta playlist...">
@@ -439,7 +449,7 @@ function showPlaylistDetailModal(p) {
                             <th style="width:4%; text-align:center;">#</th>
                             <th style="width:45%; text-align:left;">Titulo</th>
                             <th style="width:12%; text-align:left;">Artista</th>
-                            <th style="width:20%; text-align:center;">Album</th>
+                            <th style="width:20%; text-align:center;" title="Indica si la canción está en tu biblioteca local (Mi Música)">¿En Mi Música?</th>
                             <th style="width:8%; text-align:center;">Duracion</th>
                             <th style="width:4%; text-align:center;">Ir</th>
                         </tr></thead>
@@ -454,7 +464,17 @@ function showPlaylistDetailModal(p) {
 
     // Guardar tracks para el filtro
     window._playlistDetailTracks = p.tracks || [];
-    renderPlaylistDetailRows(p.tracks || []);
+
+    // v3.17: construir índice de títulos locales desde /api/last-scan
+    // para marcar cuáles canciones de la playlist están en Mi Música.
+    // Se hace en paralelo al render para no demorar la apertura del modal.
+    buildLocalTitleIndex().then(() => {
+        renderPlaylistDetailRows(p.tracks || []);
+        updateDownloadedCount(p.tracks || [], p.track_count);
+    }).catch(() => {
+        // Si falla, renderizar sin marcadores
+        renderPlaylistDetailRows(p.tracks || []);
+    });
 
     // Buscador
     document.getElementById('pl-detail-search').addEventListener('input', (e) => {
@@ -463,7 +483,78 @@ function showPlaylistDetailModal(p) {
             (t.title + ' ' + t.artist + ' ' + (t.album || '')).toLowerCase().includes(q)
         );
         renderPlaylistDetailRows(filtered);
+        // v3.17: actualizar contador solo con las filtradas
+        updateDownloadedCount(filtered, p.track_count);
     });
+}
+
+// v3.17: cuenta cuántas canciones de la playlist están en Mi Música
+// y actualiza el contador + barra de progreso del modal.
+function updateDownloadedCount(tracks, totalCount) {
+    const countEl = document.getElementById('pl-detail-downloaded-count');
+    const infoEl = document.getElementById('pl-detail-downloaded-info');
+    const barEl = document.getElementById('pl-detail-downloaded-bar');
+    if (!countEl || !infoEl) return;
+
+    // Si no hay índice local, no mostrar el contador
+    if (_localTitleIndex === null) {
+        infoEl.style.display = 'none';
+        return;
+    }
+
+    let downloaded = 0;
+    for (const t of tracks) {
+        const tNorm = _normalizeTitle(t.title || '');
+        if (_localTitleIndex.has(tNorm)) downloaded++;
+    }
+    countEl.textContent = downloaded;
+    infoEl.style.display = 'block';
+    // Barra de progreso
+    if (barEl) {
+        const pct = totalCount > 0 ? Math.round((downloaded / totalCount) * 100) : 0;
+        // Usar setTimeout para que la transición CSS se vea
+        setTimeout(() => { barEl.style.width = pct + '%'; }, 50);
+    }
+    // Color del count: verde si todas, naranja si faltan, rojo si 0
+    if (downloaded === totalCount) {
+        countEl.style.color = 'var(--accent)';
+    } else if (downloaded === 0) {
+        countEl.style.color = 'var(--danger)';
+    } else {
+        countEl.style.color = 'var(--warning)';
+    }
+}
+
+// v3.17: construye un Set de títulos normalizados de la música local
+// para responder rápido "¿esta canción está en Mi Música?".
+let _localTitleIndex = null;
+async function buildLocalTitleIndex() {
+    if (_localTitleIndex !== null) return; // ya construido
+    try {
+        const data = await getJSON('/api/last-scan');
+        const files = data.files || [];
+        _localTitleIndex = new Set();
+        for (const f of files) {
+            // Normalizar: lowercase, sin acentos, sin puntuación
+            const norm = _normalizeTitle(f.name || '');
+            if (norm) _localTitleIndex.add(norm);
+        }
+    } catch (e) {
+        _localTitleIndex = new Set(); // vacío si falla
+    }
+}
+
+function _normalizeTitle(s) {
+    if (!s) return '';
+    return s.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // quitar acentos
+        .replace(/\([^)]*\)/g, '')        // quitar paréntesis
+        .replace(/\[[^]]*\]/g, '')        // quitar corchetes
+        .replace(/\b(feat|ft)\b\.?/g, '') // quitar feat/ft
+        .replace(/[^a-z0-9\s]/g, '')      // quitar puntuación
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function renderPlaylistDetailRows(tracks) {
@@ -484,11 +575,20 @@ function renderPlaylistDetailRows(tracks) {
             ? `<a href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="Abrir" style="color:var(--accent); text-decoration:none;">${platformLabel}</a>`
             : '—';
 
+        // v3.17: determinar si la canción está en Mi Música
+        const tNorm = _normalizeTitle(t.title || '');
+        const isInLocal = _localTitleIndex && _localTitleIndex.has(tNorm);
+        const localBadge = _localTitleIndex === null
+            ? '<span style="color:var(--text-muted); font-size:11px;">—</span>'
+            : (isInLocal
+                ? '<span style="color:var(--accent); font-size:16px;" title="Sí está en tu biblioteca local">✓</span>'
+                : '<span style="color:var(--danger); font-size:16px;" title="No está en tu biblioteca local">✗</span>');
+
         tr.innerHTML = `
             <td>${i + 1}</td>
             <td style="text-align:left;"><strong>${escapeHtml(t.title)}</strong></td>
             <td>${escapeHtml(t.artist)}</td>
-            <td style="text-align:center;">${escapeHtml(t.album || '—')}</td>
+            <td style="text-align:center; font-size:14px;">${localBadge}</td>
             <td style="text-align:center;">${formatDuration(t.duration)}</td>
             <td style="text-align:center;">${link}</td>
         `;

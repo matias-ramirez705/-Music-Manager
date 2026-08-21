@@ -66,7 +66,8 @@ from auto_metadata import search_track, best_match
 from saved_playlists import (
     list_playlists, save_playlist, get_playlist,
     delete_playlist, update_playlist, refresh_playlist,
-    build_local_playlist_index,
+    build_local_playlist_index, reorder_playlists,
+    count_local_in_playlists,
 )
 from duplicates import find_duplicates, normalize_text
 from artwork import (extract_artwork, save_artwork, resize_image,
@@ -75,6 +76,7 @@ from deleted_songs import (
     list_deleted_songs, add_deleted_song, update_comment,
     remove_deleted_song, clear_all_deleted,
     detect_deleted_from_scan, build_deleted_index, is_song_deleted,
+    remove_deleted_by_title,
 )
 from folder_compare import compare_folders
 from spotiflac_dummy import (
@@ -619,8 +621,30 @@ def create_app():
 
     @app.route('/api/saved-playlists', methods=['GET'])
     def api_saved_list():
-        """Lista todas las playlists guardadas."""
-        return jsonify({'playlists': list_playlists()})
+        """Lista todas las playlists guardadas.
+        Query param ?sort_by=last_accessed|name|added_at|track_count|sort_order
+        """
+        sort_by = request.args.get('sort_by', 'last_accessed')
+        return jsonify({'playlists': list_playlists(sort_by=sort_by)})
+
+    @app.route('/api/saved-playlists/local-counts', methods=['GET'])
+    def api_saved_local_counts():
+        """v3.19: Para cada playlist guardada, devuelve cuántas canciones
+        están en Mi Música. Útil para mostrar 'X/Y descargadas' en las cards.
+
+        Returns:
+            JSON: { 'counts': { playlist_id: { 'total': int, 'downloaded': int } } }
+        """
+        if not LAST_SCAN['files']:
+            return jsonify({'counts': {}, 'has_local': False})
+        # Construir índice de títulos locales
+        local_index = set()
+        for f in LAST_SCAN['files']:
+            norm = normalize_text(f.get('name', ''))
+            if norm:
+                local_index.add(norm)
+        counts = count_local_in_playlists(local_index)
+        return jsonify({'counts': counts, 'has_local': True})
 
     @app.route('/api/save-playlist', methods=['POST'])
     def api_save_playlist():
@@ -832,6 +856,36 @@ def create_app():
             return jsonify({'error': 'Playlist no encontrada.'}), 404
         return jsonify({'deleted': True})
 
+    # v3.17: Endpoints para ordenar playlists
+
+    @app.route('/api/saved-playlist/<playlist_id>/sort-order', methods=['POST'])
+    def api_saved_set_sort_order(playlist_id):
+        """Asigna un orden personalizado (numérico) a una playlist.
+        Body: { "sort_order": int }"""
+        data = request.get_json(silent=True) or {}
+        sort_order = data.get('sort_order', 0)
+        try:
+            sort_order = int(sort_order)
+        except (ValueError, TypeError):
+            sort_order = 0
+        updated = update_playlist(playlist_id, {'sort_order': sort_order})
+        if not updated:
+            return jsonify({'error': 'Playlist no encontrada.'}), 404
+        return jsonify({'saved': updated})
+
+    @app.route('/api/saved-playlists/reorder', methods=['POST'])
+    def api_saved_reorder():
+        """Reordena todas las playlists según una lista de IDs.
+        Body: { "ordered_ids": ["id1", "id2", "id3", ...] }"""
+        data = request.get_json(silent=True) or {}
+        ordered_ids = data.get('ordered_ids', [])
+        if not ordered_ids or not isinstance(ordered_ids, list):
+            return jsonify({'error': 'Falta ordered_ids (lista de IDs).'}), 400
+        ok = reorder_playlists(ordered_ids)
+        if not ok:
+            return jsonify({'error': 'No se pudo reordenar.'}), 500
+        return jsonify({'success': True, 'reordered': len(ordered_ids)})
+
     # ==================================================================
     # API: DUPLICADOS (NUEVAS)
     # ==================================================================
@@ -978,11 +1032,41 @@ def create_app():
             msg = 'Archivo renombrado.'
             if final_path != new_path:
                 msg = f'Archivo renombrado como "{renamed_to}" (ya existía uno con ese nombre).'
+
+            # v3.17: Limpiar la entrada espuria en Eliminados.
+            # Cuando el usuario renombra un archivo, el archivo "viejo"
+            # desaparece del disco. Al re-escanear, aparece en Eliminados
+            # aunque el usuario no lo haya borrado a propósito. Como el
+            # archivo sigue existiendo (con otro nombre), lo sacamos de
+            # la lista de eliminados para no confundir.
+            removed_from_deleted = 0
+            try:
+                # Buscar el título y artista del archivo en LAST_SCAN
+                # (que tiene la metadata enriquecida)
+                song_info = None
+                for f in LAST_SCAN['files']:
+                    if f.get('path') == old_path:
+                        song_info = f
+                        break
+                if song_info:
+                    title = song_info.get('name', '') or os.path.splitext(renamed_to)[0]
+                    artist = song_info.get('artist', '')
+                else:
+                    # Si no está en LAST_SCAN, usar el nombre del archivo sin extensión
+                    title = os.path.splitext(os.path.basename(old_path))[0]
+                    artist = ''
+                removed_from_deleted = remove_deleted_by_title(title, artist)
+                if removed_from_deleted > 0:
+                    msg += f' Se eliminó {removed_from_deleted} entrada(s) espuria(s) de la lista de Eliminados.'
+            except Exception as e:
+                print(f'[WARN] No se pudo limpiar deleted_songs tras rename: {e}')
+
             return jsonify({
                 'success': True,
                 'message': msg,
                 'new_path': final_path,
                 'renamed_to': renamed_to,
+                'removed_from_deleted': removed_from_deleted,
             })
         except OSError as e:
             return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500

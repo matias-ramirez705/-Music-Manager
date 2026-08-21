@@ -61,10 +61,17 @@ def _save_all(data):
     tmp.replace(DATA_FILE)
 
 
-def list_playlists():
+def list_playlists(sort_by='last_accessed'):
     """
     Devuelve todas las playlists guardadas.
-    Las mas recientemente accesadas aparecen primero.
+
+    Args:
+        sort_by (str): criterio de ordenamiento. Opciones:
+            - 'last_accessed' (default): las más recientemente accesadas primero
+            - 'name': orden alfabético por nombre (A-Z)
+            - 'added_at': las más recientemente agregadas primero
+            - 'track_count': las que tienen más canciones primero
+            - 'sort_order': orden personalizado definido por el usuario (menor a mayor)
 
     Returns:
         list[dict]: playlists sin el campo 'tracks' (para no pesar
@@ -77,10 +84,61 @@ def list_playlists():
         # Copiar sin tracks para aligerar
         meta = {k: v for k, v in p.items() if k != 'tracks'}
         meta['track_count'] = len(p.get('tracks', []))
+        # Asegurar que todos los campos de sort existan (para evitar KeyError)
+        if 'sort_order' not in meta:
+            meta['sort_order'] = 0
+        if 'added_at' not in meta:
+            meta['added_at'] = ''
+        if 'last_accessed' not in meta:
+            meta['last_accessed'] = ''
         playlists.append(meta)
-    # Ordenar por last_accessed descendente (mas recientes primero)
-    playlists.sort(key=lambda x: x.get('last_accessed', ''), reverse=True)
+
+    # Ordenar según criterio
+    if sort_by == 'name':
+        playlists.sort(key=lambda x: x.get('name', '').lower())
+    elif sort_by == 'added_at':
+        playlists.sort(key=lambda x: x.get('added_at', ''), reverse=True)
+    elif sort_by == 'track_count':
+        playlists.sort(key=lambda x: x.get('track_count', 0), reverse=True)
+    elif sort_by == 'sort_order':
+        # Orden personalizado: por sort_order ascendente (menor primero)
+        # Las que no tienen sort_order (0) van al final
+        playlists.sort(key=lambda x: (x.get('sort_order', 0) == 0, x.get('sort_order', 0)))
+    else:  # 'last_accessed' (default)
+        playlists.sort(key=lambda x: x.get('last_accessed', ''), reverse=True)
     return playlists
+
+
+def count_local_in_playlists(local_title_index):
+    """
+    Para cada playlist guardada, cuenta cuántas de sus canciones
+    están en la biblioteca local (Mi Música).
+
+    Args:
+        local_title_index (set): conjunto de títulos normalizados de
+                                  la música local. Se construye desde
+                                  web_app usando build_local_playlist_index
+                                  o similar.
+
+    Returns:
+        dict: { playlist_id: { 'total': int, 'downloaded': int } }
+    """
+    data = _load_all()
+    result = {}
+    for p in data['playlists']:
+        tracks = p.get('tracks', [])
+        total = len(tracks)
+        downloaded = 0
+        for t in tracks:
+            title = t.get('title', '') if isinstance(t, dict) else ''
+            norm = _normalize(title)
+            if norm and norm in local_title_index:
+                downloaded += 1
+        result[p['id']] = {
+            'total': total,
+            'downloaded': downloaded,
+        }
+    return result
 
 
 def _sanitize_filename(name):
@@ -254,7 +312,7 @@ def delete_playlist(playlist_id):
 def update_playlist(playlist_id, updates):
     """
     Actualiza campos de una playlist (por ejemplo, renombrar).
-    Solo permite actualizar campos no criticos: name.
+    Solo permite actualizar campos no criticos: name, sort_order.
 
     Args:
         playlist_id (str): ID de la playlist.
@@ -268,9 +326,39 @@ def update_playlist(playlist_id, updates):
         if p['id'] == playlist_id:
             if 'name' in updates:
                 p['name'] = updates['name'][:200]  # limitar longitud
+            # v3.17: orden personalizado
+            if 'sort_order' in updates:
+                try:
+                    p['sort_order'] = int(updates['sort_order'])
+                except (ValueError, TypeError):
+                    p['sort_order'] = 0
             _save_all(data)
             return {k: v for k, v in p.items() if k != 'tracks'}
     return None
+
+
+def reorder_playlists(ordered_ids):
+    """
+    Reordena las playlists según una lista de IDs en el orden deseado.
+    Asigna sort_order secuencial (1, 2, 3, ...) a cada una.
+
+    Args:
+        ordered_ids (list[str]): IDs de playlists en el orden deseado.
+
+    Returns:
+        bool: True si se reordenó, False si hubo error.
+    """
+    if not ordered_ids:
+        return False
+    data = _load_all()
+    # Construir dict para acceso rápido
+    by_id = {p['id']: p for p in data['playlists']}
+    # Asignar sort_order secuencial
+    for i, pid in enumerate(ordered_ids, start=1):
+        if pid in by_id:
+            by_id[pid]['sort_order'] = i
+    _save_all(data)
+    return True
 
 
 def refresh_playlist(playlist_id, new_data):

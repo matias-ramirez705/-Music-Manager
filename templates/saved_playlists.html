@@ -43,10 +43,17 @@
         </p>
     </div>
 
-    <!-- Buscador de playlists guardadas -->
+    <!-- Buscador + orden de playlists guardadas -->
     <div class="filter-bar" style="margin-bottom:16px;">
         <input type="text" id="saved-search" class="search-input"
                placeholder="Buscar playlist por nombre o plataforma...">
+        <select id="saved-sort-by" class="filter-select" title="Ordenar playlists por...">
+            <option value="last_accessed">Ordenar: Recientes</option>
+            <option value="name">Ordenar: Nombre (A-Z)</option>
+            <option value="added_at">Ordenar: Fecha de agregado</option>
+            <option value="track_count">Ordenar: Más canciones</option>
+            <option value="sort_order">Ordenar: Personalizado</option>
+        </select>
     </div>
 
     <!-- Modal para editar/cargar TXT -->
@@ -86,5 +93,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=189"></script>
+<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=195"></script>
 {% endblock %}

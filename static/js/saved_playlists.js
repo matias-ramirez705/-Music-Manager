@@ -18,6 +18,58 @@ const btnSavePlaylist = document.getElementById('btn-save-playlist');
 const savedList = document.getElementById('saved-list');
 const savedEmpty = document.getElementById('saved-empty');
 
+// v3.17: índice de títulos locales para el modal "¿En Mi Música?"
+// Si local.js está cargado (página Mi Música), reutiliza sus funciones.
+// Si no (página Playlists Guardadas), usa las propias.
+// Esto es necesario porque saved_playlists.html no carga local.js.
+let _spLocalTitleIndex = null;
+
+function _spNormalizeTitle(s) {
+    // Reutilizar la de local.js si existe, sino usar la propia
+    if (typeof _normalizeTitle === 'function') return _normalizeTitle(s);
+    if (!s) return '';
+    return s.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\([^)]*\)/g, '')
+        .replace(/\[[^]]*\]/g, '')
+        .replace(/\b(feat|ft)\b\.?/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+async function _spBuildLocalTitleIndex() {
+    // Reutilizar el índice de local.js si existe y está construido
+    if (typeof _localTitleIndex !== 'undefined' && _localTitleIndex !== null) {
+        _spLocalTitleIndex = _localTitleIndex;
+        return;
+    }
+    // Reutilizar buildLocalTitleIndex de local.js si existe (lo construye y cachea)
+    if (typeof buildLocalTitleIndex === 'function') {
+        try {
+            await buildLocalTitleIndex();
+            if (typeof _localTitleIndex !== 'undefined') {
+                _spLocalTitleIndex = _localTitleIndex;
+                return;
+            }
+        } catch (e) {}
+    }
+    // Sino, construir el propio consultando /api/last-scan
+    if (_spLocalTitleIndex !== null) return;
+    try {
+        const data = await getJSON('/api/last-scan');
+        const files = data.files || [];
+        _spLocalTitleIndex = new Set();
+        for (const f of files) {
+            const norm = _spNormalizeTitle(f.name || '');
+            if (norm) _spLocalTitleIndex.add(norm);
+        }
+    } catch (e) {
+        _spLocalTitleIndex = new Set();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     loadSavedPlaylists();
@@ -48,6 +100,15 @@ function bindEvents() {
     // Buscador
     const searchInput = document.getElementById('saved-search');
     if (searchInput) searchInput.addEventListener('input', () => renderSavedList(window._allPlaylists || []));
+
+    // v3.17: Selector de ordenamiento
+    const sortBySelect = document.getElementById('saved-sort-by');
+    if (sortBySelect) {
+        sortBySelect.addEventListener('change', () => {
+            localStorage.setItem('saved_playlists_sort_by', sortBySelect.value);
+            loadSavedPlaylists();
+        });
+    }
 }
 
 // ------------------------------------------------------------------
@@ -217,8 +278,26 @@ async function handleCsvImport(event) {
 // ------------------------------------------------------------------
 async function loadSavedPlaylists() {
     try {
-        const data = await getJSON('/api/saved-playlists');
-        window._allPlaylists = data.playlists || [];
+        // v3.17: leer sort_by del select (persistido en localStorage)
+        const sortBySelect = document.getElementById('saved-sort-by');
+        let sortBy = 'last_accessed';
+        if (sortBySelect) {
+            // Restaurar de localStorage si hay
+            const saved = localStorage.getItem('saved_playlists_sort_by');
+            if (saved && [...sortBySelect.options].some(o => o.value === saved)) {
+                sortBySelect.value = saved;
+            }
+            sortBy = sortBySelect.value;
+        }
+        // v3.19: cargar playlists y conteos de descargadas en paralelo
+        const [plData, countsData] = await Promise.all([
+            getJSON('/api/saved-playlists?sort_by=' + encodeURIComponent(sortBy)),
+            getJSON('/api/saved-playlists/local-counts').catch(() => ({ counts: {}, has_local: false })),
+        ]);
+        window._allPlaylists = plData.playlists || [];
+        // v3.19: guardar conteos para mostrar en las cards
+        window._localCounts = countsData.counts || {};
+        window._hasLocalMusic = countsData.has_local || false;
         renderSavedList(window._allPlaylists);
     } catch (e) {
         showToast('Error al cargar playlists: ' + e.message, 'error');
@@ -255,6 +334,42 @@ function renderSavedList(playlists) {
               })
             : '—';
 
+        // v3.17: si el modo de orden es "personalizado", mostrar input numérico
+        const sortBySelect = document.getElementById('saved-sort-by');
+        const isCustomSort = sortBySelect && sortBySelect.value === 'sort_order';
+        const sortOrderHtml = isCustomSort
+            ? `<label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text-secondary);">
+                   #<input type="number" min="0" max="9999" value="${p.sort_order || 0}"
+                       style="width:50px; padding:2px 4px; background:var(--bg-elevated); border:1px solid var(--border); border-radius:3px; color:var(--text-primary); font-size:11px;"
+                       onclick="event.stopPropagation()"
+                       onchange="setSortOrder('${p.id}', this.value)"
+                       title="Orden personalizado (menor = primero)">
+               </label>`
+            : '';
+
+        // v3.19: calcular "X/Y descargadas" para mostrar en la card
+        let downloadedInfoHtml = '';
+        if (window._hasLocalMusic && window._localCounts) {
+            const c = window._localCounts[p.id];
+            if (c) {
+                const downloaded = c.downloaded || 0;
+                const total = c.total || p.track_count || 0;
+                const pct = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+                // Color: verde si todas, naranja si faltan, rojo si 0
+                let color = 'var(--warning)';
+                if (downloaded === total && total > 0) color = 'var(--accent)';
+                else if (downloaded === 0) color = 'var(--danger)';
+                downloadedInfoHtml = `
+                    <div style="margin-top:6px; font-size:11px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+                        <span style="color:${color}; font-weight:600;">${downloaded}</span>
+                        <span>/ ${total} descargadas</span>
+                        <span style="display:inline-block; width:60px; height:4px; background:var(--bg-elevated); border-radius:2px; overflow:hidden;">
+                            <span style="display:block; height:100%; background:${color}; width:${pct}%;"></span>
+                        </span>
+                    </div>`;
+            }
+        }
+
         card.innerHTML = `
             <div class="saved-card-header">
                 <div class="platform-icon ${p.platform}">${platformIcon}</div>
@@ -266,7 +381,9 @@ function renderSavedList(playlists) {
             <div class="saved-card-stats">
                 <span>${p.track_count} canciones</span>
                 <span>Acceso: ${lastAcc}</span>
+                ${sortOrderHtml}
             </div>
+            ${downloadedInfoHtml}
             <div class="saved-card-actions">
                 <button class="action-btn action-abrir" title="Ver canciones"
                     onclick="event.stopPropagation(); openPlaylist('${p.id}')">♪ <span>Abrir</span></button>
@@ -288,6 +405,20 @@ function renderSavedList(playlists) {
         savedList.appendChild(card);
     });
 }
+
+// v3.17: asignar orden personalizado a una playlist
+async function setSortOrder(playlistId, sortOrder) {
+    try {
+        await postJSON(`/api/saved-playlist/${playlistId}/sort-order`, {
+            sort_order: parseInt(sortOrder, 10) || 0,
+        });
+        // Recargar para que se reordene visualmente
+        loadSavedPlaylists();
+    } catch (e) {
+        showToast('Error al asignar orden: ' + e.message, 'error');
+    }
+}
+window.setSortOrder = setSortOrder;
 
 // ------------------------------------------------------------------
 // Guardar nueva playlist desde URL
@@ -326,11 +457,10 @@ async function saveNewPlaylist() {
 // Abrir detalle de playlist (cargar en compare)
 // ------------------------------------------------------------------
 function openPlaylist(id) {
-    // Redirige a compare con el ID en query string para auto-cargar
-    // Pero como ya tenemos la playlist cacheada, mejor ir a compare y usar la URL
-    window.location.href = `/saved?open=${id}`;
-    // Recargar la pagina y abrir modal de detalle
-    setTimeout(() => showPlaylistDetail(id), 100);
+    // v3.17: NO recargar la página. Llamar directamente a showPlaylistDetail
+    // que ya hace el fetch de la playlist y abre el modal.
+    // Antes se hacia window.location.href = '/saved?open=...' que recargaba todo.
+    showPlaylistDetail(id);
 }
 
 async function showPlaylistDetail(id) {
@@ -349,42 +479,127 @@ async function showPlaylistDetail(id) {
                         ${p.platform === 'youtube' ? 'YouTube Music' : 'Spotify'} •
                         <a href="${escapeHtml(p.url)}" target="_blank" style="color:var(--accent);">Abrir original ↗</a>
                     </p>
+                    <p id="sp-detail-downloaded-info" style="margin-bottom:12px; font-size:13px; color:var(--text-secondary); display:none;">
+                        <span style="color:var(--accent); font-weight:600;" id="sp-detail-downloaded-count">0</span>
+                        <span> descargadas de ${p.track_count}</span>
+                        <span style="display:inline-block; width:120px; height:6px; background:var(--bg-elevated); border-radius:3px; margin-left:8px; vertical-align:middle; overflow:hidden;">
+                            <span id="sp-detail-downloaded-bar" style="display:block; height:100%; background:var(--accent); width:0%; transition: width 0.4s ease;"></span>
+                        </span>
+                    </p>
                     <table class="music-table">
                         <thead><tr>
                             <th style="width:4%; text-align:center;">#</th>
                             <th style="width:40%; text-align:left;">Título</th>
                             <th style="width:18%; text-align:left;">Artista</th>
-                            <th style="width:18%; text-align:center;">Álbum</th>
+                            <th style="width:18%; text-align:center;" title="Indica si la canción está en tu biblioteca local (Mi Música)">¿En Mi Música?</th>
                             <th style="width:10%; text-align:center;">Duración</th>
                             <th style="width:10%; text-align:center;">Ir a canción</th>
                         </tr></thead>
-                        <tbody>`;
-        p.tracks.forEach((t, i) => {
-            // Icono de "Ir a cancion" con color segun plataforma
-            let link = '—';
-            if (t.url) {
-                const isYoutube = p.platform === 'youtube';
-                const icon = isYoutube ? '▶' : '♫';  // triangulo YT, nota Spotify
-                const color = isYoutube ? '#ff0000' : '#1db954';
-                const tooltip = isYoutube ? 'Abrir en YouTube Music' : 'Abrir en Spotify';
-                link = `<a href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="${tooltip}" class="track-link" style="color: ${color}; text-decoration: none; font-size: 16px; font-weight: bold;">${icon}</a>`;
-            }
-            html += `<tr>
-                <td style="text-align:center;">${i + 1}</td>
-                <td style="text-align:left;"><strong>${escapeHtml(t.title)}</strong></td>
-                <td style="text-align:left;">${escapeHtml(t.artist)}</td>
-                <td style="text-align:center;">${escapeHtml(t.album || '—')}</td>
-                <td style="text-align:center;">${formatDuration(t.duration)}</td>
-                <td style="text-align:center;">${link}</td>
-            </tr>`;
-        });
-        html += `</tbody></table>
+                        <tbody id="detail-modal-tbody">
+                            <tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">
+                                Cargando...
+                            </td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>`;
         document.body.insertAdjacentHTML('beforeend', html);
+
+        // v3.17: renderizar las filas después de construir el índice local
+        // (reutiliza _localTitleIndex de local.js si está disponible)
+        renderDetailModalRows(p);
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// v3.17: renderiza las filas del modal de detalle de saved_playlists
+// con la columna "¿En Mi Música?" en vez de "Álbum".
+async function renderDetailModalRows(p) {
+    const tbody = document.getElementById('detail-modal-tbody');
+    if (!tbody) return;
+
+    // v3.17: construir índice local (propio de saved_playlists.js)
+    // para que funcione incluso cuando local.js no está cargado
+    // (caso de la página /saved que no incluye local.js)
+    try {
+        await _spBuildLocalTitleIndex();
+    } catch (e) {
+        // Si falla, continuar sin índice (mostrará — neutral)
+    }
+
+    tbody.innerHTML = '';
+    p.tracks.forEach((t, i) => {
+        // Icono de "Ir a canción" con color según plataforma
+        let link = '—';
+        if (t.url) {
+            const isYoutube = p.platform === 'youtube';
+            const icon = isYoutube ? '▶' : '♫';
+            const color = isYoutube ? '#ff0000' : '#1db954';
+            const tooltip = isYoutube ? 'Abrir en YouTube Music' : 'Abrir en Spotify';
+            link = `<a href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="${tooltip}" class="track-link" style="color: ${color}; text-decoration: none; font-size: 16px; font-weight: bold;">${icon}</a>`;
+        }
+
+        // v3.17: determinar si está en Mi Música usando el índice propio
+        let localBadge = '<span style="color:var(--text-muted); font-size:11px;">—</span>';
+        if (_spLocalTitleIndex !== null) {
+            const tNorm = _spNormalizeTitle(t.title || '');
+            const isInLocal = _spLocalTitleIndex.has(tNorm);
+            localBadge = isInLocal
+                ? '<span style="color:var(--accent); font-size:16px;" title="Sí está en tu biblioteca local">✓</span>'
+                : '<span style="color:var(--danger); font-size:16px;" title="No está en tu biblioteca local">✗</span>';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align:center;">${i + 1}</td>
+            <td style="text-align:left;"><strong>${escapeHtml(t.title)}</strong></td>
+            <td style="text-align:left;">${escapeHtml(t.artist)}</td>
+            <td style="text-align:center; font-size:14px;">${localBadge}</td>
+            <td style="text-align:center;">${formatDuration(t.duration)}</td>
+            <td style="text-align:center;">${link}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // v3.17: actualizar contador de descargadas
+    _spUpdateDownloadedCount(p.tracks || [], p.track_count);
+}
+
+// v3.17: cuenta cuántas canciones de la playlist están en Mi Música
+// y actualiza el contador + barra de progreso del modal.
+function _spUpdateDownloadedCount(tracks, totalCount) {
+    const countEl = document.getElementById('sp-detail-downloaded-count');
+    const infoEl = document.getElementById('sp-detail-downloaded-info');
+    const barEl = document.getElementById('sp-detail-downloaded-bar');
+    if (!countEl || !infoEl) return;
+
+    // Si no hay índice local, no mostrar el contador
+    if (_spLocalTitleIndex === null) {
+        infoEl.style.display = 'none';
+        return;
+    }
+
+    let downloaded = 0;
+    for (const t of tracks) {
+        const tNorm = _spNormalizeTitle(t.title || '');
+        if (_spLocalTitleIndex.has(tNorm)) downloaded++;
+    }
+    countEl.textContent = downloaded;
+    infoEl.style.display = 'block';
+    // Barra de progreso
+    if (barEl) {
+        const pct = totalCount > 0 ? Math.round((downloaded / totalCount) * 100) : 0;
+        setTimeout(() => { barEl.style.width = pct + '%'; }, 50);
+    }
+    // Color del count
+    if (downloaded === totalCount) {
+        countEl.style.color = 'var(--accent)';
+    } else if (downloaded === 0) {
+        countEl.style.color = 'var(--danger)';
+    } else {
+        countEl.style.color = 'var(--warning)';
     }
 }
 

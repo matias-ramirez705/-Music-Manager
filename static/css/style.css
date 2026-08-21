@@ -1938,6 +1938,23 @@ body {
     padding: 8px;
 }
 
+/* v3.17: hover visual en filas de duplicados para identificar cuál estás seleccionando */
+.dup-file-row {
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    border-left: 3px solid transparent;
+}
+.dup-file-row:hover {
+    background: rgba(29, 185, 84, 0.12);
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 12px rgba(0,0,0,0.3);
+    border-left-color: var(--accent);
+    transform: translateX(2px);
+    cursor: default;
+}
+.dup-file-row.best:hover {
+    background: rgba(29, 185, 84, 0.18);
+    box-shadow: 0 0 0 2px var(--accent), 0 4px 12px rgba(0,0,0,0.3);
+}
+
 .dup-best-tag {
     display: inline-block;
     padding: 2px 6px;

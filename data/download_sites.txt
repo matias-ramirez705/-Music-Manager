@@ -8,8 +8,8 @@
 # Extraido de https://fmhy.net/audio
 #
 
-# | NOMBRE | LINK | DESCRIPCION | ESTADO |
-# |--------|------|-------------|--------|
+| NOMBRE | LINK | DESCRIPCION | ESTADO |
+|--------|------|-------------|--------|
 | lucida | https://lucida.to/ | Multi-Site / 320kb / MP3 / FLAC | OK |
 | DoubleDouble | https://doubledouble.top/ | Multi-Site / 320kb / FLAC | OK |
 | squid.wtf | https://squid.wtf/ | KHInsider / JioSaavn / FLAC | OK |
