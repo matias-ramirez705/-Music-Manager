@@ -1,4 +1,4 @@
-# Music Manager v3.16
+# Music Manager v3.19
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
@@ -7,6 +7,53 @@ guardar accesos directos a playlists, detectar duplicados, reproducir
 canciones, editar metadata + caratulas + letras masivamente, ver
 canciones eliminadas, organizar por carpetas, acceder a un indice de
 sitios para descargar musica FLAC.
+
+## Novedades en v3.17 - v3.19
+
+- **Renombrar archivos ya NO los manda a Eliminados**: cuando renombras
+  un archivo (desde Editar Metadata o la sub-pestana Renombrar), el
+  sistema automaticamente busca en la lista de Eliminados cualquier
+  entrada con el mismo titulo+artista y la elimina. Asi los archivos
+  renombrados no aparecen como "eliminados" falsamente.
+- **Hover visual en filas de Duplicados**: al pasar el cursor por una
+  fila de duplicados, se resalta con fondo verde claro, borde izquierdo
+  verde de 3px, sombra suave y se desplaza 2px a la derecha. Para la
+  fila "best" (mejor calidad), el hover es mas intenso.
+- **Ordenar Playlists Guardadas**: nuevo selector desplegable con 5 modos:
+  - Recientes (default, como antes)
+  - Nombre (A-Z) — alfabetico
+  - Fecha de agregado — las mas nuevas primero
+  - Mas canciones — por cantidad de tracks
+  - Personalizado — asignas un numero a cada playlist (input numerico
+    en cada card, menor = primero)
+  - El modo elegido se guarda en localStorage entre sesiones.
+  - Con cualquier modo que NO sea "Recientes", las playlists ya NO se
+    mueven de lugar al abrirlas o actualizarlas.
+- **Modal de playlist - columna "¿En Mi Musica?"**: cambio la columna
+  "Album" (que casi nunca mostraba nada) por "¿En Mi Musica?" que
+  muestra:
+  - ✓ verde si la cancion esta en tu biblioteca local
+  - ✗ rojo si no esta
+  - — neutral si no hay musica local escaneada
+  - Funciona en ambos modales: el de Mi Musica (clic en dots de playlist)
+    y el de Playlists Guardadas (clic en Abrir o en la card).
+- **Contador de descargadas en el modal de playlist**: debajo de la info
+  de la playlist, ahora aparece una linea con "X descargadas de Y" + una
+  barra de progreso animada. El numero cambia de color:
+  - Verde si todas estan descargadas
+  - Naranja si faltan algunas
+  - Rojo si ninguna esta descargada
+  - Se actualiza en tiempo real cuando usas el buscador del modal.
+- **Contador de descargadas en las tarjetas de Playlists Guardadas**:
+  cada tarjeta ahora muestra "X / Y descargadas" con una barra de progreso
+  mini (60px x 4px) debajo de la linea de "N canciones | Acceso: fecha".
+  Solo aparece si hay musica local escaneada.
+- **Abrir playlist desde Playlists Guardadas sin recargar la pagina**:
+  antes, al hacer clic en "Abrir" o en una card, se recargaba toda la
+  pagina. Ahora abre el modal directamente sin recarga.
+- **Modo de nombres anti-colision al renombrar**: si al renombrar ya
+  existe un archivo con ese nombre, se anade automaticamente _1, _2,
+  _3, ... hasta encontrar uno libre.
 
 ## Novedades en v3.16
 
@@ -204,23 +251,29 @@ sitios para descargar musica FLAC.
 
 ## Caracteristicas principales
 
-### 9 pestanas:
+### 10 pestañas:
 
 1. **♪ Mi Música** — escanea carpetas, muestra tabla con nombre, artista,
    álbum, duración, formato, calidad (bits/kHz), playlists, tamaño y ruta.
    Reproductor integrado, filtros (formato, playlist, duplicados,
    metadata con error, falta info técnica), búsqueda, badges de
-   duplicados. Clic en ruta abre explorador.
+   duplicados. Clic en ruta abre explorador. Clic en dots de playlist
+   abre modal con columna "¿En Mi Música?" y contador de descargadas.
 
 2. **⧉ Duplicados** — detecta canciones repetidas en diferentes
-   formatos/calidades. Marca la mejor versión. Botón borrar con doble
+   formatos/calidades. Marca la mejor versión. Hover visual en filas
+   (verde, borde, sombra). Botón borrar con doble
    confirmación (envia a papelera de reciclaje). Las canciones borradas
    se registran automáticamente en la pestaña Eliminados. Exportar CSV.
 
 3. **★ Playlists Guardadas** — guarda enlaces de playlists públicas de
    YouTube Music o importa playlists de Spotify desde CSV (Exportify).
    Carga masiva desde TXT. Cada playlist CSV se guarda en su propio JSON.
-   Modal de detalle con tabla y buscador integrado.
+   Modal de detalle con tabla, buscador integrado, columna "¿En Mi
+   Música?" (✓/✗) y contador de descargadas con barra de progreso.
+   Ordenamiento: por recientes, nombre (A-Z), fecha de agregado, más
+   canciones, o personalizado (número asignado por el usuario). Las
+   tarjetas muestran "X / Y descargadas" con barra de progreso mini.
 
 4. **⇄ Comparar Playlist** — compara tu música local con una playlist.
    Muestra faltantes, coincidencias, calidad local, formato, botón
@@ -375,6 +428,10 @@ music_manager/
 | Pestaña Spotiflac vacia | Escanea tu musica en "Mi Musica" primero. |
 | Info tecnica N/A en Opus | Normal en v3.14 y anteriores. Actualiza a v3.15+ que tiene workaround. |
 | Caratulas solo muestra 363 canciones | Bug de v3.13 y anteriores. Actualiza a v3.14+. |
+| Archivo renombrado aparece en Eliminados | Bug de v3.16 y anteriores. Actualiza a v3.17+ que lo limpia automaticamente. |
+| Playlists se mueven de lugar al abrirlas | Bug de v3.16 y anteriores. Actualiza a v3.17+ y usa orden por nombre/fecha/personalizado. |
+| Modal de playlist no muestra "¿En Mi Música?" | Actualiza a v3.17+. Requiere haber escaneado Mi Musica primero. |
+| Contador de descargadas no aparece en cards | Actualiza a v3.19+. Requiere haber escaneado Mi Musica primero. |
 | El reproductor se detiene al cambiar de pestana | Es normal: hay una pausa breve. Al volver, se restaura desde la posicion guardada. |
 
 ## Actualizar dependencias
