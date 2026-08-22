@@ -8,104 +8,6 @@
       "url": "https://music.youtube.com/playlist?list=PLJCkad8TrnTCyG_yA6A5uOPq_31IYpn-4",
       "tracks": [
         {
-          "title": "nothing,nowhere. - Dying For Attention",
-          "artist": "nothing,nowhere.",
-          "duration": 251.0,
-          "url": "https://www.youtube.com/watch?v=bgjOVbCZCFI",
-          "video_id": "bgjOVbCZCFI"
-        },
-        {
-          "title": "Night",
-          "artist": "Justin Hawkes - Topic",
-          "duration": 177.0,
-          "url": "https://www.youtube.com/watch?v=5704fkKCN1Q",
-          "video_id": "5704fkKCN1Q"
-        },
-        {
-          "title": "Arcade",
-          "artist": "Narvent",
-          "duration": 157.0,
-          "url": "https://www.youtube.com/watch?v=9mkrQtv3vjM",
-          "video_id": "9mkrQtv3vjM"
-        },
-        {
-          "title": "wHERE the rhythm goes",
-          "artist": "KovenUKMusic",
-          "duration": 196.0,
-          "url": "https://www.youtube.com/watch?v=hJ49bFXwLPc",
-          "video_id": "hJ49bFXwLPc"
-        },
-        {
-          "title": "HAPPY FEELS LIKE",
-          "artist": "Ninth Key",
-          "duration": 171.0,
-          "url": "https://www.youtube.com/watch?v=Ikw5f_nlEj0",
-          "video_id": "Ikw5f_nlEj0"
-        },
-        {
-          "title": "Take",
-          "artist": "Unlike Pluto",
-          "duration": 193.0,
-          "url": "https://www.youtube.com/watch?v=gLaXvlD-Ox8",
-          "video_id": "gLaXvlD-Ox8"
-        },
-        {
-          "title": "THE SIDE EFFECTS",
-          "artist": "coldrain",
-          "duration": 225.0,
-          "url": "https://www.youtube.com/watch?v=ZvUIaopKpg0",
-          "video_id": "ZvUIaopKpg0"
-        },
-        {
-          "title": "Televisions",
-          "artist": "Current Joys",
-          "duration": 157.0,
-          "url": "https://www.youtube.com/watch?v=-HN8680_mtQ",
-          "video_id": "-HN8680_mtQ"
-        },
-        {
-          "title": "STRESS TEST",
-          "artist": "FRENCH POLICE",
-          "duration": 154.0,
-          "url": "https://www.youtube.com/watch?v=pNHf6XqYBrg",
-          "video_id": "pNHf6XqYBrg"
-        },
-        {
-          "title": "Lose My Mind",
-          "artist": "deep dispatch - Topic",
-          "duration": 118.0,
-          "url": "https://www.youtube.com/watch?v=zvy2Dne_MSc",
-          "video_id": "zvy2Dne_MSc"
-        },
-        {
-          "title": "Unlike Pluto - Take",
-          "artist": "Unlike Pluto",
-          "duration": 193.0,
-          "url": "https://www.youtube.com/watch?v=ESAgWb6dvaw",
-          "video_id": "ESAgWb6dvaw"
-        },
-        {
-          "title": "R3DN1K - Poison",
-          "artist": "R3DN1K",
-          "duration": 271.0,
-          "url": "https://www.youtube.com/watch?v=f3Nz88_Zncs",
-          "video_id": "f3Nz88_Zncs"
-        },
-        {
-          "title": "goddard. & Charlotte Haining - Stamina",
-          "artist": "UKF Drum & Bass",
-          "duration": 168.0,
-          "url": "https://www.youtube.com/watch?v=d4Yx7DK1TNM",
-          "video_id": "d4Yx7DK1TNM"
-        },
-        {
-          "title": "Up",
-          "artist": "Andromedik",
-          "duration": 204.0,
-          "url": "https://www.youtube.com/watch?v=yFNLdaWMRVE",
-          "video_id": "yFNLdaWMRVE"
-        },
-        {
           "title": "Bright Side",
           "artist": "Babsy.",
           "duration": 200.0,
@@ -1912,9 +1814,9 @@
           "video_id": "h4QGc06KnBE"
         }
       ],
-      "track_count": 272,
+      "track_count": 258,
       "added_at": "2026-08-14T22:23:53",
-      "last_accessed": "2026-08-20T21:00:57"
+      "last_accessed": "2026-08-14T22:23:53"
     },
     {
       "id": "f93e89a4756f",
@@ -2457,7 +2359,7 @@
         },
         {
           "title": "Great Escape",
-          "artist": "Release - Topic",
+          "artist": "Egzod",
           "duration": 182.0,
           "url": "https://www.youtube.com/watch?v=KyYZS0p1WEo",
           "video_id": "KyYZS0p1WEo"
@@ -3703,7 +3605,7 @@
         },
         {
           "title": "Anti-Hero (triple j Like A Version)",
-          "artist": "Release - Topic",
+          "artist": "pendulumlive",
           "duration": 245.0,
           "url": "https://www.youtube.com/watch?v=n6Gc_UWwEYo",
           "video_id": "n6Gc_UWwEYo"
@@ -5124,7 +5026,7 @@
         },
         {
           "title": "When You Were Young",
-          "artist": "TheKillersMusic",
+          "artist": "Release - Topic",
           "duration": 221.0,
           "url": "https://www.youtube.com/watch?v=s2gtQJiM5Zg",
           "video_id": "s2gtQJiM5Zg"
@@ -5552,7 +5454,7 @@
       ],
       "track_count": 518,
       "added_at": "2026-08-14T22:23:56",
-      "last_accessed": "2026-08-20T20:28:57"
+      "last_accessed": "2026-08-14T22:23:56"
     },
     {
       "id": "604e11e93299",
@@ -6936,7 +6838,7 @@
       ],
       "track_count": 196,
       "added_at": "2026-08-14T22:23:58",
-      "last_accessed": "2026-08-20T20:28:54"
+      "last_accessed": "2026-08-14T22:23:58"
     },
     {
       "id": "3b856f96ff0e",
@@ -7536,7 +7438,7 @@
       ],
       "track_count": 84,
       "added_at": "2026-08-14T22:23:59",
-      "last_accessed": "2026-08-20T20:28:48"
+      "last_accessed": "2026-08-14T22:23:59"
     },
     {
       "id": "f40beaf30e99",
@@ -7555,7 +7457,7 @@
       ],
       "track_count": 1,
       "added_at": "2026-08-14T22:24:00",
-      "last_accessed": "2026-08-20T21:01:25"
+      "last_accessed": "2026-08-14T22:24:00"
     },
     {
       "id": "5023fa979b8c",
@@ -16005,7 +15907,7 @@
         },
         {
           "title": "Volt",
-          "artist": "kiynaria - Topic",
+          "artist": "Kiynaria - Topic",
           "duration": 301.0,
           "url": "https://www.youtube.com/watch?v=ikJC3clUXIw",
           "video_id": "ikJC3clUXIw"
@@ -17195,7 +17097,7 @@
         },
         {
           "title": "RISE",
-          "artist": "Release - Topic",
+          "artist": "YMIR",
           "duration": 340.0,
           "url": "https://www.youtube.com/watch?v=Z05BWf3a8yE",
           "video_id": "Z05BWf3a8yE"
@@ -17244,7 +17146,7 @@
         },
         {
           "title": "Dodo",
-          "artist": "Release - Topic",
+          "artist": "meganeko",
           "duration": 201.0,
           "url": "https://www.youtube.com/watch?v=jOAEe1M0n3I",
           "video_id": "jOAEe1M0n3I"
@@ -18239,7 +18141,7 @@
       ],
       "track_count": 349,
       "added_at": "2026-08-14T22:24:12",
-      "last_accessed": "2026-08-20T20:12:28"
+      "last_accessed": "2026-08-14T22:24:12"
     },
     {
       "id": "aecf603e476a",
@@ -21917,7 +21819,7 @@
       ],
       "track_count": 184,
       "added_at": "2026-08-14T22:24:17",
-      "last_accessed": "2026-08-20T19:42:36"
+      "last_accessed": "2026-08-14T22:24:17"
     },
     {
       "id": "fee32e96936c",
@@ -23901,7 +23803,7 @@
       ],
       "track_count": 224,
       "added_at": "2026-08-14T22:24:19",
-      "last_accessed": "2026-08-20T19:41:43"
+      "last_accessed": "2026-08-14T22:24:19"
     },
     {
       "id": "94800b236d98",
@@ -29217,7 +29119,7 @@
       ],
       "track_count": 673,
       "added_at": "2026-08-14T22:24:25",
-      "last_accessed": "2026-08-20T19:18:02"
+      "last_accessed": "2026-08-14T22:24:25"
     },
     {
       "id": "c7e5b919a291",
@@ -29236,7 +29138,7 @@
       ],
       "track_count": 1,
       "added_at": "2026-08-14T22:24:28",
-      "last_accessed": "2026-08-20T21:01:16"
+      "last_accessed": "2026-08-14T22:24:28"
     },
     {
       "id": "3cccab2c9227",
@@ -29451,7 +29353,7 @@
       ],
       "track_count": 29,
       "added_at": "2026-08-14T22:24:30",
-      "last_accessed": "2026-08-20T21:01:12"
+      "last_accessed": "2026-08-14T22:24:30"
     }
   ]
 }

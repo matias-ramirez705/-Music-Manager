@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: M3U PARA HIBY R1 (v3.22)
+     Genera y edita playlists M3U para el Hiby R1.
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>M3U para Hiby</h1>
+        <p class="subtitle">
+            Genera playlists M3U a partir de tus playlists guardadas, cruzando
+            con la música del Hiby R1. Las rutas son relativas (../Musica/...)
+            para que funcionen sin importar la letra de unidad.
+        </p>
+    </header>
+
+    <!-- Instrucciones -->
+    <div class="local-status" style="margin-bottom:16px;">
+        <span class="status-icon">💡</span>
+        <div style="flex:1;">
+            <strong>Cómo funciona:</strong><br>
+            <span style="font-size:12px; color:var(--text-secondary);">
+                1. Conectá el Hiby R1 por USB → aparece como una unidad (ej: G:)<br>
+                2. Indicá la carpeta raíz del Hiby abajo (ej: G:\)<br>
+                3. Seleccioná una playlist guardada → se cruzan las canciones con el Hiby<br>
+                4. Solo se incluyen las canciones que ESTÁN en el Hiby<br>
+                5. Guardá el .m3u en la carpeta <code style="background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">G:\playlist_data\</code>
+            </span>
+        </div>
+    </div>
+
+    <!-- Sub-pestañas -->
+    <div class="sub-tabs">
+        <a href="#" class="sub-tab active" data-m3u-subtab="generate">
+            📝 Generar M3U
+        </a>
+        <a href="#" class="sub-tab" data-m3u-subtab="edit">
+            ✎ Editar M3U
+        </a>
+    </div>
+
+    <!-- ============================================
+         SUB-PESTAÑA 1: GENERAR M3U
+         ============================================ -->
+    <div id="m3u-subtab-generate" class="sub-content">
+        <!-- Config -->
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <input type="text" id="m3u-hiby-folder" class="folder-input"
+                   placeholder="Carpeta raíz del Hiby (ej: G:\)"
+                   style="flex:1;">
+            <button id="btn-m3u-browse-hiby" class="btn btn-secondary">Explorar</button>
+        </div>
+
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <select id="m3u-playlist-select" class="filter-select" style="flex:1;">
+                <option value="">Selecciona una playlist guardada...</option>
+            </select>
+            <button id="btn-m3u-preview" class="btn btn-primary">🔍 Generar M3U</button>
+        </div>
+
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <input type="text" id="m3u-save-folder" class="folder-input"
+                   placeholder="Carpeta donde guardar el .m3u (ej: G:\playlist_data\)"
+                   style="flex:1;">
+            <button id="btn-m3u-browse-save" class="btn btn-secondary">Explorar</button>
+            <input type="text" id="m3u-filename" class="folder-input"
+                   placeholder="nombre_playlist.m3u" style="width:200px;">
+            <button id="btn-m3u-save" class="btn btn-primary" disabled>💾 Guardar</button>
+        </div>
+
+        <!-- Stats -->
+        <div id="m3u-stats" class="stats-bar hidden">
+            <div class="stat">
+                <span class="stat-label">Total en playlist</span>
+                <span class="stat-value" id="m3u-total">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Encontradas en Hiby</span>
+                <span class="stat-value" id="m3u-matched" style="color:var(--accent);">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Faltantes</span>
+                <span class="stat-value" id="m3u-missing" style="color:var(--danger);">0</span>
+            </div>
+        </div>
+
+        <!-- Preview del M3U -->
+        <div id="m3u-preview-container" class="hidden" style="margin-top:16px;">
+            <h3 style="font-size:14px; margin-bottom:8px;">Vista previa del M3U</h3>
+            <textarea id="m3u-preview-content" rows="15" readonly
+                style="width:100%; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:12px; color:var(--text-secondary); font-family:var(--font-mono); font-size:11px; resize:vertical;"></textarea>
+        </div>
+
+        <!-- Canciones faltantes -->
+        <div id="m3u-missing-container" class="hidden" style="margin-top:16px;">
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--warning);">⚠ Canciones faltantes en el Hiby</h3>
+            <div class="table-container">
+                <table class="music-table">
+                    <thead><tr>
+                        <th>#</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                    </tr></thead>
+                    <tbody id="m3u-missing-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="m3u-empty" class="empty-state">
+            <div class="empty-icon">🎵</div>
+            <h3>Sin M3U generado</h3>
+            <p>Seleccioná una playlist y la carpeta del Hiby, luego hacé clic en "Generar M3U".</p>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SUB-PESTAÑA 2: EDITAR M3U
+         ============================================ -->
+    <div id="m3u-subtab-edit" class="sub-content hidden">
+        <!-- Carpeta de M3U -->
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <input type="text" id="m3u-edit-folder" class="folder-input"
+                   placeholder="Carpeta de M3U del Hiby (ej: G:\playlist_data\)"
+                   style="flex:1;">
+            <button id="btn-m3u-edit-browse" class="btn btn-secondary">Explorar</button>
+            <button id="btn-m3u-edit-list" class="btn btn-primary">📋 Listar M3U</button>
+        </div>
+
+        <!-- Lista de M3U -->
+        <div id="m3u-edit-list-container" class="hidden" style="margin-bottom:16px;">
+            <div class="table-container">
+                <table class="music-table">
+                    <thead><tr>
+                        <th>Archivo</th>
+                        <th>Canciones</th>
+                        <th>Modificado</th>
+                        <th>Acciones</th>
+                    </tr></thead>
+                    <tbody id="m3u-edit-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Editor de M3U -->
+        <div id="m3u-editor-container" class="hidden" style="margin-top:16px;">
+            <div class="filter-bar" style="margin-bottom:12px;">
+                <h3 id="m3u-editor-title" style="font-size:14px; flex:1;">Editando: —</h3>
+                <button id="btn-m3u-add-track" class="btn btn-secondary btn-sm">+ Añadir canción</button>
+                <button id="btn-m3u-save-edit" class="btn btn-primary btn-sm">💾 Guardar cambios</button>
+                <button id="btn-m3u-cancel-edit" class="btn btn-ghost btn-sm">Cancelar</button>
+            </div>
+
+            <!-- Lista de canciones editables -->
+            <div class="table-container">
+                <table class="music-table">
+                    <thead><tr>
+                        <th>#</th>
+                        <th>Ruta (relativa)</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th>Acciones</th>
+                    </tr></thead>
+                    <tbody id="m3u-edit-tracks-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal: añadir canción -->
+        <div id="m3u-add-track-modal" class="modal hidden">
+            <div class="modal-content" style="max-width:600px;">
+                <div class="modal-header">
+                    <h2>Añadir canción al M3U</h2>
+                    <button class="modal-close">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
+                        Escribí la ruta relativa de la canción (ej: ../Musica/Artista/Album/cancion.flac).
+                        Opcionalmente, completá el título y artista para el #EXTINF.
+                    </p>
+                    <div class="form-group">
+                        <label>Ruta relativa *</label>
+                        <input type="text" id="m3u-add-path" class="form-input"
+                               placeholder="../Musica/Artista/Album/cancion.flac">
+                    </div>
+                    <div class="form-group">
+                        <label>Título</label>
+                        <input type="text" id="m3u-add-title" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Artista</label>
+                        <input type="text" id="m3u-add-artist" class="form-input">
+                    </div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+                        <button class="btn btn-ghost" id="m3u-add-cancel">Cancelar</button>
+                        <button class="btn btn-primary" id="m3u-add-confirm">Añadir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/m3u_hiby.js') }}?v=198"></script>
+{% endblock %}

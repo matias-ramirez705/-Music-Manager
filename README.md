@@ -1,12 +1,45 @@
-# Music Manager v3.19
+# Music Manager v3.22
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
 Spotify, comparar carpetas (PC vs DAP), generar dummies para Spotiflac,
-guardar accesos directos a playlists, detectar duplicados, reproducir
-canciones, editar metadata + caratulas + letras masivamente, ver
-canciones eliminadas, organizar por carpetas, acceder a un indice de
-sitios para descargar musica FLAC.
+generar playlists M3U para el Hiby R1, guardar accesos directos a
+playlists, detectar duplicados, reproducir canciones, editar metadata +
+caratulas + letras masivamente, ver canciones eliminadas, organizar por
+carpetas, acceder a un indice de sitios para descargar musica FLAC.
+
+## Novedades en v3.22
+
+- **Nueva pestana "🎵 M3U Hiby"**: genera y edita playlists M3U para el
+  Hiby R1 (y otros DAPs compatibles). Incluye 2 sub-pestanas:
+  - **Generar M3U**: selecciona una playlist guardada, escanea la musica
+    del Hiby, cruza los titulos y genera un archivo .m3u con rutas
+    relativas (../Musica/...). Solo incluye las canciones que ESTAN en
+    el Hiby. Lista las faltantes. Guarda directo en /playlist_data/.
+  - **Editar M3U**: lista los .m3u existentes en el Hiby, permite
+    editarlos inline (ruta, titulo, artista), anadir/quitar canciones,
+    guardar cambios o eliminar M3U completos.
+  - Formato: #EXTM3U + #EXTINF:duracion,Titulo - Artista + ruta relativa
+  - Codificacion UTF-8
+  - Compatible con el formato del Hiby R1 (carpeta /playlist_data/)
+
+## Novedades en v3.20 - v3.21
+
+- **Nuevas fuentes de busqueda de metadata**: SoundCloud y osu!
+  anadidas al selector de fuente en Editar Metadata.
+  - **SoundCloud** (via yt-dlp scsearch): excelente para remixes,
+    musica independiente, DJs y canciones que no estan en plataformas
+    comerciales. No requiere API key. Thumbnails en alta resolucion
+    (original o t500x500).
+  - **osu!** (beatmap search): para musica de juegos de ritmo, remixes
+    de anime y musica comunitaria de internet. Incluye BPM. Experimental
+    (el endpoint puede requerir autenticacion en algunos casos).
+  - **Todas**: ahora busca en iTunes + MusicBrainz + SoundCloud + osu!
+    a la vez (4 fuentes).
+- **Thumbnails de SoundCloud en alta resolucion** (v3.21): arreglado
+  el problema donde las caratulas venian en 16x16. Ahora se reescriben
+  las URLs a t500x500 o se hace una segunda pasada con yt-dlp para
+  obtener el thumbnail original.
 
 ## Novedades en v3.17 - v3.19
 
@@ -251,7 +284,7 @@ sitios para descargar musica FLAC.
 
 ## Caracteristicas principales
 
-### 10 pestañas:
+### 11 pestañas:
 
 1. **♪ Mi Música** — escanea carpetas, muestra tabla con nombre, artista,
    álbum, duración, formato, calidad (bits/kHz), playlists, tamaño y ruta.
@@ -283,8 +316,10 @@ sitios para descargar musica FLAC.
 
 5. **✎ Metadatos** — con 4 sub-pestañas:
    - **Editar Metadata**: edita tags (título, artista, álbum, año,
-     pista, género). Busca metadata en iTunes, MusicBrainz, Last.fm con
-     preview de 30s que respeta el volumen del reproductor. Gestiona
+     pista, género). Busca metadata en iTunes, MusicBrainz, Last.fm,
+     SoundCloud y osu! con preview de 30s que respeta el volumen del
+     reproductor. SoundCloud excelente para remixes y música
+     independiente. osu! para música de juegos de ritmo. Gestiona
      carátulas. Renombrar archivo con protección anti-colisión.
    - **🖼 Carátulas** (masivo): analizar, redimensionar todas, descargar
      faltantes desde iTunes. Preserva el buscador y scroll al cambiar
@@ -319,6 +354,12 @@ sitios para descargar musica FLAC.
     al Hiby R1. Tracking de generados, soporta 11 formatos, FLAC con
     metadata real. Descarga directa del ZIP.
 
+11. **🎵 M3U Hiby** (v3.22) — genera y edita playlists M3U para el
+    Hiby R1. 2 sub-pestanas: Generar (cruza playlist guardada con la
+    música del Hiby, rutas relativas ../Musica/...) y Editar (editor
+    inline de M3U existentes). Guarda directo en /playlist_data/.
+    Formato compatible con Hiby R1.
+
 ### Reproductor flotante:
 - Carátula miniatura, controles play/pausa/skip, barra de progreso
   personalizada con gradiente verde, control de volumen.
@@ -332,7 +373,7 @@ sitios para descargar musica FLAC.
 - **Opus**: info técnica con sample_rate 48000 nativo y bitrate estimado
 - **Playlists**: YouTube Music (completo), Spotify (100 por URL o CSV
   ilimitado via Exportify)
-- **Metadata**: iTunes, MusicBrainz, Last.fm
+- **Metadata**: iTunes, MusicBrainz, Last.fm, SoundCloud, osu!
 - **CSV**: Exportify (español e inglés)
 - **Dummies Spotiflac**: FLAC, OPUS, OGG, M4A/MP4, AAC, MP3, WAV, AIFF,
   APE, WV, WMA
@@ -392,6 +433,7 @@ music_manager/
 |   |-- download_sites.py    -> gestiona indice de sitios FLAC
 |   |-- folder_compare.py    -> compara 2 carpetas (PC vs DAP)
 |   |-- spotiflac_dummy.py   -> genera dummies para Spotiflac
+|   |-- m3u_generator.py     -> genera/edita M3U para Hiby R1 (v3.22)
 |   `-- web_app.py           -> servidor Flask con todas las rutas
 |-- templates/               <- HTML de las pestanas
 |   |-- base.html, index.html, duplicates.html
@@ -399,6 +441,7 @@ music_manager/
 |   |-- metadata_master.html (sub-pestanas Metadatos)
 |   |-- editor.html, organize.html, downloads.html
 |   |-- deleted.html, folder_compare.html, spotiflac.html
+|   `-- m3u_hiby.html        -> M3U para Hiby R1 (v3.22)
 `-- static/                  <- CSS y JS
     |-- favicon.svg          -> icono de nota musical
     |-- css/style.css        -> estilo oscuro tipo Spotify
@@ -408,6 +451,7 @@ music_manager/
         |-- duplicates.js, saved_playlists.js
         |-- organize.js, downloads.js
         |-- deleted.js, folder_compare.js, spotiflac.js
+        |-- m3u_hiby.js      -> M3U para Hiby R1 (v3.22)
         |-- batch_artwork.js, batch_lyrics.js
 ```
 
@@ -432,6 +476,10 @@ music_manager/
 | Playlists se mueven de lugar al abrirlas | Bug de v3.16 y anteriores. Actualiza a v3.17+ y usa orden por nombre/fecha/personalizado. |
 | Modal de playlist no muestra "¿En Mi Música?" | Actualiza a v3.17+. Requiere haber escaneado Mi Musica primero. |
 | Contador de descargadas no aparece en cards | Actualiza a v3.19+. Requiere haber escaneado Mi Musica primero. |
+| No encuentro metadata de remixes o música independiente | Actualiza a v3.20+. Usa SoundCloud como fuente de búsqueda. |
+| Carátulas de SoundCloud se ven pixeladas (16x16) | Bug de v3.20. Actualiza a v3.21+ que reescribe URLs a t500x500. |
+| Quiero crear playlists M3U para el Hiby R1 | v3.22+. Pestaña "🎵 M3U Hiby" → Generar desde playlist guardada. |
+| El Hiby no lee el M3U | Asegúrate de guardarlo en /playlist_data/ con rutas relativas ../Musica/... y codificación UTF-8. |
 | El reproductor se detiene al cambiar de pestana | Es normal: hay una pausa breve. Al volver, se restaura desde la posicion guardada. |
 
 ## Actualizar dependencias
@@ -442,7 +490,7 @@ cd music_manager
 pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv Send2Trash
 ```
 
-## Flujo de trabajo tipico (PC → Hiby R1 → Spotiflac)
+## Flujo de trabajo tipico (PC → Hiby R1 → Spotiflac → M3U)
 
 1. **Descargar en Spotiflac** (Android): descarga las canciones que quieras.
 2. **Pasar al PC**: copia los archivos de audio del telefono a una carpeta
@@ -450,7 +498,9 @@ pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv
 3. **Escanear en Mi Musica**: abre Music Manager → Mi Musica → escanea
    la carpeta donde copiaste las canciones.
 4. **Arreglar metadata**: ve a Metadatos → Editar Metadata. Corrige
-   titulo, artista, album. Busca metadata en iTunes si hace falta.
+   titulo, artista, album. Busca metadata en iTunes/MusicBrainz/Last.fm/
+   SoundCloud/osu! segun el tipo de cancion (SoundCloud para remixes,
+   osu! para musica de juegos).
 5. **Ajustar caratulas**: ve a Metadatos → Caratulas. Analiza, descarga
    faltantes, redimensiona.
 6. **Revisar letras**: ve a Metadatos → Letras. Analiza, descarga
@@ -468,3 +518,7 @@ pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv
     `/storage/emulated/0/Music/SpotyFlac/`. Escanea la biblioteca en
     Spotiflac. Ahora las canciones que ya pasaste al Hiby R1 aparecen
     como duplicadas al buscar, evitando que las descargues de nuevo.
+12. **Generar playlists M3U para el Hiby**: ve a M3U Hiby → Generar.
+    Selecciona una playlist guardada, indica la carpeta del Hiby (ej: G:\),
+    y genera el .m3u con las canciones que estan en el DAP. Guarda en
+    `G:\playlist_data\`. El Hiby mostrara la playlist con su nombre.

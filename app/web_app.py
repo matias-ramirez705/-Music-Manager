@@ -83,6 +83,11 @@ from spotiflac_dummy import (
     preview_generation, generate_dummy_zip,
     get_history as get_dummy_history, clear_history as clear_dummy_history,
 )
+# v3.22: Generador/editor de M3U para Hiby R1
+from m3u_generator import (
+    generate_m3u, parse_m3u, save_m3u, rebuild_m3u_from_tracks,
+    list_m3u_files, read_m3u_file,
+)
 
 
 # ------------------------------------------------------------------
@@ -158,6 +163,11 @@ def create_app():
     def spotiflac():
         """Pestaña 9: Generador de dummies para Spotiflac."""
         return render_template('spotiflac.html', active_tab='spotiflac')
+
+    @app.route('/m3u-hiby')
+    def m3u_hiby():
+        """Pestaña 11 (v3.22): Generador/editor de M3U para Hiby R1."""
+        return render_template('m3u_hiby.html', active_tab='m3u-hiby')
 
     # ==================================================================
     # API: ESCANEO
@@ -2008,6 +2018,120 @@ def create_app():
         """Vacía el historial de dummies generados."""
         n = clear_dummy_history()
         return jsonify({'success': True, 'removed': n})
+
+    # ==================================================================
+    # API: M3U PARA HIBY R1 (v3.22)
+    # ==================================================================
+
+    @app.route('/api/m3u/preview', methods=['POST'])
+    def api_m3u_preview():
+        """Previsualiza el M3U que se generaría a partir de una playlist guardada.
+        Body: { playlist_id, hiby_folder, music_folder='Musica' }
+        - hiby_folder: carpeta raíz del Hiby (ej: G:\\)
+        - music_folder: subcarpeta de música (default: 'Musica')
+        """
+        data = request.get_json(silent=True) or {}
+        playlist_id = data.get('playlist_id', '')
+        hiby_folder = data.get('hiby_folder', '').strip()
+        music_folder = data.get('music_folder', 'Musica')
+
+        if not playlist_id:
+            return jsonify({'error': 'Falta playlist_id.'}), 400
+        if not hiby_folder:
+            return jsonify({'error': 'Falta hiby_folder (carpeta del Hiby).'}), 400
+
+        # Obtener la playlist guardada
+        from saved_playlists import get_playlist
+        playlist = get_playlist(playlist_id)
+        if not playlist:
+            return jsonify({'error': 'Playlist no encontrada.'}), 404
+
+        tracks = playlist.get('tracks', [])
+
+        # Escanear la carpeta del Hiby
+        hiby_path = os.path.join(hiby_folder, music_folder)
+        if not os.path.isdir(hiby_path):
+            return jsonify({'error': f'La carpeta {hiby_path} no existe en el Hiby.'}), 400
+
+        raw_hiby_files = scan_folder(hiby_path)
+        # Enriquecer con metadata (igual que /api/scan)
+        hiby_files = []
+        for f in raw_hiby_files:
+            meta = read_metadata(f['path'])
+            hiby_files.append({
+                'path': f['path'],
+                'name': meta['title'] or f['name'],
+                'artist': meta['artist'],
+                'ext': f['ext'].lstrip('.'),
+                'size': f['size'],
+            })
+
+        # Generar M3U
+        result = generate_m3u(tracks, hiby_files, music_folder)
+        return jsonify(result)
+
+    @app.route('/api/m3u/save', methods=['POST'])
+    def api_m3u_save():
+        """Guarda un archivo M3U en el disco.
+        Body: { content, file_path } o { content, folder, filename }
+        """
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '')
+        file_path = data.get('file_path', '').strip()
+
+        if not file_path:
+            folder = data.get('folder', '').strip()
+            filename = data.get('filename', '').strip()
+            if not folder or not filename:
+                return jsonify({'error': 'Falta file_path o (folder + filename).'}), 400
+            # Asegurar extensión .m3u
+            if not filename.lower().endswith('.m3u'):
+                filename += '.m3u'
+            file_path = os.path.join(folder, filename)
+
+        result = save_m3u(content, file_path)
+        return jsonify(result)
+
+    @app.route('/api/m3u/list', methods=['POST'])
+    def api_m3u_list():
+        """Lista los archivos M3U en una carpeta.
+        Body: { folder }
+        """
+        data = request.get_json(silent=True) or {}
+        folder = data.get('folder', '').strip()
+        if not folder:
+            return jsonify({'error': 'Falta folder.'}), 400
+        files = list_m3u_files(folder)
+        return jsonify({'files': files})
+
+    @app.route('/api/m3u/read', methods=['POST'])
+    def api_m3u_read():
+        """Lee un archivo M3U y devuelve su contenido parseado.
+        Body: { file_path }
+        """
+        data = request.get_json(silent=True) or {}
+        file_path = data.get('file_path', '').strip()
+        if not file_path:
+            return jsonify({'error': 'Falta file_path.'}), 400
+        result = read_m3u_file(file_path)
+        return jsonify(result)
+
+    @app.route('/api/m3u/delete', methods=['POST'])
+    def api_m3u_delete():
+        """Elimina un archivo M3U del disco.
+        Body: { file_path }
+        """
+        data = request.get_json(silent=True) or {}
+        file_path = data.get('file_path', '').strip()
+        if not file_path:
+            return jsonify({'error': 'Falta file_path.'}), 400
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                return jsonify({'success': True})
+            return jsonify({'success': False, 'error': 'Archivo no existe.'}), 404
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
 
     # ==================================================================
     # HEADERS ANTI-CACHE (v3.6)
