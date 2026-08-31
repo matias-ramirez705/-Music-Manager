@@ -940,7 +940,6 @@ body {
 .info-banner-warning .info-banner-icon { color: var(--warning); }
 .info-banner-success .info-banner-icon { color: var(--accent); }
 
-.spotify-status-panel { margin-bottom: 20px; }
 
 .info-banner-icon {
     font-size: 32px;

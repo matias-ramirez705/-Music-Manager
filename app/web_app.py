@@ -582,52 +582,11 @@ def create_app():
 
     # ==================================================================
     # API: PLAYLISTS GUARDADAS (NUEVAS)
+    # v3.23: eliminados los endpoints huérfanos de Spotify OAuth
+    #        (/api/spotify-status, /api/spotify-login/start/finish/logout)
+    #        porque el flujo de credenciales nunca funcionó para +100 canciones.
+    #        Usar Exportify (https://exportify.app/) para playlists grandes.
     # ==================================================================
-
-    @app.route('/api/spotify-status', methods=['GET'])
-    def api_spotify_status():
-        """
-        Devuelve el estado de la configuracion de Spotify.
-        Util para mostrar un banner en la UI si no esta configurado.
-        """
-        try:
-            from spotify_official import is_configured, has_user_login, get_auth_mode
-            return jsonify({
-                'configured': is_configured(),
-                'user_logged_in': has_user_login(),
-                'auth_mode': get_auth_mode(),
-            })
-        except ImportError:
-            return jsonify({
-                'configured': False,
-                'user_logged_in': False,
-                'auth_mode': None,
-            })
-
-    @app.route('/api/spotify-login/start', methods=['POST'])
-    def api_spotify_login_start():
-        """Inicia el flujo de OAuth. Devuelve la URL de autorizacion."""
-        from spotify_official import start_user_login
-        result = start_user_login()
-        return jsonify(result)
-
-    @app.route('/api/spotify-login/finish', methods=['POST'])
-    def api_spotify_login_finish():
-        """Completa el flujo OAuth con la URL de callback del navegador."""
-        data = request.get_json(silent=True) or {}
-        callback_url = data.get('callback_url', '')
-        if not callback_url:
-            return jsonify({'error': 'Falta callback_url'}), 400
-        from spotify_official import finish_user_login
-        result = finish_user_login(callback_url)
-        return jsonify(result)
-
-    @app.route('/api/spotify-login/logout', methods=['POST'])
-    def api_spotify_login_logout():
-        """Elimina el cache de token de usuario."""
-        from spotify_official import logout_user
-        logout_user()
-        return jsonify({'success': True})
 
     @app.route('/api/saved-playlists', methods=['GET'])
     def api_saved_list():
