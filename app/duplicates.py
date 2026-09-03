@@ -41,8 +41,9 @@ def normalize_text(s):
       - Quitar acentos
       - Minusculas
       - Quitar texto entre parentesis y corchetes
-      - Quitar "feat.", "ft."
-      - Quitar puntuacion
+      - Quitar "feat.", "ft.", "- Topic" (sufijo de YT Music)
+      - Quitar puntuacion y simbolos
+      - Mantener letras de TODOS los idiomas (cirilico, griego, etc.)
       - Colapsar espacios
     """
     if not s:
@@ -53,9 +54,78 @@ def normalize_text(s):
     s = re.sub(r'\([^)]*\)', '', s)
     s = re.sub(r'\[[^]]*\]', '', s)
     s = re.sub(r'\b(feat|ft)\b\.?', '', s)
-    s = re.sub(r'[^a-z0-9\s]', '', s)
+    # v3.25: quitar sufijo "- Topic" que añade YouTube Music a los artistas
+    s = re.sub(r'\s*-\s*topic\s*$', '', s)
+    # v3.25: mantener letras de todos los idiomas (no solo a-z)
+    # \w en Python 3 incluye Unicode letters (cirílico, griego, etc.)
+    s = re.sub(r'[^\w\s]', ' ', s)
+    s = s.replace('_', ' ')  # _ no es una letra, quitarlo
     s = re.sub(r'\s+', ' ', s).strip()
     return s
+
+
+def expand_title_variants(name, artist=''):
+    """
+    v3.24: Genera TODAS las variantes normalizadas posibles de un nombre
+    de canción, para manejar casos donde el orden "Titulo - Artista"
+    o "Artista - Titulo" varía entre la biblioteca local y las playlists.
+
+    Ejemplo:
+        name = "Unlike Pluto - Sadness Can't Catch Me"
+        artist = "Unlike Pluto"
+        → devuelve un set con:
+          "unlike pluto sadness cant catch me"  (nombre completo)
+          "unlike pluto"                        (antes del " - ")
+          "sadness cant catch me"               (después del " - ")
+          "unlike pluto sadness cant catch me"  (titulo + artista combinado)
+          "sadness cant catch me unlike pluto"  (artista + titulo invertido)
+
+    Esto permite que una playlist con title="Sadness Can't Catch Me"
+    coincida con un archivo local llamado "Unlike Pluto - Sadness Can't Catch Me".
+
+    Args:
+        name (str): nombre del archivo o título de la canción.
+        artist (str): artista (opcional, para generar variantes combinadas).
+
+    Returns:
+        set: conjunto de strings normalizados.
+    """
+    variants = set()
+    if not name:
+        return variants
+
+    norm_full = normalize_text(name)
+    if norm_full:
+        variants.add(norm_full)
+
+    # Si el nombre contiene " - " (separador común), dividir y normalizar cada parte
+    # Usamos " - " con espacios porque es el formato estándar de nombres de archivo
+    if ' - ' in name:
+        parts = name.split(' - ', 1)  # solo primer split (puede haber múltiples " - ")
+        for part in parts:
+            norm_part = normalize_text(part)
+            if norm_part:
+                variants.add(norm_part)
+
+    # Si tenemos artist, generar combinaciones
+    if artist:
+        norm_artist = normalize_text(artist)
+        # Solo añadir combinaciones si el artista no está ya en el nombre
+        if norm_artist and norm_artist not in norm_full:
+            # "titulo artista" (sin separador, normalizado)
+            variants.add(f"{norm_full} {norm_artist}".strip())
+            # "artista titulo" (inverso)
+            variants.add(f"{norm_artist} {norm_full}".strip())
+            # Si el nombre se dividió en partes, también probar combinaciones
+            if ' - ' in name:
+                parts = name.split(' - ', 1)
+                for part in parts:
+                    norm_part = normalize_text(part)
+                    if norm_part and norm_part != norm_artist:
+                        variants.add(f"{norm_part} {norm_artist}".strip())
+                        variants.add(f"{norm_artist} {norm_part}".strip())
+
+    return variants
 
 
 def find_duplicates(files, match_by='title_artist'):

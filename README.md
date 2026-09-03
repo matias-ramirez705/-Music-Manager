@@ -1,12 +1,50 @@
-# Music Manager v3.22
+# Music Manager v3.34
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
 Spotify, comparar carpetas (PC vs DAP), generar dummies para Spotiflac,
-generar playlists M3U para el Hiby R1, guardar accesos directos a
-playlists, detectar duplicados, reproducir canciones, editar metadata +
-caratulas + letras masivamente, ver canciones eliminadas, organizar por
-carpetas, acceder a un indice de sitios para descargar musica FLAC.
+generar playlists M3U para el Hiby R1, buscar canciones en playlists
+guardadas, marcar matches manuales, guardar accesos directos a playlists,
+detectar duplicados, reproducir canciones, editar metadata + caratulas +
+letras masivamente, ver canciones eliminadas, organizar por carpetas,
+acceder a un indice de sitios para descargar musica FLAC.
+
+## Novedades en v3.23 - v3.34
+
+- **Buscador de canciones en Playlists Guardadas** (v3.26): nuevo buscador
+  arriba del selector de orden que busca una canción en TODAS las
+  playlists guardadas de una sola vez. Muestra en qué playlist está cada
+  canción, si está en Mi Música (✓/✗), y link para abrirla en la
+  plataforma. Soporta ruso, "Artist - Title" vs "Title", y coincidencias
+  parciales.
+- **Match manual de canciones** (v3.28-v3.34): en el modal de playlist,
+  los badges ✓/✗ de la columna "¿En Mi Música?" son clickeables. Si una
+  canción no se detecta automáticamente (nombres muy distintos), hacés
+  clic en ✗ → confirmás → se marca como descargada. Se persiste en
+  `data/manual_matches.json`. También podés desmarcar con clic en ✓.
+  Funciona con títulos que contienen comillas dobles (ej: "Speed").
+- **Comparación inteligente de títulos** (v3.24): la función
+  `expand_title_variants` genera todas las variantes posibles de un
+  nombre ("Artist - Title", "Title", "Artist Title", "Title Artist")
+  para que coincida sin importar el orden. Funciona en: Comparar con
+  Playlist, modal de playlist, contador de descargadas, dots de Mi Música.
+- **Soporte para caracteres Unicode (cirílico, etc.)** (v3.25): las
+  funciones de normalización ahora mantienen letras de todos los idiomas
+  (ruso, griego, japonés, etc.) en vez de eliminarlas. También limpia
+  automáticamente el sufijo "- Topic" que añade YouTube Music.
+- **Modal de playlist unificado** (v3.32): el modal de Playlists
+  Guardadas ahora es idéntico al de Mi Música, con buscador de
+  canciones, contador de descargadas con barra de progreso, y badges
+  ✓/✗ clickeables.
+- **Filtro "Sin playlist" en Mi Música** (v3.27): nueva opción en el
+  filtro de playlist para ver solo las canciones que NO están en ninguna
+  playlist guardada.
+- **Link clickeable en buscador de canciones** (v3.27): la columna
+  Plataforma del buscador de canciones ahora es un link que abre la
+  canción directamente en YouTube Music o Spotify.
+- **Limpieza de código Spotify OAuth** (v3.23): eliminados endpoints
+  huérfanos de Spotify OAuth que nunca funcionaron para +100 canciones.
+  `setup_spotify.bat` ahora redirige a Exportify.
 
 ## Novedades en v3.22
 
@@ -288,10 +326,11 @@ carpetas, acceder a un indice de sitios para descargar musica FLAC.
 
 1. **♪ Mi Música** — escanea carpetas, muestra tabla con nombre, artista,
    álbum, duración, formato, calidad (bits/kHz), playlists, tamaño y ruta.
-   Reproductor integrado, filtros (formato, playlist, duplicados,
-   metadata con error, falta info técnica), búsqueda, badges de
-   duplicados. Clic en ruta abre explorador. Clic en dots de playlist
-   abre modal con columna "¿En Mi Música?" y contador de descargadas.
+   Reproductor integrado, filtros (formato, playlist, sin playlist,
+   duplicados, metadata con error, falta info técnica), búsqueda, badges
+   de duplicados. Clic en ruta abre explorador. Clic en dots de playlist
+   abre modal con buscador, columna "¿En Mi Música?" (✓/✗ clickeables),
+   contador de descargadas con barra de progreso.
 
 2. **⧉ Duplicados** — detecta canciones repetidas en diferentes
    formatos/calidades. Marca la mejor versión. Hover visual en filas
@@ -302,11 +341,11 @@ carpetas, acceder a un indice de sitios para descargar musica FLAC.
 3. **★ Playlists Guardadas** — guarda enlaces de playlists públicas de
    YouTube Music o importa playlists de Spotify desde CSV (Exportify).
    Carga masiva desde TXT. Cada playlist CSV se guarda en su propio JSON.
-   Modal de detalle con tabla, buscador integrado, columna "¿En Mi
-   Música?" (✓/✗) y contador de descargadas con barra de progreso.
-   Ordenamiento: por recientes, nombre (A-Z), fecha de agregado, más
-   canciones, o personalizado (número asignado por el usuario). Las
-   tarjetas muestran "X / Y descargadas" con barra de progreso mini.
+   Buscador de canciones que busca en TODAS las playlists guardadas.
+   Modal de detalle unificado con buscador, columna "¿En Mi Música?"
+   (✓/✗ clickeables para match manual), contador de descargadas con
+   barra de progreso. Ordenamiento: recientes, nombre, fecha, más
+   canciones, o personalizado. Las tarjetas muestran "X / Y descargadas".
 
 4. **⇄ Comparar Playlist** — compara tu música local con una playlist.
    Muestra faltantes, coincidencias, calidad local, formato, botón
@@ -434,6 +473,7 @@ music_manager/
 |   |-- folder_compare.py    -> compara 2 carpetas (PC vs DAP)
 |   |-- spotiflac_dummy.py   -> genera dummies para Spotiflac
 |   |-- m3u_generator.py     -> genera/edita M3U para Hiby R1 (v3.22)
+|   |-- manual_matches.py    -> matches manuales de canciones (v3.28)
 |   `-- web_app.py           -> servidor Flask con todas las rutas
 |-- templates/               <- HTML de las pestanas
 |   |-- base.html, index.html, duplicates.html
@@ -480,6 +520,11 @@ music_manager/
 | Carátulas de SoundCloud se ven pixeladas (16x16) | Bug de v3.20. Actualiza a v3.21+ que reescribe URLs a t500x500. |
 | Quiero crear playlists M3U para el Hiby R1 | v3.22+. Pestaña "🎵 M3U Hiby" → Generar desde playlist guardada. |
 | El Hiby no lee el M3U | Asegúrate de guardarlo en /playlist_data/ con rutas relativas ../Musica/... y codificación UTF-8. |
+| Canciones en ruso no se detectan | Actualiza a v3.25+. Soporte Unicode completo (cirílico, etc.). |
+| "Artist - Title" no coincide con "Title" | Actualiza a v3.24+. Comparación inteligente con variantes. |
+| Quiero marcar manualmente una canción como descargada | v3.28+. Clic en ✗ en el modal de playlist → confirmar. |
+| El badge ✓/✗ no responde al clic | Actualiza a v3.34+. Usa event delegation + encodeURIComponent. |
+| No encuentro en qué playlist está una canción | v3.26+. Buscador de canciones en Playlists Guardadas. |
 | El reproductor se detiene al cambiar de pestana | Es normal: hay una pausa breve. Al volver, se restaura desde la posicion guardada. |
 
 ## Actualizar dependencias
@@ -522,3 +567,7 @@ pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv
     Selecciona una playlist guardada, indica la carpeta del Hiby (ej: G:\),
     y genera el .m3u con las canciones que estan en el DAP. Guarda en
     `G:\playlist_data\`. El Hiby mostrara la playlist con su nombre.
+13. **Marcar matches manuales**: si una cancion no se detecta
+    automaticamente (nombres muy distintos), abri la playlist desde
+    Mi Musica o Playlists Guardadas, busca la cancion, haz clic en ✗
+    y confirmalo. Se marcara como descargada.

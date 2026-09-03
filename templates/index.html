@@ -48,6 +48,7 @@
         </select>
         <select id="filter-playlist" class="filter-select">
             <option value="">En cualquier playlist</option>
+            <option value="__none__">⚠ Sin playlist</option>
         </select>
         <select id="filter-dup" class="filter-select">
             <option value="">Todas</option>
@@ -109,5 +110,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/local.js') }}?v=199"></script>
+<script src="{{ url_for('static', filename='js/local.js') }}?v=210"></script>
 {% endblock %}

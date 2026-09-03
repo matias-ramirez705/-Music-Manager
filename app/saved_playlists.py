@@ -131,8 +131,27 @@ def count_local_in_playlists(local_title_index):
         downloaded = 0
         for t in tracks:
             title = t.get('title', '') if isinstance(t, dict) else ''
+            artist = t.get('artist', '') if isinstance(t, dict) else ''
+            # v3.24: probar múltiples variantes del título
+            # para que "Artist - Title" coincida con "Title" y viceversa
             norm = _normalize(title)
-            if norm and norm in local_title_index:
+            found = norm and norm in local_title_index
+            if not found and ' - ' in title:
+                # Probar partes del título dividido por " - "
+                for part in title.split(' - ', 1):
+                    n = _normalize(part)
+                    if n and n in local_title_index:
+                        found = True
+                        break
+            if not found and artist:
+                # Probar combinaciones "title artist" y "artist title"
+                norm_a = _normalize(artist)
+                norm_t = _normalize(title)
+                if norm_a and norm_t:
+                    if f"{norm_t} {norm_a}" in local_title_index or \
+                       f"{norm_a} {norm_t}" in local_title_index:
+                        found = True
+            if found:
                 downloaded += 1
         result[p['id']] = {
             'total': total,
@@ -419,18 +438,36 @@ def build_local_playlist_index():
         # la misma playlist de YouTube Music)
         seen_keys_for_this_playlist = set()
         for track in p.get('tracks', []):
-            key = _normalize(track.get('title', ''))
-            if not key:
-                continue
-            if key in seen_keys_for_this_playlist:
-                continue  # ya contamos esta cancion en esta playlist
-            seen_keys_for_this_playlist.add(key)
-            index.setdefault(key, []).append(info)
+            # v3.24: usar variantes para que "Artist - Title" coincida con "Title"
+            track_title = track.get('title', '')
+            track_artist = track.get('artist', '')
+            keys = set()
+            keys.add(_normalize(track_title))
+            # Si el título contiene " - ", también añadir las partes
+            if ' - ' in track_title:
+                for part in track_title.split(' - ', 1):
+                    n = _normalize(part)
+                    if n:
+                        keys.add(n)
+            # Si hay artista, añadir combinaciones
+            if track_artist:
+                norm_a = _normalize(track_artist)
+                norm_t = _normalize(track_title)
+                if norm_a and norm_t:
+                    keys.add(f"{norm_t} {norm_a}".strip())
+                    keys.add(f"{norm_a} {norm_t}".strip())
+            for key in keys:
+                if not key or key in seen_keys_for_this_playlist:
+                    continue
+                seen_keys_for_this_playlist.add(key)
+                index.setdefault(key, []).append(info)
     return index
 
 
 def _normalize(s):
-    """Normaliza un string para comparacion (sin acentos, minusculas)."""
+    """Normaliza un string para comparacion (sin acentos, minusculas).
+    v3.25: mantiene letras de todos los idiomas (cirílico, griego, etc.)
+    y quita sufijo "- Topic" de YouTube Music."""
     import unicodedata
     import re
     if not s:
@@ -441,6 +478,10 @@ def _normalize(s):
     s = re.sub(r'\([^)]*\)', '', s)
     s = re.sub(r'\[[^)]*\]', '', s)
     s = re.sub(r'\b(feat|ft)\b\.?', '', s)
-    s = re.sub(r'[^a-z0-9\s]', '', s)
+    # v3.25: quitar "- Topic" de YT Music
+    s = re.sub(r'\s*-\s*topic\s*$', '', s)
+    # v3.25: mantener Unicode letters
+    s = re.sub(r'[^\w\s]', ' ', s)
+    s = s.replace('_', ' ')
     s = re.sub(r'\s+', ' ', s).strip()
     return s

@@ -69,7 +69,7 @@ from saved_playlists import (
     build_local_playlist_index, reorder_playlists,
     count_local_in_playlists,
 )
-from duplicates import find_duplicates, normalize_text
+from duplicates import find_duplicates, normalize_text, expand_title_variants
 from artwork import (extract_artwork, save_artwork, resize_image,
                      download_image, remove_artwork)
 from deleted_songs import (
@@ -87,6 +87,12 @@ from spotiflac_dummy import (
 from m3u_generator import (
     generate_m3u, parse_m3u, save_m3u, rebuild_m3u_from_tracks,
     list_m3u_files, read_m3u_file,
+)
+# v3.28: Matches manuales para canciones que la comparación automática no detecta
+from manual_matches import (
+    add_manual_match, remove_manual_match,
+    get_manual_matches_for_playlist, get_all_manual_matches,
+    is_manually_matched,
 )
 
 
@@ -463,8 +469,11 @@ def create_app():
 
         local_index = {}
         for f in LAST_SCAN['files']:
-            key = normalize_text(f['name'])
-            local_index.setdefault(key, []).append(f)
+            # v3.24: usar expand_title_variants para que "Artist - Title"
+            # coincida con "Title" o viceversa
+            variants = expand_title_variants(f['name'], f.get('artist', ''))
+            for v in variants:
+                local_index.setdefault(v, []).append(f)
 
         missing = []
         matched = []
@@ -473,12 +482,27 @@ def create_app():
             t_norm = normalize_text(track['title'])
             a_norm = normalize_text(track['artist'])
 
+            # v3.24: Buscar coincidencia usando variantes del título del track
+            # Esto maneja el caso donde el track de la playlist tiene
+            # "Unlike Pluto - Sadness Can't Catch Me" como título
+            track_variants = expand_title_variants(track['title'], track.get('artist', ''))
+
             # Buscar coincidencia exacta (titulo + artista)
             exact_match = None
             for f in LAST_SCAN['files']:
-                if t_norm == normalize_text(f['name']) and a_norm == normalize_text(f['artist']):
+                f_name_norm = normalize_text(f['name'])
+                f_artist_norm = normalize_text(f['artist'])
+                # Match si el título normalizado coincide Y el artista coincide
+                if t_norm == f_name_norm and a_norm == f_artist_norm:
                     exact_match = f
                     break
+                # v3.24: también verificar si alguna variante del track coincide
+                # con el nombre del archivo local
+                if t_norm and t_norm in expand_title_variants(f['name'], f.get('artist', '')):
+                    # Coincidencia de título por variantes, verificar artista
+                    if a_norm and (a_norm in f_artist_norm or f_artist_norm in a_norm):
+                        exact_match = f
+                        break
 
             if exact_match:
                 matched.append({
@@ -492,40 +516,47 @@ def create_app():
                 })
                 continue
 
-            if t_norm and t_norm in local_index:
-                candidates = local_index[t_norm]
-                local_artists = [normalize_text(c['artist']) for c in candidates]
-                artist_match = any(
-                    a_norm and (a_norm in la or la in a_norm)
-                    for la in local_artists
-                )
-                if artist_match:
-                    # Tomar el primer candidato que coincida
-                    local_file = next((c for c in candidates
-                                       if a_norm and (a_norm in normalize_text(c['artist'])
-                                                      or normalize_text(c['artist']) in a_norm)),
-                                      candidates[0])
-                    matched.append({
-                        **track,
-                        'match_type': 'artist_partial',
-                        'local_path': local_file['path'],
-                        'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
-                        'local_format': local_file.get('ext', '').upper(),
-                        'local_name': local_file.get('name', ''),
-                        'local_artist': local_file.get('artist', ''),
-                    })
-                else:
-                    # title_only: hay candidatos pero no coinciden artista
-                    local_file = candidates[0]
-                    matched.append({
-                        **track,
-                        'match_type': 'title_only',
-                        'local_path': local_file['path'],
-                        'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
-                        'local_format': local_file.get('ext', '').upper(),
-                        'local_name': local_file.get('name', ''),
-                        'local_artist': local_file.get('artist', ''),
-                    })
+            # v3.24: buscar por variantes de título en el índice local
+            # (maneja "Artist - Title" vs "Title" y viceversa)
+            found_in_index = False
+            for tv in track_variants:
+                if tv and tv in local_index:
+                    candidates = local_index[tv]
+                    local_artists = [normalize_text(c['artist']) for c in candidates]
+                    artist_match = any(
+                        a_norm and (a_norm in la or la in a_norm)
+                        for la in local_artists
+                    )
+                    if artist_match:
+                        # Tomar el primer candidato que coincida
+                        local_file = next((c for c in candidates
+                                           if a_norm and (a_norm in normalize_text(c['artist'])
+                                                          or normalize_text(c['artist']) in a_norm)),
+                                          candidates[0])
+                        matched.append({
+                            **track,
+                            'match_type': 'artist_partial',
+                            'local_path': local_file['path'],
+                            'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
+                            'local_format': local_file.get('ext', '').upper(),
+                            'local_name': local_file.get('name', ''),
+                            'local_artist': local_file.get('artist', ''),
+                        })
+                    else:
+                        # title_only: hay candidatos pero no coinciden artista
+                        local_file = candidates[0]
+                        matched.append({
+                            **track,
+                            'match_type': 'title_only',
+                            'local_path': local_file['path'],
+                            'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
+                            'local_format': local_file.get('ext', '').upper(),
+                            'local_name': local_file.get('name', ''),
+                            'local_artist': local_file.get('artist', ''),
+                        })
+                    found_in_index = True
+                    break
+            if found_in_index:
                 continue
             # Antes de marcar como faltante, verificamos si la canción
             # está en la lista de eliminadas. Si lo está, no la mostramos
@@ -606,14 +637,108 @@ def create_app():
         """
         if not LAST_SCAN['files']:
             return jsonify({'counts': {}, 'has_local': False})
-        # Construir índice de títulos locales
+        # v3.24: Construir índice con variantes de títulos locales
+        # para que "Artist - Title" coincida con "Title" y viceversa
         local_index = set()
         for f in LAST_SCAN['files']:
-            norm = normalize_text(f.get('name', ''))
-            if norm:
-                local_index.add(norm)
+            variants = expand_title_variants(f.get('name', ''), f.get('artist', ''))
+            for v in variants:
+                if v:
+                    local_index.add(v)
         counts = count_local_in_playlists(local_index)
+        # v3.28: añadir matches manuales a los conteos
+        manual = get_all_manual_matches()
+        from saved_playlists import _load_all
+        all_data = _load_all()
+        for p in all_data['playlists']:
+            pid = p['id']
+            if pid not in counts:
+                continue
+            for track in p.get('tracks', []):
+                title = track.get('title', '')
+                title_norm = normalize_text(title)
+                # Si no fue detectado automáticamente pero hay match manual
+                if (pid, title_norm) in manual:
+                    # Verificar si ya fue contado por la comparación automática
+                    from saved_playlists import _normalize
+                    already_counted = False
+                    norm = _normalize(title)
+                    if norm and norm in local_index:
+                        already_counted = True
+                    if ' - ' in title:
+                        for part in title.split(' - ', 1):
+                            n = _normalize(part)
+                            if n and n in local_index:
+                                already_counted = True
+                                break
+                    if not already_counted:
+                        counts[pid]['downloaded'] += 1
         return jsonify({'counts': counts, 'has_local': True})
+
+    @app.route('/api/search-in-playlists', methods=['POST'])
+    def api_search_in_playlists():
+        """v3.26: Busca una canción en TODAS las playlists guardadas.
+        Body: { query: "nombre de la canción" }
+        Devuelve lista de matches con en qué playlist está cada uno.
+        """
+        data = request.get_json(silent=True) or {}
+        query = (data.get('query') or '').strip()
+        if not query:
+            return jsonify({'results': [], 'error': 'Falta query.'}), 400
+
+        query_norm = normalize_text(query)
+        if not query_norm:
+            return jsonify({'results': [], 'error': 'Query vacía después de normalizar.'}), 400
+
+        # También generar variantes del query (por si el usuario escribe "Artist - Title")
+        query_variants = expand_title_variants(query, '')
+
+        from saved_playlists import _load_all, _normalize
+        all_data = _load_all()
+        results = []
+
+        for p in all_data['playlists']:
+            pl_info = {
+                'id': p['id'],
+                'name': p.get('name', ''),
+                'platform': p.get('platform', ''),
+            }
+            for track in p.get('tracks', []):
+                title = track.get('title', '')
+                artist = track.get('artist', '')
+                album = track.get('album', '')
+                # Normalizar y generar variantes del track
+                track_variants = expand_title_variants(title, artist)
+                # Verificar si el query coincide con alguna variante del track
+                match = False
+                # Coincidencia exacta normalizada
+                if query_norm in track_variants:
+                    match = True
+                # Coincidencia parcial (el query está contenido en el título normalizado)
+                if not match:
+                    track_title_norm = _normalize(title)
+                    if query_norm and track_title_norm and query_norm in track_title_norm:
+                        match = True
+                # Coincidencia por variantes del query (ej: query="Artist - Title" → partes)
+                if not match:
+                    for qv in query_variants:
+                        if qv and (qv in track_variants or qv in _normalize(title)):
+                            match = True
+                            break
+
+                if match:
+                    results.append({
+                        'title': title,
+                        'artist': artist,
+                        'album': album,
+                        'duration': track.get('duration', 0),
+                        'url': track.get('url', ''),
+                        'playlist': pl_info,
+                    })
+
+        # Ordenar por nombre de playlist y luego por título
+        results.sort(key=lambda r: (r['playlist']['name'].lower(), r['title'].lower()))
+        return jsonify({'results': results, 'count': len(results)})
 
     @app.route('/api/save-playlist', methods=['POST'])
     def api_save_playlist():
@@ -2091,6 +2216,48 @@ def create_app():
             return jsonify({'success': False, 'error': 'Archivo no existe.'}), 404
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ==================================================================
+    # API: MATCHES MANUALES (v3.28)
+    # Para canciones que la comparación automática no detecta.
+    # ==================================================================
+
+    @app.route('/api/manual-match/add', methods=['POST'])
+    def api_manual_match_add():
+        """Marca manualmente que un track de playlist está descargado.
+        Body: { playlist_id, track_title, track_artist, local_name, local_artist, local_path }"""
+        data = request.get_json(silent=True) or {}
+        playlist_id = data.get('playlist_id', '')
+        track_title = data.get('track_title', '')
+        if not playlist_id or not track_title:
+            return jsonify({'error': 'Falta playlist_id o track_title.'}), 400
+        match = add_manual_match(
+            playlist_id=playlist_id,
+            track_title=track_title,
+            track_artist=data.get('track_artist', ''),
+            local_name=data.get('local_name', ''),
+            local_artist=data.get('local_artist', ''),
+            local_path=data.get('local_path', ''),
+        )
+        return jsonify({'success': True, 'match': match})
+
+    @app.route('/api/manual-match/remove', methods=['POST'])
+    def api_manual_match_remove():
+        """Desmarca un track manualmente (ya no se considera descargado).
+        Body: { playlist_id, track_title }"""
+        data = request.get_json(silent=True) or {}
+        playlist_id = data.get('playlist_id', '')
+        track_title = data.get('track_title', '')
+        if not playlist_id or not track_title:
+            return jsonify({'error': 'Falta playlist_id o track_title.'}), 400
+        ok = remove_manual_match(playlist_id, track_title)
+        return jsonify({'success': ok})
+
+    @app.route('/api/manual-match/list/<playlist_id>', methods=['GET'])
+    def api_manual_match_list(playlist_id):
+        """Devuelve los matches manuales para una playlist."""
+        matches = get_manual_matches_for_playlist(playlist_id)
+        return jsonify({'matches': matches})
 
     # ==================================================================
     # HEADERS ANTI-CACHE (v3.6)

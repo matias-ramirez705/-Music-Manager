@@ -43,6 +43,29 @@
         </p>
     </div>
 
+    <!-- v3.26: Buscador de canciones en playlists -->
+    <div class="filter-bar" style="margin-bottom:8px;">
+        <input type="text" id="song-search-input" class="search-input"
+               placeholder="🔍 Buscar canción en todas las playlists (ej: Снова, After Hours, etc.)..."
+               style="flex:1;">
+        <button id="btn-song-search" class="btn btn-primary">Buscar</button>
+    </div>
+    <div id="song-search-results" class="hidden" style="margin-bottom:16px;">
+        <div class="table-container">
+            <table class="music-table">
+                <thead><tr>
+                    <th>#</th>
+                    <th>Título</th>
+                    <th>Artista</th>
+                    <th>¿En Mi Música?</th>
+                    <th>Playlist</th>
+                    <th>Plataforma</th>
+                </tr></thead>
+                <tbody id="song-search-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Buscador + orden de playlists guardadas -->
     <div class="filter-bar" style="margin-bottom:16px;">
         <input type="text" id="saved-search" class="search-input"
@@ -93,5 +116,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=199"></script>
+<script src="{{ url_for('static', filename='js/saved_playlists.js') }}?v=210"></script>
 {% endblock %}

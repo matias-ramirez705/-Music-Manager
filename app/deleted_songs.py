@@ -90,6 +90,7 @@ def ensure_file():
 # coincidan con las que usa build_local_playlist_index)
 # ------------------------------------------------------------------
 def _normalize(s):
+    """v3.25: mantiene letras de todos los idiomas (cirílico, etc.)."""
     import unicodedata
     import re
     if not s:
@@ -100,7 +101,9 @@ def _normalize(s):
     s = re.sub(r'\([^)]*\)', '', s)
     s = re.sub(r'\[[^]]*\]', '', s)
     s = re.sub(r'\b(feat|ft)\b\.?', '', s)
-    s = re.sub(r'[^a-z0-9\s]', '', s)
+    s = re.sub(r'\s*-\s*topic\s*$', '', s)  # v3.25: quitar "- Topic" de YT Music
+    s = re.sub(r'[^\w\s]', ' ', s)  # v3.25: mantener Unicode letters
+    s = s.replace('_', ' ')
     s = re.sub(r'\s+', ' ', s).strip()
     return s
 

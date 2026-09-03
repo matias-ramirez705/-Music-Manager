@@ -34,9 +34,35 @@ function _spNormalizeTitle(s) {
         .replace(/\([^)]*\)/g, '')
         .replace(/\[[^]]*\]/g, '')
         .replace(/\b(feat|ft)\b\.?/g, '')
-        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s*-\s*topic\s*$/i, '') // v3.25: quitar "- Topic" de YT Music
+        // v3.25: mantener letras de todos los idiomas
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+}
+
+// v3.24: generar variantes de título (reutiliza la de local.js si existe)
+function _spExpandTitleVariants(name, artist) {
+    if (typeof _expandTitleVariants === 'function') return _expandTitleVariants(name, artist);
+    const variants = new Set();
+    if (!name) return variants;
+    const norm = _spNormalizeTitle(name);
+    if (norm) variants.add(norm);
+    if (name.indexOf(' - ') >= 0) {
+        const parts = name.split(' - ');
+        for (const part of parts) {
+            const n = _spNormalizeTitle(part);
+            if (n) variants.add(n);
+        }
+    }
+    if (artist) {
+        const normA = _spNormalizeTitle(artist);
+        if (normA && norm.indexOf(normA) < 0) {
+            variants.add((norm + ' ' + normA).trim());
+            variants.add((normA + ' ' + norm).trim());
+        }
+    }
+    return variants;
 }
 
 async function _spBuildLocalTitleIndex() {
@@ -62,8 +88,11 @@ async function _spBuildLocalTitleIndex() {
         const files = data.files || [];
         _spLocalTitleIndex = new Set();
         for (const f of files) {
-            const norm = _spNormalizeTitle(f.name || '');
-            if (norm) _spLocalTitleIndex.add(norm);
+            // v3.24: usar variantes para que "Artist - Title" coincida con "Title"
+            const variants = _spExpandTitleVariants(f.name || '', f.artist || '');
+            for (const v of variants) {
+                if (v) _spLocalTitleIndex.add(v);
+            }
         }
     } catch (e) {
         _spLocalTitleIndex = new Set();
@@ -73,7 +102,108 @@ async function _spBuildLocalTitleIndex() {
 document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     loadSavedPlaylists();
+    // v3.26: construir índice local para el buscador de canciones
+    _spBuildLocalTitleIndex().catch(() => {});
+    // v3.26: buscador de canciones
+    initSongSearch();
 });
+
+// v3.26: Buscador de canciones en todas las playlists
+function initSongSearch() {
+    const input = document.getElementById('song-search-input');
+    const btn = document.getElementById('btn-song-search');
+    if (btn) btn.addEventListener('click', searchSongInPlaylists);
+    if (input) input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') searchSongInPlaylists();
+    });
+}
+
+async function searchSongInPlaylists() {
+    const input = document.getElementById('song-search-input');
+    const query = input ? input.value.trim() : '';
+    if (!query) return;
+
+    const btn = document.getElementById('btn-song-search');
+    if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
+
+    try {
+        const data = await postJSON('/api/search-in-playlists', { query });
+        if (data.error) {
+            showToast('Error: ' + data.error, 'error');
+            return;
+        }
+        renderSongSearchResults(data.results || [], query);
+        showToast(`Se encontraron ${data.count} resultado(s) en playlists.`, 'success');
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Buscar'; }
+    }
+}
+
+function renderSongSearchResults(results, query) {
+    const container = document.getElementById('song-search-results');
+    const tbody = document.getElementById('song-search-tbody');
+    if (!container || !tbody) return;
+
+    if (results.length === 0) {
+        container.classList.remove('hidden');
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">
+            No se encontró "${escapeHtml(query)}" en ninguna playlist guardada.
+        </td></tr>`;
+        return;
+    }
+
+    container.classList.remove('hidden');
+
+    // v3.26: construir índice local para marcar ✓/✗
+    // (reutiliza el de saved_playlists si está construido)
+    const hasLocalIndex = _spLocalTitleIndex !== null && _spLocalTitleIndex.size > 0;
+
+    tbody.innerHTML = '';
+    results.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        const platformLabel = r.playlist.platform === 'youtube' ? '▶ YT Music' : '♫ Spotify';
+        const platformColor = r.playlist.platform === 'youtube' ? '#ff0000' : '#1db954';
+
+        // Verificar si está en Mi Música usando variantes
+        let localBadge = '<span style="color:var(--text-muted);">—</span>';
+        if (hasLocalIndex) {
+            const variants = _spExpandTitleVariants(r.title || '', r.artist || '');
+            let isInLocal = false;
+            for (const v of variants) {
+                if (_spLocalTitleIndex.has(v)) { isInLocal = true; break; }
+            }
+            localBadge = isInLocal
+                ? '<span style="color:var(--accent);" title="Sí está en tu biblioteca local">✓</span>'
+                : '<span style="color:var(--danger);" title="No está en tu biblioteca local">✗</span>';
+        }
+
+        // v3.27: link clickeable a la canción en la plataforma
+        let platformCell = '';
+        if (r.url) {
+            platformCell = `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener"
+                style="color:${platformColor}; text-decoration:none; font-size:11px; font-weight:600;"
+                title="Abrir canción en ${platformLabel}">${platformLabel} ↗</a>`;
+        } else {
+            platformCell = `<span style="color:${platformColor}; font-size:11px;">${platformLabel}</span>`;
+        }
+
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td><strong>${escapeHtml(r.title)}</strong></td>
+            <td>${escapeHtml(r.artist)}</td>
+            <td style="text-align:center; font-size:14px;">${localBadge}</td>
+            <td>
+                <a href="#" style="color:var(--accent); text-decoration:none;"
+                   onclick="event.preventDefault(); openPlaylist('${r.playlist.id}')"
+                   title="Abrir playlist">${escapeHtml(r.playlist.name)}</a>
+            </td>
+            <td style="text-align:center;">${platformCell}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
 function bindEvents() {
     if (btnSavePlaylist) btnSavePlaylist.addEventListener('click', saveNewPlaylist);
@@ -466,49 +596,156 @@ function openPlaylist(id) {
 async function showPlaylistDetail(id) {
     try {
         const p = await getJSON(`/api/saved-playlist/${id}`);
-        // Modal con la lista completa de canciones
-        let html = `<div class="modal" id="detail-modal">
+        const platformLabel = p.platform === 'youtube' ? 'YouTube Music' : 'Spotify';
+
+        // v3.32: usar el mismo diseño que el modal de Mi Música (local.js)
+        // con buscador de canciones, contador de descargadas, barra de progreso
+        const existing = document.getElementById('detail-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'detail-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
             <div class="modal-content modal-large">
                 <div class="modal-header">
                     <h2>${escapeHtml(p.name)}</h2>
-                    <button class="modal-close" onclick="document.getElementById('detail-modal').remove()">✕</button>
+                    <button class="modal-close">✕</button>
                 </div>
-                <div class="modal-body">
-                    <p style="color:var(--text-secondary); margin-bottom:12px;">
-                        ${escapeHtml(p.uploader || '')} • ${p.track_count} canciones •
-                        ${p.platform === 'youtube' ? 'YouTube Music' : 'Spotify'} •
-                        <a href="${escapeHtml(p.url)}" target="_blank" style="color:var(--accent);">Abrir original ↗</a>
+                <div class="modal-body" style="display:flex; flex-direction:column; max-height:calc(100vh - 200px);">
+                    <p style="color:var(--text-secondary); margin-bottom:12px; flex-shrink:0;">
+                        ${escapeHtml(p.uploader || '')} • ${p.track_count} canciones • ${platformLabel}
+                        ${p.url && !p.url.startsWith('csv://') ? `• <a href="${escapeHtml(p.url)}" target="_blank" style="color:var(--accent);">Abrir original ↗</a>` : ''}
                     </p>
-                    <p id="sp-detail-downloaded-info" style="margin-bottom:12px; font-size:13px; color:var(--text-secondary); display:none;">
+                    <p id="sp-detail-downloaded-info" style="margin-bottom:12px; flex-shrink:0; font-size:13px; color:var(--text-secondary); display:none;">
                         <span style="color:var(--accent); font-weight:600;" id="sp-detail-downloaded-count">0</span>
                         <span> descargadas de ${p.track_count}</span>
                         <span style="display:inline-block; width:120px; height:6px; background:var(--bg-elevated); border-radius:3px; margin-left:8px; vertical-align:middle; overflow:hidden;">
                             <span id="sp-detail-downloaded-bar" style="display:block; height:100%; background:var(--accent); width:0%; transition: width 0.4s ease;"></span>
                         </span>
                     </p>
-                    <table class="music-table">
-                        <thead><tr>
-                            <th style="width:4%; text-align:center;">#</th>
-                            <th style="width:40%; text-align:left;">Título</th>
-                            <th style="width:18%; text-align:left;">Artista</th>
-                            <th style="width:18%; text-align:center;" title="Indica si la canción está en tu biblioteca local (Mi Música)">¿En Mi Música?</th>
-                            <th style="width:10%; text-align:center;">Duración</th>
-                            <th style="width:10%; text-align:center;">Ir a canción</th>
-                        </tr></thead>
-                        <tbody id="detail-modal-tbody">
-                            <tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">
-                                Cargando...
-                            </td></tr>
-                        </tbody>
-                    </table>
+                    <div class="filter-bar" style="margin-bottom:8px; flex-shrink:0;">
+                        <input type="text" id="sp-detail-search" class="search-input"
+                            placeholder="Buscar cancion en esta playlist...">
+                    </div>
+                    <div class="table-container" style="max-height:none; flex:1; overflow:auto;">
+                        <table class="music-table">
+                            <thead><tr>
+                                <th style="width:4%; text-align:center;">#</th>
+                                <th style="width:45%; text-align:left;">Titulo</th>
+                                <th style="width:12%; text-align:left;">Artista</th>
+                                <th style="width:20%; text-align:center;" title="Indica si la canción está en tu biblioteca local (Mi Música)">¿En Mi Música?</th>
+                                <th style="width:8%; text-align:center;">Duracion</th>
+                                <th style="width:4%; text-align:center;">Ir</th>
+                            </tr></thead>
+                            <tbody id="detail-modal-tbody">
+                                <tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">
+                                    Cargando...
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', html);
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
 
-        // v3.17: renderizar las filas después de construir el índice local
-        // (reutiliza _localTitleIndex de local.js si está disponible)
+        // Guardar datos para el buscador y matches manuales
+        window._spCurrentPlaylistId = id;
+        window._spAllTracks = p.tracks || [];
+        window._spCurrentPlatform = p.platform || '';
+
+        // Cargar índice local + matches manuales
+        try {
+            await _spBuildLocalTitleIndex();
+        } catch (e) {}
+        await _spLoadManualMatches(id);
+
+        // Renderizar filas
         renderDetailModalRows(p);
+
+        // Buscador de canciones (igual que en local.js)
+        const searchInput = document.getElementById('sp-detail-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase().trim();
+                const allTracks = window._spAllTracks || [];
+                const filtered = q ? allTracks.filter(t =>
+                    (t.title + ' ' + t.artist + ' ' + (t.album || '')).toLowerCase().includes(q)
+                ) : allTracks;
+                renderDetailModalRows({
+                    tracks: filtered,
+                    platform: p.platform,
+                    track_count: allTracks.length,
+                });
+            });
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// v3.28: Matches manuales para saved_playlists.js
+let _spManualMatches = {};
+
+async function _spLoadManualMatches(playlistId) {
+    if (!playlistId) return;
+    try {
+        const data = await getJSON('/api/manual-match/list/' + playlistId);
+        _spManualMatches = data.matches || {};
+    } catch (e) {
+        _spManualMatches = {};
+    }
+}
+
+function _spIsManuallyMatched(title) {
+    if (!_spManualMatches) return false;
+    const norm = _spNormalizeTitle(title);
+    return _spManualMatches.hasOwnProperty(norm);
+}
+
+async function _spToggleManualMatch(track, isCurrentlyMatched, allTracks) {
+    const playlistId = window._spCurrentPlaylistId;
+    if (!playlistId) {
+        showToast('Error: no hay playlist activa.', 'error');
+        return;
+    }
+    const action = isCurrentlyMatched ? 'remove' : 'add';
+    const confirmMsg = isCurrentlyMatched
+        ? `¿Desmarcar "${track.title}" como descargada?`
+        : `¿Marcar "${track.title}" como descargada?\n\nSe mostrará como ✓ aunque la comparación automática no la detecte.`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const data = await postJSON('/api/manual-match/' + action, {
+            playlist_id: playlistId,
+            track_title: track.title,
+            track_artist: track.artist || '',
+        });
+        if (data.success !== undefined) {
+            const norm = _spNormalizeTitle(track.title);
+            if (action === 'add') {
+                _spManualMatches[norm] = true;
+            } else {
+                delete _spManualMatches[norm];
+            }
+            // v3.33: usar los tracks guardados y la plataforma correcta
+            const tracksToRender = window._spAllTracks || allTracks || [];
+            const platform = window._spCurrentPlatform || '';
+            // Re-renderizar el modal (await porque es async)
+            await renderDetailModalRows({
+                tracks: tracksToRender,
+                platform: platform,
+                track_count: tracksToRender.length,
+            });
+            showToast(action === 'add' ? 'Marcada como descargada.' : 'Desmarcada.', 'success');
+        } else {
+            showToast('Error: ' + (data.error || 'desconocido'), 'error');
+        }
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
     }
@@ -521,16 +758,13 @@ async function renderDetailModalRows(p) {
     if (!tbody) return;
 
     // v3.17: construir índice local (propio de saved_playlists.js)
-    // para que funcione incluso cuando local.js no está cargado
-    // (caso de la página /saved que no incluye local.js)
     try {
         await _spBuildLocalTitleIndex();
-    } catch (e) {
-        // Si falla, continuar sin índice (mostrará — neutral)
-    }
+    } catch (e) {}
 
+    const tracks = p.tracks || [];
     tbody.innerHTML = '';
-    p.tracks.forEach((t, i) => {
+    tracks.forEach((t, i) => {
         // Icono de "Ir a canción" con color según plataforma
         let link = '—';
         if (t.url) {
@@ -542,13 +776,27 @@ async function renderDetailModalRows(p) {
         }
 
         // v3.17: determinar si está en Mi Música usando el índice propio
+        // v3.28: también verificar matches manuales
         let localBadge = '<span style="color:var(--text-muted); font-size:11px;">—</span>';
         if (_spLocalTitleIndex !== null) {
-            const tNorm = _spNormalizeTitle(t.title || '');
-            const isInLocal = _spLocalTitleIndex.has(tNorm);
+            let isInLocal = false;
+            const trackVariants = _spExpandTitleVariants(t.title || '', t.artist || '');
+            for (const v of trackVariants) {
+                if (_spLocalTitleIndex.has(v)) {
+                    isInLocal = true;
+                    break;
+                }
+            }
+            // v3.28: verificar match manual
+            if (!isInLocal && _spIsManuallyMatched(t.title || '')) {
+                isInLocal = true;
+            }
+            // v3.31: badge clickeable con data-* attributes + event delegation
+            // v3.34: usar encodeURIComponent en vez de escapeHtml
+            const badgeTitle = isInLocal ? 'Sí está (clic para desmarcar)' : 'No está (clic para marcar manualmente)';
             localBadge = isInLocal
-                ? '<span style="color:var(--accent); font-size:16px;" title="Sí está en tu biblioteca local">✓</span>'
-                : '<span style="color:var(--danger); font-size:16px;" title="No está en tu biblioteca local">✗</span>';
+                ? `<span class="badge-toggle" style="color:var(--accent); font-size:16px; cursor:pointer;" title="${badgeTitle}" data-title="${encodeURIComponent(t.title || '')}" data-artist="${encodeURIComponent(t.artist || '')}" data-matched="true">✓</span>`
+                : `<span class="badge-toggle" style="color:var(--danger); font-size:16px; cursor:pointer;" title="${badgeTitle}" data-title="${encodeURIComponent(t.title || '')}" data-artist="${encodeURIComponent(t.artist || '')}" data-matched="false">✗</span>`;
         }
 
         const tr = document.createElement('tr');
@@ -563,8 +811,22 @@ async function renderDetailModalRows(p) {
         tbody.appendChild(tr);
     });
 
+    // v3.31: event delegation en el tbody para badges ✓/✗
+    // v3.34: usar decodeURIComponent para leer data-* attributes
+    tbody.onclick = function(e) {
+        const span = e.target.closest('.badge-toggle');
+        if (!span) return;
+        e.stopPropagation();
+        const track = {
+            title: decodeURIComponent(span.dataset.title || ''),
+            artist: decodeURIComponent(span.dataset.artist || ''),
+        };
+        const isMatched = span.dataset.matched === 'true';
+        _spToggleManualMatch(track, isMatched, tracks);
+    };
+
     // v3.17: actualizar contador de descargadas
-    _spUpdateDownloadedCount(p.tracks || [], p.track_count);
+    _spUpdateDownloadedCount(tracks, p.track_count || tracks.length);
 }
 
 // v3.17: cuenta cuántas canciones de la playlist están en Mi Música
@@ -583,8 +845,20 @@ function _spUpdateDownloadedCount(tracks, totalCount) {
 
     let downloaded = 0;
     for (const t of tracks) {
-        const tNorm = _spNormalizeTitle(t.title || '');
-        if (_spLocalTitleIndex.has(tNorm)) downloaded++;
+        // v3.24: usar variantes para contar correctamente
+        const trackVariants = _spExpandTitleVariants(t.title || '', t.artist || '');
+        let found = false;
+        for (const v of trackVariants) {
+            if (_spLocalTitleIndex.has(v)) {
+                found = true;
+                break;
+            }
+        }
+        // v3.28: también contar matches manuales
+        if (!found && _spIsManuallyMatched(t.title || '')) {
+            found = true;
+        }
+        if (found) downloaded++;
     }
     countEl.textContent = downloaded;
     infoEl.style.display = 'block';
