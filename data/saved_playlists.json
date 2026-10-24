@@ -1,12 +1,222 @@
 {
   "playlists": [
     {
-      "id": "3f4e13a29962",
+      "id": "94095eff05f7",
       "platform": "youtube",
       "name": "0 - YT 2026-2",
       "uploader": "Matías Ignacio Ramírez Benavides",
       "url": "https://music.youtube.com/playlist?list=PLJCkad8TrnTCyG_yA6A5uOPq_31IYpn-4",
       "tracks": [
+        {
+          "title": "Temptation",
+          "artist": "Imminence",
+          "duration": 224.0,
+          "url": "https://www.youtube.com/watch?v=qtFdHrCT2IQ",
+          "video_id": "qtFdHrCT2IQ"
+        },
+        {
+          "title": "Dead, Not Dead",
+          "artist": "HarukhEL",
+          "duration": 240.0,
+          "url": "https://www.youtube.com/watch?v=zEtbK-BwZ2E",
+          "video_id": "zEtbK-BwZ2E"
+        },
+        {
+          "title": "Escape",
+          "artist": "Stray View",
+          "duration": 236.0,
+          "url": "https://www.youtube.com/watch?v=EXKI1QsqMD0",
+          "video_id": "EXKI1QsqMD0"
+        },
+        {
+          "title": "Without You",
+          "artist": "PolarisAus",
+          "duration": 246.0,
+          "url": "https://www.youtube.com/watch?v=eMWgEt0rsUE",
+          "video_id": "eMWgEt0rsUE"
+        },
+        {
+          "title": "Bleeders",
+          "artist": "Black Veil Brides",
+          "duration": 275.0,
+          "url": "https://www.youtube.com/watch?v=NPItXY41D24",
+          "video_id": "NPItXY41D24"
+        },
+        {
+          "title": "TRUST MYSELF (with WesGhost)",
+          "artist": "Sueco",
+          "duration": 190.0,
+          "url": "https://www.youtube.com/watch?v=6cwtJ6ZStxw",
+          "video_id": "6cwtJ6ZStxw"
+        },
+        {
+          "title": "John Michael Howell & ZVC - Elements [OFFICIAL LYRIC VIDEO]",
+          "artist": "JohnMichaelHowell",
+          "duration": 161.0,
+          "url": "https://www.youtube.com/watch?v=uZytpjdh-yI",
+          "video_id": "uZytpjdh-yI"
+        },
+        {
+          "title": "South Arcade - F.A.M.O.U.S (Official Audio)",
+          "artist": "South Arcade",
+          "duration": 201.0,
+          "url": "https://www.youtube.com/watch?v=zPh7dD63eiE",
+          "video_id": "zPh7dD63eiE"
+        },
+        {
+          "title": "Just Be Honest",
+          "artist": "saosin",
+          "duration": 204.0,
+          "url": "https://www.youtube.com/watch?v=K_JE3hcI84Q",
+          "video_id": "K_JE3hcI84Q"
+        },
+        {
+          "title": "Like Moths To Flames - Tie The Ivy Through My Ribcage",
+          "artist": "UNFD",
+          "duration": 194.0,
+          "url": "https://www.youtube.com/watch?v=FsuebM8CI00",
+          "video_id": "FsuebM8CI00"
+        },
+        {
+          "title": "Unlike Pluto - Thorns",
+          "artist": "Unlike Pluto",
+          "duration": 214.0,
+          "url": "https://www.youtube.com/watch?v=wtdTU1QCWSU",
+          "video_id": "wtdTU1QCWSU"
+        },
+        {
+          "title": "Final Breath",
+          "artist": "Burning Verse",
+          "duration": 198.0,
+          "url": "https://www.youtube.com/watch?v=w7FrNhC9rlU",
+          "video_id": "w7FrNhC9rlU"
+        },
+        {
+          "title": "Afraid Of The Dark",
+          "artist": "Motionless In White",
+          "duration": 279.0,
+          "url": "https://www.youtube.com/watch?v=aQU4ozV1hC4",
+          "video_id": "aQU4ozV1hC4"
+        },
+        {
+          "title": "See U in Hell (from the Netflix Series \"Devil May Cry\")",
+          "artist": "Release - Topic",
+          "duration": 244.0,
+          "url": "https://www.youtube.com/watch?v=mmHFyfyngMk",
+          "video_id": "mmHFyfyngMk"
+        },
+        {
+          "title": "Legado",
+          "artist": "Darkways",
+          "duration": 223.0,
+          "url": "https://www.youtube.com/watch?v=YDG09lRkUCA",
+          "video_id": "YDG09lRkUCA"
+        },
+        {
+          "title": "Falling In Reverse - \"Joseph\" (feat. Corey Taylor and Serj Tankian)",
+          "artist": "Epitaph Records",
+          "duration": 258.0,
+          "url": "https://www.youtube.com/watch?v=Tk9TM7-eTmw",
+          "video_id": "Tk9TM7-eTmw"
+        },
+        {
+          "title": "Los inocentes",
+          "artist": "EESCA - Topic",
+          "duration": 171.0,
+          "url": "https://www.youtube.com/watch?v=1pp0_Knd1d0",
+          "video_id": "1pp0_Knd1d0"
+        },
+        {
+          "title": "Tyrant (Paralelo Remix)",
+          "artist": "Lust Era - Topic",
+          "duration": 301.0,
+          "url": "https://www.youtube.com/watch?v=Grf88S0NBBA",
+          "video_id": "Grf88S0NBBA"
+        },
+        {
+          "title": "Rostros",
+          "artist": "Vacíos Cuerpos",
+          "duration": 219.0,
+          "url": "https://www.youtube.com/watch?v=rbhcCkYUiTQ",
+          "video_id": "rbhcCkYUiTQ"
+        },
+        {
+          "title": "Into Those Woods",
+          "artist": "Bragolin - Topic",
+          "duration": 204.0,
+          "url": "https://www.youtube.com/watch?v=RfwkhtRvfss",
+          "video_id": "RfwkhtRvfss"
+        },
+        {
+          "title": "Who You Are",
+          "artist": "fairy dust - Topic",
+          "duration": 203.0,
+          "url": "https://www.youtube.com/watch?v=8sq-TMmrioo",
+          "video_id": "8sq-TMmrioo"
+        },
+        {
+          "title": "Petrified",
+          "artist": "Pain in the Yeahs - Topic",
+          "duration": 135.0,
+          "url": "https://www.youtube.com/watch?v=2xco9luggMU",
+          "video_id": "2xco9luggMU"
+        },
+        {
+          "title": "Your Secret",
+          "artist": "ARIIZ",
+          "duration": 171.0,
+          "url": "https://www.youtube.com/watch?v=t52Ie_9wMsc",
+          "video_id": "t52Ie_9wMsc"
+        },
+        {
+          "title": "Bruises",
+          "artist": "NGHTMRE",
+          "duration": 202.0,
+          "url": "https://www.youtube.com/watch?v=HvWvIA7nLMc",
+          "video_id": "HvWvIA7nLMc"
+        },
+        {
+          "title": "coastline (what's left of me)",
+          "artist": "Dominic Donner",
+          "duration": 180.0,
+          "url": "https://www.youtube.com/watch?v=M9uiCPZtmEc",
+          "video_id": "M9uiCPZtmEc"
+        },
+        {
+          "title": "Cold",
+          "artist": "tripperbeats",
+          "duration": 193.0,
+          "url": "https://www.youtube.com/watch?v=mI4PIqF0ePw",
+          "video_id": "mI4PIqF0ePw"
+        },
+        {
+          "title": "Shut Up And Drive",
+          "artist": "Sakoya",
+          "duration": 213.0,
+          "url": "https://www.youtube.com/watch?v=hCL9iHtWA-w",
+          "video_id": "hCL9iHtWA-w"
+        },
+        {
+          "title": "Friction",
+          "artist": "ImagineDragons",
+          "duration": 202.0,
+          "url": "https://www.youtube.com/watch?v=qzNGoiVrXNk",
+          "video_id": "qzNGoiVrXNk"
+        },
+        {
+          "title": "Alone",
+          "artist": "Edgars Bukovskis ",
+          "duration": 179.0,
+          "url": "https://www.youtube.com/watch?v=brgvg68du5c",
+          "video_id": "brgvg68du5c"
+        },
+        {
+          "title": "The Weeknd - Open Hearts (80s Remix)",
+          "artist": "The Sevenights",
+          "duration": 220.0,
+          "url": "https://www.youtube.com/watch?v=9JMjZbIpmS8",
+          "video_id": "9JMjZbIpmS8"
+        },
         {
           "title": "Do It For The Love",
           "artist": "Letdown.",
@@ -2234,12 +2444,12 @@
           "video_id": "h4QGc06KnBE"
         }
       ],
-      "track_count": 318,
-      "added_at": "2026-08-14T22:23:53",
-      "last_accessed": "2026-09-03T00:26:30"
+      "track_count": 348,
+      "added_at": "2026-09-26T19:13:25",
+      "last_accessed": "2026-09-26T19:23:02"
     },
     {
-      "id": "f93e89a4756f",
+      "id": "319148b36d9f",
       "platform": "youtube",
       "name": "0 - YT 2026-1",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -3198,7 +3408,7 @@
           "video_id": "5wm9r4XAOV0"
         },
         {
-          "title": "Separate Ways (Worlds Apart) (2023 Remaster)",
+          "title": "Separate Ways (Worlds Apart) [2023 Remaster]",
           "artist": "journey",
           "duration": 324.0,
           "url": "https://www.youtube.com/watch?v=uH64qV71uUQ",
@@ -5873,11 +6083,11 @@
         }
       ],
       "track_count": 518,
-      "added_at": "2026-08-14T22:23:56",
-      "last_accessed": "2026-09-03T00:25:29"
+      "added_at": "2026-09-26T19:13:30",
+      "last_accessed": "2026-09-26T21:29:53"
     },
     {
-      "id": "604e11e93299",
+      "id": "7449f6d11a8c",
       "platform": "youtube",
       "name": "0 - EPICAS_YTM",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -6396,7 +6606,7 @@
         },
         {
           "title": "Soothing Bliss",
-          "artist": "Release - Topic",
+          "artist": "Jaco Prince - Topic",
           "duration": 158.0,
           "url": "https://www.youtube.com/watch?v=oFt_qwamMKg",
           "video_id": "oFt_qwamMKg"
@@ -7320,18 +7530,18 @@
         },
         {
           "title": "21614 (On The Road Again)",
-          "artist": "Rob & Chris - Topic",
+          "artist": "Release - Topic",
           "duration": 184.0,
           "url": "https://www.youtube.com/watch?v=_9LAaj0tb_o",
           "video_id": "_9LAaj0tb_o"
         }
       ],
       "track_count": 206,
-      "added_at": "2026-08-14T22:23:58",
-      "last_accessed": "2026-09-03T00:25:32"
+      "added_at": "2026-09-26T19:13:32",
+      "last_accessed": "2026-09-26T19:15:06"
     },
     {
-      "id": "3b856f96ff0e",
+      "id": "e3a8a5cc75ad",
       "platform": "youtube",
       "name": "0 - En Bucle_YTM",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -7927,11 +8137,11 @@
         }
       ],
       "track_count": 84,
-      "added_at": "2026-08-14T22:23:59",
-      "last_accessed": "2026-09-03T00:25:34"
+      "added_at": "2026-09-26T19:13:33",
+      "last_accessed": "2026-09-26T19:15:08"
     },
     {
-      "id": "f40beaf30e99",
+      "id": "d81ef0e5d57a",
       "platform": "youtube",
       "name": "2026-2 Spotify",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -7946,11 +8156,11 @@
         }
       ],
       "track_count": 1,
-      "added_at": "2026-08-14T22:24:00",
-      "last_accessed": "2026-09-03T00:25:35"
+      "added_at": "2026-09-26T19:13:34",
+      "last_accessed": "2026-09-26T19:15:08"
     },
     {
-      "id": "5023fa979b8c",
+      "id": "95477d8a13ad",
       "platform": "youtube",
       "name": "2025-1",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -8280,7 +8490,7 @@
         },
         {
           "title": "Flames",
-          "artist": "TOKYO MACHINE",
+          "artist": "Release - Topic",
           "duration": 180.0,
           "url": "https://www.youtube.com/watch?v=nPoi1_in3tk",
           "video_id": "nPoi1_in3tk"
@@ -9547,11 +9757,11 @@
         }
       ],
       "track_count": 227,
-      "added_at": "2026-08-14T22:24:02",
-      "last_accessed": "2026-09-03T00:25:37"
+      "added_at": "2026-09-26T19:13:36",
+      "last_accessed": "2026-09-26T19:15:10"
     },
     {
-      "id": "d43754d5c1f8",
+      "id": "d43ae030648b",
       "platform": "youtube",
       "name": "2025 - 2",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -9909,7 +10119,7 @@
         },
         {
           "title": "EMPATHY",
-          "artist": "cvzxeov - Topic",
+          "artist": "cvzxeov",
           "duration": 98.0,
           "url": "https://www.youtube.com/watch?v=3_dtU3dZuGs",
           "video_id": "3_dtU3dZuGs"
@@ -10392,11 +10602,11 @@
         }
       ],
       "track_count": 119,
-      "added_at": "2026-08-14T22:24:03",
-      "last_accessed": "2026-09-03T00:25:38"
+      "added_at": "2026-09-26T19:13:38",
+      "last_accessed": "2026-09-26T19:15:12"
     },
     {
-      "id": "d6efefe9e3a5",
+      "id": "4fde8252ca23",
       "platform": "youtube",
       "name": "2024-2",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -12140,11 +12350,11 @@
         }
       ],
       "track_count": 248,
-      "added_at": "2026-08-14T22:24:05",
-      "last_accessed": "2026-09-03T00:25:40"
+      "added_at": "2026-09-26T19:13:40",
+      "last_accessed": "2026-09-26T19:15:14"
     },
     {
-      "id": "814fd836863a",
+      "id": "eb62837154bb",
       "platform": "youtube",
       "name": "2024-1",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -12355,7 +12565,7 @@
         },
         {
           "title": "Like This",
-          "artist": "J. Sylvestre Rey",
+          "artist": "NAO",
           "duration": 172.0,
           "url": "https://www.youtube.com/watch?v=aetQ7QImZe4",
           "video_id": "aetQ7QImZe4"
@@ -14042,11 +14252,11 @@
         }
       ],
       "track_count": 270,
-      "added_at": "2026-08-14T22:24:07",
-      "last_accessed": "2026-09-03T00:25:41"
+      "added_at": "2026-09-26T19:13:43",
+      "last_accessed": "2026-09-26T19:15:18"
     },
     {
-      "id": "9d68973401ae",
+      "id": "88d81d3cb4cf",
       "platform": "youtube",
       "name": "2023-2",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -14796,7 +15006,7 @@
         },
         {
           "title": "Keep Me Sane",
-          "artist": "Tryt0n - Topic",
+          "artist": "Tryt0n",
           "duration": 157.0,
           "url": "https://www.youtube.com/watch?v=MP5pI-G8hWA",
           "video_id": "MP5pI-G8hWA"
@@ -16175,11 +16385,11 @@
         }
       ],
       "track_count": 303,
-      "added_at": "2026-08-14T22:24:10",
-      "last_accessed": "2026-09-03T00:25:43"
+      "added_at": "2026-09-26T19:13:45",
+      "last_accessed": "2026-09-26T19:15:20"
     },
     {
-      "id": "d5578aa82b80",
+      "id": "e5eac9cea3e0",
       "platform": "youtube",
       "name": "2023-1",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -18224,7 +18434,7 @@
         },
         {
           "title": "Oasis",
-          "artist": "Foxela - Topic",
+          "artist": "foxela",
           "duration": 164.0,
           "url": "https://www.youtube.com/watch?v=cZl6ixFlR7s",
           "video_id": "cZl6ixFlR7s"
@@ -18245,7 +18455,7 @@
         },
         {
           "title": "Rivers",
-          "artist": "L. GU.",
+          "artist": "L.GU.",
           "duration": 262.0,
           "url": "https://www.youtube.com/watch?v=mUx4SIZGRwQ",
           "video_id": "mUx4SIZGRwQ"
@@ -18343,7 +18553,7 @@
         },
         {
           "title": "Round & Round (Tiësto Remix)",
-          "artist": "Allegra - Topic",
+          "artist": "Allegra Official",
           "duration": 148.0,
           "url": "https://www.youtube.com/watch?v=bP_ICTKb9t4",
           "video_id": "bP_ICTKb9t4"
@@ -18630,11 +18840,11 @@
         }
       ],
       "track_count": 349,
-      "added_at": "2026-08-14T22:24:12",
-      "last_accessed": "2026-09-03T00:25:46"
+      "added_at": "2026-09-26T19:13:48",
+      "last_accessed": "2026-09-26T19:15:23"
     },
     {
-      "id": "aecf603e476a",
+      "id": "fbd0f6528ee7",
       "platform": "youtube",
       "name": "2022-2",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -21008,11 +21218,11 @@
         }
       ],
       "track_count": 338,
-      "added_at": "2026-08-14T22:24:15",
-      "last_accessed": "2026-09-03T00:25:48"
+      "added_at": "2026-09-26T19:13:51",
+      "last_accessed": "2026-09-26T19:15:25"
     },
     {
-      "id": "ecceaad6d4ba",
+      "id": "521670728b23",
       "platform": "youtube",
       "name": "2022-1",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -22308,11 +22518,11 @@
         }
       ],
       "track_count": 184,
-      "added_at": "2026-08-14T22:24:17",
-      "last_accessed": "2026-09-03T00:25:50"
+      "added_at": "2026-09-26T19:13:53",
+      "last_accessed": "2026-09-26T19:15:27"
     },
     {
-      "id": "fee32e96936c",
+      "id": "4fa6f8a2a9ba",
       "platform": "youtube",
       "name": "2021-2",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -22712,11 +22922,11 @@
         }
       ],
       "track_count": 56,
-      "added_at": "2026-08-14T22:24:18",
-      "last_accessed": "2026-09-03T00:25:51"
+      "added_at": "2026-09-26T19:13:54",
+      "last_accessed": "2026-09-26T19:15:28"
     },
     {
-      "id": "a4c25c47b4d2",
+      "id": "45824dc81890",
       "platform": "youtube",
       "name": "2021-1",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -23711,7 +23921,7 @@
         },
         {
           "title": "21614 (On The Road Again)",
-          "artist": "Rob & Chris - Topic",
+          "artist": "Release - Topic",
           "duration": 184.0,
           "url": "https://www.youtube.com/watch?v=_9LAaj0tb_o",
           "video_id": "_9LAaj0tb_o"
@@ -24292,11 +24502,11 @@
         }
       ],
       "track_count": 224,
-      "added_at": "2026-08-14T22:24:19",
-      "last_accessed": "2026-09-03T00:25:52"
+      "added_at": "2026-09-26T19:13:57",
+      "last_accessed": "2026-09-26T19:15:30"
     },
     {
-      "id": "94800b236d98",
+      "id": "ff01e0f74637",
       "platform": "youtube",
       "name": "2020",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -24885,11 +25095,11 @@
         }
       ],
       "track_count": 83,
-      "added_at": "2026-08-14T22:24:21",
-      "last_accessed": "2026-09-03T00:25:54"
+      "added_at": "2026-09-26T19:13:58",
+      "last_accessed": "2026-09-26T19:15:32"
     },
     {
-      "id": "f24ba7af331e",
+      "id": "582236199d98",
       "platform": "youtube",
       "name": "1 -EPICAS - Spotify",
       "uploader": "Matías Ignacio Ramírez Benavides",
@@ -24946,7 +25156,7 @@
         },
         {
           "title": "21614 (On The Road Again)",
-          "artist": "Rob & Chris - Topic",
+          "artist": "Release - Topic",
           "duration": 184.0,
           "url": "https://www.youtube.com/watch?v=_9LAaj0tb_o",
           "video_id": "_9LAaj0tb_o"
@@ -26927,7 +27137,7 @@
         },
         {
           "title": "Oasis",
-          "artist": "Foxela - Topic",
+          "artist": "foxela",
           "duration": 164.0,
           "url": "https://www.youtube.com/watch?v=cZl6ixFlR7s",
           "video_id": "cZl6ixFlR7s"
@@ -27669,7 +27879,7 @@
         },
         {
           "title": "Like This",
-          "artist": "J. Sylvestre Rey",
+          "artist": "NAO",
           "duration": 172.0,
           "url": "https://www.youtube.com/watch?v=aetQ7QImZe4",
           "video_id": "aetQ7QImZe4"
@@ -28894,7 +29104,7 @@
         },
         {
           "title": "Flames",
-          "artist": "TOKYO MACHINE",
+          "artist": "Release - Topic",
           "duration": 180.0,
           "url": "https://www.youtube.com/watch?v=nPoi1_in3tk",
           "video_id": "nPoi1_in3tk"
@@ -29608,11 +29818,11 @@
         }
       ],
       "track_count": 673,
-      "added_at": "2026-08-14T22:24:25",
-      "last_accessed": "2026-09-03T00:25:57"
+      "added_at": "2026-09-26T19:14:03",
+      "last_accessed": "2026-09-26T19:15:37"
     },
     {
-      "id": "c7e5b919a291",
+      "id": "acbb7fb01279",
       "platform": "spotify",
       "name": "2026-2 Spotify",
       "uploader": "",
@@ -29627,11 +29837,11 @@
         }
       ],
       "track_count": 1,
-      "added_at": "2026-08-14T22:24:28",
-      "last_accessed": "2026-09-03T00:25:59"
+      "added_at": "2026-09-26T19:14:05",
+      "last_accessed": "2026-09-26T19:15:39"
     },
     {
-      "id": "3cccab2c9227",
+      "id": "54c425579670",
       "platform": "spotify",
       "name": "En bucle",
       "uploader": "",
@@ -29842,8 +30052,433 @@
         }
       ],
       "track_count": 29,
-      "added_at": "2026-08-14T22:24:30",
-      "last_accessed": "2026-09-03T00:26:01"
+      "added_at": "2026-09-26T19:14:06",
+      "last_accessed": "2026-09-26T19:15:41"
+    },
+    {
+      "id": "69e56a8374bd",
+      "platform": "youtube",
+      "name": "Post Punk y Ruso",
+      "uploader": "Matías Ignacio Ramírez Benavides",
+      "url": "https://music.youtube.com/playlist?list=PLMui2qQDIZtI",
+      "tracks": [
+        {
+          "title": "Amanece En Mi Tumba",
+          "artist": "Vacíos Cuerpos",
+          "duration": 157.0,
+          "url": "https://www.youtube.com/watch?v=FCcBpvhfQqA",
+          "video_id": "FCcBpvhfQqA"
+        },
+        {
+          "title": "Petrified",
+          "artist": "Pain in the Yeahs - Topic",
+          "duration": 135.0,
+          "url": "https://www.youtube.com/watch?v=2xco9luggMU",
+          "video_id": "2xco9luggMU"
+        },
+        {
+          "title": "Yearn for Me",
+          "artist": "Misery Mile",
+          "duration": 158.0,
+          "url": "https://www.youtube.com/watch?v=_Ygn3-TNwok",
+          "video_id": "_Ygn3-TNwok"
+        },
+        {
+          "title": "Reflejos",
+          "artist": "Vacíos Cuerpos",
+          "duration": 237.0,
+          "url": "https://www.youtube.com/watch?v=5-5Dt9njRyA",
+          "video_id": "5-5Dt9njRyA"
+        },
+        {
+          "title": "Heridas",
+          "artist": "Vacíos Cuerpos",
+          "duration": 141.0,
+          "url": "https://www.youtube.com/watch?v=0tyh_Jz5p9w",
+          "video_id": "0tyh_Jz5p9w"
+        },
+        {
+          "title": "Distancia",
+          "artist": "Vacíos Cuerpos",
+          "duration": 175.0,
+          "url": "https://www.youtube.com/watch?v=A8MpgzCO6Hg",
+          "video_id": "A8MpgzCO6Hg"
+        },
+        {
+          "title": "Танцевать",
+          "artist": "Molchat Doma",
+          "duration": 203.0,
+          "url": "https://www.youtube.com/watch?v=pz34QjN8iBA",
+          "video_id": "pz34QjN8iBA"
+        },
+        {
+          "title": "Who You Are",
+          "artist": "fairy dust - Topic",
+          "duration": 203.0,
+          "url": "https://www.youtube.com/watch?v=8sq-TMmrioo",
+          "video_id": "8sq-TMmrioo"
+        },
+        {
+          "title": "[FREE] Post Punk Type Beat 'The Last Christmas'",
+          "artist": "lone ujuzi",
+          "duration": 159.0,
+          "url": "https://www.youtube.com/watch?v=oHkFkgZFyXw",
+          "video_id": "oHkFkgZFyXw"
+        },
+        {
+          "title": "Haunt me (feat. Lllyric?)",
+          "artist": "Draeko",
+          "duration": 244.0,
+          "url": "https://www.youtube.com/watch?v=HZly-5m-WRM",
+          "video_id": "HZly-5m-WRM"
+        },
+        {
+          "title": "MOTHS",
+          "artist": "Navjaxx Beats - Topic",
+          "duration": 160.0,
+          "url": "https://www.youtube.com/watch?v=JE9PAdc6lhY",
+          "video_id": "JE9PAdc6lhY"
+        },
+        {
+          "title": "The First Day Of Fall",
+          "artist": "DECEITS - Topic",
+          "duration": 163.0,
+          "url": "https://www.youtube.com/watch?v=9iMmx4enfyY",
+          "video_id": "9iMmx4enfyY"
+        },
+        {
+          "title": "Decay",
+          "artist": "NOROMAKINA",
+          "duration": 182.0,
+          "url": "https://www.youtube.com/watch?v=37zazqBu6c4",
+          "video_id": "37zazqBu6c4"
+        },
+        {
+          "title": "Haunt Me",
+          "artist": "Shadows Hold",
+          "duration": 185.0,
+          "url": "https://www.youtube.com/watch?v=sMOGsQp-2Zg",
+          "video_id": "sMOGsQp-2Zg"
+        },
+        {
+          "title": "Pure Cinema",
+          "artist": "Gumshoe",
+          "duration": 191.0,
+          "url": "https://www.youtube.com/watch?v=UGbiETH2KB0",
+          "video_id": "UGbiETH2KB0"
+        },
+        {
+          "title": "The Distant Past",
+          "artist": "Past Day",
+          "duration": 116.0,
+          "url": "https://www.youtube.com/watch?v=Ooz0mgF6QQI",
+          "video_id": "Ooz0mgF6QQI"
+        },
+        {
+          "title": "Desencantos",
+          "artist": "Vacíos Cuerpos",
+          "duration": 104.0,
+          "url": "https://www.youtube.com/watch?v=C9oC5-yM8oM",
+          "video_id": "C9oC5-yM8oM"
+        },
+        {
+          "title": "Tanz im Nebel",
+          "artist": "Merlin Storm - Topic",
+          "duration": 165.0,
+          "url": "https://www.youtube.com/watch?v=hCj76zoR7wk",
+          "video_id": "hCj76zoR7wk"
+        },
+        {
+          "title": "MARLBORO REDS",
+          "artist": "The Masqs",
+          "duration": 123.0,
+          "url": "https://www.youtube.com/watch?v=0wtYXhsUCYU",
+          "video_id": "0wtYXhsUCYU"
+        },
+        {
+          "title": "innocence",
+          "artist": "Vomer",
+          "duration": 149.0,
+          "url": "https://www.youtube.com/watch?v=HsaDFDYG25I",
+          "video_id": "HsaDFDYG25I"
+        },
+        {
+          "title": "Eyes Without A Face",
+          "artist": "Sinnerella - Topic",
+          "duration": 136.0,
+          "url": "https://www.youtube.com/watch?v=sbOdoY83Cc0",
+          "video_id": "sbOdoY83Cc0"
+        },
+        {
+          "title": "Kiss Me",
+          "artist": "POSTACTO",
+          "duration": 134.0,
+          "url": "https://www.youtube.com/watch?v=y4tzZdmzwGM",
+          "video_id": "y4tzZdmzwGM"
+        },
+        {
+          "title": "FALLING (Twin Tribes Remix)",
+          "artist": "Soft Vein",
+          "duration": 253.0,
+          "url": "https://www.youtube.com/watch?v=L_kwumqzt4c",
+          "video_id": "L_kwumqzt4c"
+        },
+        {
+          "title": "Into Those Woods",
+          "artist": "Bragolin - Topic",
+          "duration": 204.0,
+          "url": "https://www.youtube.com/watch?v=RfwkhtRvfss",
+          "video_id": "RfwkhtRvfss"
+        },
+        {
+          "title": "Dentro",
+          "artist": "Obskuros",
+          "duration": 183.0,
+          "url": "https://www.youtube.com/watch?v=jUFJtAXmr5U",
+          "video_id": "jUFJtAXmr5U"
+        },
+        {
+          "title": "Black Lipstick",
+          "artist": "Misery Mile",
+          "duration": 171.0,
+          "url": "https://www.youtube.com/watch?v=NT8lC_iQkvc",
+          "video_id": "NT8lC_iQkvc"
+        },
+        {
+          "title": "Swan",
+          "artist": "Secret Attraction - Topic",
+          "duration": 134.0,
+          "url": "https://www.youtube.com/watch?v=q-5jhtZoTE0",
+          "video_id": "q-5jhtZoTE0"
+        },
+        {
+          "title": "When It Rains",
+          "artist": "The Spoiled",
+          "duration": 167.0,
+          "url": "https://www.youtube.com/watch?v=dxGqzl5W5Nc",
+          "video_id": "dxGqzl5W5Nc"
+        },
+        {
+          "title": "Invasion",
+          "artist": "Vilevo",
+          "duration": 161.0,
+          "url": "https://www.youtube.com/watch?v=pL_6i3QBIVE",
+          "video_id": "pL_6i3QBIVE"
+        },
+        {
+          "title": "I Wish I Was You (Twin Tribes Remix)",
+          "artist": "Creux Lies",
+          "duration": 240.0,
+          "url": "https://www.youtube.com/watch?v=qK3ycGW9Ebs",
+          "video_id": "qK3ycGW9Ebs"
+        },
+        {
+          "title": "Llagas",
+          "artist": "Nueve Desconocidos",
+          "duration": 207.0,
+          "url": "https://www.youtube.com/watch?v=X8WC3IGXxy0",
+          "video_id": "X8WC3IGXxy0"
+        },
+        {
+          "title": "High Waves",
+          "artist": "Soft Pastels - Topic",
+          "duration": 110.0,
+          "url": "https://www.youtube.com/watch?v=QsgxhONFB-g",
+          "video_id": "QsgxhONFB-g"
+        },
+        {
+          "title": "Lllyric? - you are my fatal blow",
+          "artist": "Lllyric?",
+          "duration": 155.0,
+          "url": "https://www.youtube.com/watch?v=YUgBmBBgNXE",
+          "video_id": "YUgBmBBgNXE"
+        },
+        {
+          "title": "You Never Called",
+          "artist": "Madeline Goldstein - Topic",
+          "duration": 219.0,
+          "url": "https://www.youtube.com/watch?v=gF9w7szlrvc",
+          "video_id": "gF9w7szlrvc"
+        },
+        {
+          "title": "Shadows (Part Time Punks Session)",
+          "artist": "Twin Tribes",
+          "duration": 194.0,
+          "url": "https://www.youtube.com/watch?v=rvufYKXziEg",
+          "video_id": "rvufYKXziEg"
+        },
+        {
+          "title": "Heavy Wave",
+          "artist": "Motorama",
+          "duration": 210.0,
+          "url": "https://www.youtube.com/watch?v=oSu2KckJXO4",
+          "video_id": "oSu2KckJXO4"
+        },
+        {
+          "title": "Black Cathedral",
+          "artist": "This Cold Night",
+          "duration": 176.0,
+          "url": "https://www.youtube.com/watch?v=3U7sE61Z98s",
+          "video_id": "3U7sE61Z98s"
+        },
+        {
+          "title": "Spektakl Okonchen",
+          "artist": "Chernikovskaya Hata - Topic",
+          "duration": 193.0,
+          "url": "https://www.youtube.com/watch?v=1-U_cbzlCu4",
+          "video_id": "1-U_cbzlCu4"
+        },
+        {
+          "title": "i don't belong here",
+          "artist": "graur",
+          "duration": 123.0,
+          "url": "https://www.youtube.com/watch?v=JXD0uFlGM8I",
+          "video_id": "JXD0uFlGM8I"
+        },
+        {
+          "title": "Colors of the Night",
+          "artist": "Yung Cortex",
+          "duration": 117.0,
+          "url": "https://www.youtube.com/watch?v=6SlshfRWNT0",
+          "video_id": "6SlshfRWNT0"
+        },
+        {
+          "title": "Prisión",
+          "artist": "Vacíos Cuerpos",
+          "duration": 177.0,
+          "url": "https://www.youtube.com/watch?v=GpyUWv9q9pY",
+          "video_id": "GpyUWv9q9pY"
+        },
+        {
+          "title": "That Night",
+          "artist": "Georgi",
+          "duration": 172.0,
+          "url": "https://www.youtube.com/watch?v=835frUskob4",
+          "video_id": "835frUskob4"
+        },
+        {
+          "title": "Waste Away",
+          "artist": "Closed Tear - Topic",
+          "duration": 135.0,
+          "url": "https://www.youtube.com/watch?v=zi1TL0o7abU",
+          "video_id": "zi1TL0o7abU"
+        },
+        {
+          "title": "Dead (Original Mix)",
+          "artist": "Vandal Moon - Topic",
+          "duration": 190.0,
+          "url": "https://www.youtube.com/watch?v=IRNOl7TAnto",
+          "video_id": "IRNOl7TAnto"
+        },
+        {
+          "title": "Escape",
+          "artist": "Jah Phnx",
+          "duration": 86.0,
+          "url": "https://www.youtube.com/watch?v=ox2qpQwmfTs",
+          "video_id": "ox2qpQwmfTs"
+        },
+        {
+          "title": "Pugilist",
+          "artist": "Harsh Symmetry",
+          "duration": 132.0,
+          "url": "https://www.youtube.com/watch?v=wVCmKT0x4-Q",
+          "video_id": "wVCmKT0x4-Q"
+        },
+        {
+          "title": "Noche de Vampiros",
+          "artist": "POSTACTO",
+          "duration": 147.0,
+          "url": "https://www.youtube.com/watch?v=In1Tct1uTRM",
+          "video_id": "In1Tct1uTRM"
+        },
+        {
+          "title": "fall for me",
+          "artist": "blood club",
+          "duration": 156.0,
+          "url": "https://www.youtube.com/watch?v=m4DgO5Om3Pw",
+          "video_id": "m4DgO5Om3Pw"
+        },
+        {
+          "title": "No Lesson",
+          "artist": "Soviet Soviet - Topic",
+          "duration": 267.0,
+          "url": "https://www.youtube.com/watch?v=1LdyYLVgZno",
+          "video_id": "1LdyYLVgZno"
+        },
+        {
+          "title": "99proof",
+          "artist": "60 juno",
+          "duration": 133.0,
+          "url": "https://www.youtube.com/watch?v=lgU70KKhXFA",
+          "video_id": "lgU70KKhXFA"
+        },
+        {
+          "title": "VHS & CHILL",
+          "artist": "The Masqs",
+          "duration": 114.0,
+          "url": "https://www.youtube.com/watch?v=kgLKafBS65Q",
+          "video_id": "kgLKafBS65Q"
+        },
+        {
+          "title": "Gölgesiz",
+          "artist": "Ductape",
+          "duration": 237.0,
+          "url": "https://www.youtube.com/watch?v=61phcCSXawU",
+          "video_id": "61phcCSXawU"
+        },
+        {
+          "title": "Visceral",
+          "artist": "Shadows Hold",
+          "duration": 174.0,
+          "url": "https://www.youtube.com/watch?v=KAqDh2J-KOA",
+          "video_id": "KAqDh2J-KOA"
+        },
+        {
+          "title": "Horizon",
+          "artist": "Human Tetris - Topic",
+          "duration": 238.0,
+          "url": "https://www.youtube.com/watch?v=HWPLnTRCd50",
+          "video_id": "HWPLnTRCd50"
+        },
+        {
+          "title": "Общий сбор",
+          "artist": "Братство Атома",
+          "duration": 200.0,
+          "url": "https://www.youtube.com/watch?v=a7poBqMsbI8",
+          "video_id": "a7poBqMsbI8"
+        },
+        {
+          "title": "Nobody",
+          "artist": "Братство Атома",
+          "duration": 219.0,
+          "url": "https://www.youtube.com/watch?v=7HQU8Z3XDf0",
+          "video_id": "7HQU8Z3XDf0"
+        },
+        {
+          "title": "Белые вороны",
+          "artist": "Norma Tale",
+          "duration": 170.0,
+          "url": "https://www.youtube.com/watch?v=8bHyKsBluhI",
+          "video_id": "8bHyKsBluhI"
+        },
+        {
+          "title": "BEA-D Theme 2.0",
+          "artist": "Братство Атома",
+          "duration": 171.0,
+          "url": "https://www.youtube.com/watch?v=czVbKfg4QKA",
+          "video_id": "czVbKfg4QKA"
+        },
+        {
+          "title": "Не ходи гулять со мной",
+          "artist": "HELVEGEN",
+          "duration": 194.0,
+          "url": "https://www.youtube.com/watch?v=1ltqS0OF0o8",
+          "video_id": "1ltqS0OF0o8"
+        }
+      ],
+      "track_count": 59,
+      "added_at": "2026-09-26T19:15:42",
+      "last_accessed": "2026-09-26T19:22:51"
     }
   ]
 }
