@@ -66,33 +66,42 @@ from auto_metadata import search_track, best_match
 from saved_playlists import (
     list_playlists, save_playlist, get_playlist,
     delete_playlist, update_playlist, refresh_playlist,
-    build_local_playlist_index, reorder_playlists,
-    count_local_in_playlists,
+    build_local_playlist_index,
 )
-from duplicates import find_duplicates, normalize_text, expand_title_variants
+from duplicates import find_duplicates, normalize_text
 from artwork import (extract_artwork, save_artwork, resize_image,
                      download_image, remove_artwork)
 from deleted_songs import (
     list_deleted_songs, add_deleted_song, update_comment,
     remove_deleted_song, clear_all_deleted,
     detect_deleted_from_scan, build_deleted_index, is_song_deleted,
-    remove_deleted_by_title,
 )
 from folder_compare import compare_folders
 from spotiflac_dummy import (
     preview_generation, generate_dummy_zip,
     get_history as get_dummy_history, clear_history as clear_dummy_history,
 )
-# v3.22: Generador/editor de M3U para Hiby R1
-from m3u_generator import (
-    generate_m3u, parse_m3u, save_m3u, rebuild_m3u_from_tracks,
-    list_m3u_files, read_m3u_file,
-)
-# v3.28: Matches manuales para canciones que la comparación automática no detecta
-from manual_matches import (
-    add_manual_match, remove_manual_match,
-    get_manual_matches_for_playlist, get_all_manual_matches,
-    is_manually_matched,
+# v4.0: Integración del módulo SpotiFLAC como pestaña de descargas.
+# Importación defensiva: si el módulo SpotiFLAC no está instalado,
+# los endpoints devuelven error 503 pero la app sigue funcionando.
+from spotiflac_dl import (
+    check_module_status as spotiflac_check_status,
+    install_module as spotiflac_install,
+    search_tracks as spotiflac_search,
+    list_extensions as spotiflac_list_ext,
+    fetch_registry as spotiflac_fetch_registry,
+    install_extension as spotiflac_install_ext,
+    remove_extension as spotiflac_remove_ext,
+    start_download_job as spotiflac_start_job,
+    get_job_status as spotiflac_job_status,
+    list_jobs as spotiflac_list_jobs,
+    get_saved_playlists as spotiflac_get_playlists,
+    get_playlist_tracks as spotiflac_get_playlist_tracks,
+    get_last_scan_files as spotiflac_get_scan,
+    get_registry_config as spotiflac_get_env_config,
+    save_registry_config as spotiflac_save_env_config,
+    save_default_registry as spotiflac_save_default_env,
+    clear_completed_jobs as spotiflac_clear_jobs,
 )
 
 
@@ -107,20 +116,12 @@ LAST_SCAN = {
 }
 
 
-def create_app(template_folder=None, static_folder=None):
-    """Fabrica de la aplicacion Flask.
-    v3.36: acepta template_folder y static_folder como parámetros
-    para soportar PyInstaller (donde los archivos están en el disco
-    junto al .exe, no dentro del bundle)."""
-    if template_folder is None:
-        template_folder = str(Path(__file__).parent.parent / 'templates')
-    if static_folder is None:
-        static_folder = str(Path(__file__).parent.parent / 'static')
-
+def create_app():
+    """Fabrica de la aplicacion Flask."""
     app = Flask(
         __name__,
-        template_folder=template_folder,
-        static_folder=static_folder,
+        template_folder=str(Path(__file__).parent.parent / 'templates'),
+        static_folder=str(Path(__file__).parent.parent / 'static'),
     )
 
     # ==================================================================
@@ -178,10 +179,10 @@ def create_app(template_folder=None, static_folder=None):
         """Pestaña 9: Generador de dummies para Spotiflac."""
         return render_template('spotiflac.html', active_tab='spotiflac')
 
-    @app.route('/m3u-hiby')
-    def m3u_hiby():
-        """Pestaña 11 (v3.22): Generador/editor de M3U para Hiby R1."""
-        return render_template('m3u_hiby.html', active_tab='m3u-hiby')
+    @app.route('/spotiflac-dl')
+    def spotiflac_dl():
+        """Pestaña 10 (v4.0): Descargas con módulo SpotiFLAC."""
+        return render_template('spotiflac_dl.html', active_tab='spotiflac-dl')
 
     # ==================================================================
     # API: ESCANEO
@@ -477,11 +478,8 @@ def create_app(template_folder=None, static_folder=None):
 
         local_index = {}
         for f in LAST_SCAN['files']:
-            # v3.24: usar expand_title_variants para que "Artist - Title"
-            # coincida con "Title" o viceversa
-            variants = expand_title_variants(f['name'], f.get('artist', ''))
-            for v in variants:
-                local_index.setdefault(v, []).append(f)
+            key = normalize_text(f['name'])
+            local_index.setdefault(key, []).append(f)
 
         missing = []
         matched = []
@@ -490,27 +488,12 @@ def create_app(template_folder=None, static_folder=None):
             t_norm = normalize_text(track['title'])
             a_norm = normalize_text(track['artist'])
 
-            # v3.24: Buscar coincidencia usando variantes del título del track
-            # Esto maneja el caso donde el track de la playlist tiene
-            # "Unlike Pluto - Sadness Can't Catch Me" como título
-            track_variants = expand_title_variants(track['title'], track.get('artist', ''))
-
             # Buscar coincidencia exacta (titulo + artista)
             exact_match = None
             for f in LAST_SCAN['files']:
-                f_name_norm = normalize_text(f['name'])
-                f_artist_norm = normalize_text(f['artist'])
-                # Match si el título normalizado coincide Y el artista coincide
-                if t_norm == f_name_norm and a_norm == f_artist_norm:
+                if t_norm == normalize_text(f['name']) and a_norm == normalize_text(f['artist']):
                     exact_match = f
                     break
-                # v3.24: también verificar si alguna variante del track coincide
-                # con el nombre del archivo local
-                if t_norm and t_norm in expand_title_variants(f['name'], f.get('artist', '')):
-                    # Coincidencia de título por variantes, verificar artista
-                    if a_norm and (a_norm in f_artist_norm or f_artist_norm in a_norm):
-                        exact_match = f
-                        break
 
             if exact_match:
                 matched.append({
@@ -524,47 +507,40 @@ def create_app(template_folder=None, static_folder=None):
                 })
                 continue
 
-            # v3.24: buscar por variantes de título en el índice local
-            # (maneja "Artist - Title" vs "Title" y viceversa)
-            found_in_index = False
-            for tv in track_variants:
-                if tv and tv in local_index:
-                    candidates = local_index[tv]
-                    local_artists = [normalize_text(c['artist']) for c in candidates]
-                    artist_match = any(
-                        a_norm and (a_norm in la or la in a_norm)
-                        for la in local_artists
-                    )
-                    if artist_match:
-                        # Tomar el primer candidato que coincida
-                        local_file = next((c for c in candidates
-                                           if a_norm and (a_norm in normalize_text(c['artist'])
-                                                          or normalize_text(c['artist']) in a_norm)),
-                                          candidates[0])
-                        matched.append({
-                            **track,
-                            'match_type': 'artist_partial',
-                            'local_path': local_file['path'],
-                            'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
-                            'local_format': local_file.get('ext', '').upper(),
-                            'local_name': local_file.get('name', ''),
-                            'local_artist': local_file.get('artist', ''),
-                        })
-                    else:
-                        # title_only: hay candidatos pero no coinciden artista
-                        local_file = candidates[0]
-                        matched.append({
-                            **track,
-                            'match_type': 'title_only',
-                            'local_path': local_file['path'],
-                            'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
-                            'local_format': local_file.get('ext', '').upper(),
-                            'local_name': local_file.get('name', ''),
-                            'local_artist': local_file.get('artist', ''),
-                        })
-                    found_in_index = True
-                    break
-            if found_in_index:
+            if t_norm and t_norm in local_index:
+                candidates = local_index[t_norm]
+                local_artists = [normalize_text(c['artist']) for c in candidates]
+                artist_match = any(
+                    a_norm and (a_norm in la or la in a_norm)
+                    for la in local_artists
+                )
+                if artist_match:
+                    # Tomar el primer candidato que coincida
+                    local_file = next((c for c in candidates
+                                       if a_norm and (a_norm in normalize_text(c['artist'])
+                                                      or normalize_text(c['artist']) in a_norm)),
+                                      candidates[0])
+                    matched.append({
+                        **track,
+                        'match_type': 'artist_partial',
+                        'local_path': local_file['path'],
+                        'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
+                        'local_format': local_file.get('ext', '').upper(),
+                        'local_name': local_file.get('name', ''),
+                        'local_artist': local_file.get('artist', ''),
+                    })
+                else:
+                    # title_only: hay candidatos pero no coinciden artista
+                    local_file = candidates[0]
+                    matched.append({
+                        **track,
+                        'match_type': 'title_only',
+                        'local_path': local_file['path'],
+                        'local_quality': local_file.get('quality', {}).get('label', 'N/A'),
+                        'local_format': local_file.get('ext', '').upper(),
+                        'local_name': local_file.get('name', ''),
+                        'local_artist': local_file.get('artist', ''),
+                    })
                 continue
             # Antes de marcar como faltante, verificamos si la canción
             # está en la lista de eliminadas. Si lo está, no la mostramos
@@ -621,132 +597,57 @@ def create_app(template_folder=None, static_folder=None):
 
     # ==================================================================
     # API: PLAYLISTS GUARDADAS (NUEVAS)
-    # v3.23: eliminados los endpoints huérfanos de Spotify OAuth
-    #        (/api/spotify-status, /api/spotify-login/start/finish/logout)
-    #        porque el flujo de credenciales nunca funcionó para +100 canciones.
-    #        Usar Exportify (https://exportify.app/) para playlists grandes.
     # ==================================================================
+
+    @app.route('/api/spotify-status', methods=['GET'])
+    def api_spotify_status():
+        """
+        Devuelve el estado de la configuracion de Spotify.
+        Util para mostrar un banner en la UI si no esta configurado.
+        """
+        try:
+            from spotify_official import is_configured, has_user_login, get_auth_mode
+            return jsonify({
+                'configured': is_configured(),
+                'user_logged_in': has_user_login(),
+                'auth_mode': get_auth_mode(),
+            })
+        except ImportError:
+            return jsonify({
+                'configured': False,
+                'user_logged_in': False,
+                'auth_mode': None,
+            })
+
+    @app.route('/api/spotify-login/start', methods=['POST'])
+    def api_spotify_login_start():
+        """Inicia el flujo de OAuth. Devuelve la URL de autorizacion."""
+        from spotify_official import start_user_login
+        result = start_user_login()
+        return jsonify(result)
+
+    @app.route('/api/spotify-login/finish', methods=['POST'])
+    def api_spotify_login_finish():
+        """Completa el flujo OAuth con la URL de callback del navegador."""
+        data = request.get_json(silent=True) or {}
+        callback_url = data.get('callback_url', '')
+        if not callback_url:
+            return jsonify({'error': 'Falta callback_url'}), 400
+        from spotify_official import finish_user_login
+        result = finish_user_login(callback_url)
+        return jsonify(result)
+
+    @app.route('/api/spotify-login/logout', methods=['POST'])
+    def api_spotify_login_logout():
+        """Elimina el cache de token de usuario."""
+        from spotify_official import logout_user
+        logout_user()
+        return jsonify({'success': True})
 
     @app.route('/api/saved-playlists', methods=['GET'])
     def api_saved_list():
-        """Lista todas las playlists guardadas.
-        Query param ?sort_by=last_accessed|name|added_at|track_count|sort_order
-        """
-        sort_by = request.args.get('sort_by', 'last_accessed')
-        return jsonify({'playlists': list_playlists(sort_by=sort_by)})
-
-    @app.route('/api/saved-playlists/local-counts', methods=['GET'])
-    def api_saved_local_counts():
-        """v3.19: Para cada playlist guardada, devuelve cuántas canciones
-        están en Mi Música. Útil para mostrar 'X/Y descargadas' en las cards.
-
-        Returns:
-            JSON: { 'counts': { playlist_id: { 'total': int, 'downloaded': int } } }
-        """
-        if not LAST_SCAN['files']:
-            return jsonify({'counts': {}, 'has_local': False})
-        # v3.24: Construir índice con variantes de títulos locales
-        # para que "Artist - Title" coincida con "Title" y viceversa
-        local_index = set()
-        for f in LAST_SCAN['files']:
-            variants = expand_title_variants(f.get('name', ''), f.get('artist', ''))
-            for v in variants:
-                if v:
-                    local_index.add(v)
-        counts = count_local_in_playlists(local_index)
-        # v3.28: añadir matches manuales a los conteos
-        manual = get_all_manual_matches()
-        from saved_playlists import _load_all
-        all_data = _load_all()
-        for p in all_data['playlists']:
-            pid = p['id']
-            if pid not in counts:
-                continue
-            for track in p.get('tracks', []):
-                title = track.get('title', '')
-                title_norm = normalize_text(title)
-                # Si no fue detectado automáticamente pero hay match manual
-                if (pid, title_norm) in manual:
-                    # Verificar si ya fue contado por la comparación automática
-                    from saved_playlists import _normalize
-                    already_counted = False
-                    norm = _normalize(title)
-                    if norm and norm in local_index:
-                        already_counted = True
-                    if ' - ' in title:
-                        for part in title.split(' - ', 1):
-                            n = _normalize(part)
-                            if n and n in local_index:
-                                already_counted = True
-                                break
-                    if not already_counted:
-                        counts[pid]['downloaded'] += 1
-        return jsonify({'counts': counts, 'has_local': True})
-
-    @app.route('/api/search-in-playlists', methods=['POST'])
-    def api_search_in_playlists():
-        """v3.26: Busca una canción en TODAS las playlists guardadas.
-        Body: { query: "nombre de la canción" }
-        Devuelve lista de matches con en qué playlist está cada uno.
-        """
-        data = request.get_json(silent=True) or {}
-        query = (data.get('query') or '').strip()
-        if not query:
-            return jsonify({'results': [], 'error': 'Falta query.'}), 400
-
-        query_norm = normalize_text(query)
-        if not query_norm:
-            return jsonify({'results': [], 'error': 'Query vacía después de normalizar.'}), 400
-
-        # También generar variantes del query (por si el usuario escribe "Artist - Title")
-        query_variants = expand_title_variants(query, '')
-
-        from saved_playlists import _load_all, _normalize
-        all_data = _load_all()
-        results = []
-
-        for p in all_data['playlists']:
-            pl_info = {
-                'id': p['id'],
-                'name': p.get('name', ''),
-                'platform': p.get('platform', ''),
-            }
-            for track in p.get('tracks', []):
-                title = track.get('title', '')
-                artist = track.get('artist', '')
-                album = track.get('album', '')
-                # Normalizar y generar variantes del track
-                track_variants = expand_title_variants(title, artist)
-                # Verificar si el query coincide con alguna variante del track
-                match = False
-                # Coincidencia exacta normalizada
-                if query_norm in track_variants:
-                    match = True
-                # Coincidencia parcial (el query está contenido en el título normalizado)
-                if not match:
-                    track_title_norm = _normalize(title)
-                    if query_norm and track_title_norm and query_norm in track_title_norm:
-                        match = True
-                # Coincidencia por variantes del query (ej: query="Artist - Title" → partes)
-                if not match:
-                    for qv in query_variants:
-                        if qv and (qv in track_variants or qv in _normalize(title)):
-                            match = True
-                            break
-
-                if match:
-                    results.append({
-                        'title': title,
-                        'artist': artist,
-                        'album': album,
-                        'duration': track.get('duration', 0),
-                        'url': track.get('url', ''),
-                        'playlist': pl_info,
-                    })
-
-        # Ordenar por nombre de playlist y luego por título
-        results.sort(key=lambda r: (r['playlist']['name'].lower(), r['title'].lower()))
-        return jsonify({'results': results, 'count': len(results)})
+        """Lista todas las playlists guardadas."""
+        return jsonify({'playlists': list_playlists()})
 
     @app.route('/api/save-playlist', methods=['POST'])
     def api_save_playlist():
@@ -958,36 +859,6 @@ def create_app(template_folder=None, static_folder=None):
             return jsonify({'error': 'Playlist no encontrada.'}), 404
         return jsonify({'deleted': True})
 
-    # v3.17: Endpoints para ordenar playlists
-
-    @app.route('/api/saved-playlist/<playlist_id>/sort-order', methods=['POST'])
-    def api_saved_set_sort_order(playlist_id):
-        """Asigna un orden personalizado (numérico) a una playlist.
-        Body: { "sort_order": int }"""
-        data = request.get_json(silent=True) or {}
-        sort_order = data.get('sort_order', 0)
-        try:
-            sort_order = int(sort_order)
-        except (ValueError, TypeError):
-            sort_order = 0
-        updated = update_playlist(playlist_id, {'sort_order': sort_order})
-        if not updated:
-            return jsonify({'error': 'Playlist no encontrada.'}), 404
-        return jsonify({'saved': updated})
-
-    @app.route('/api/saved-playlists/reorder', methods=['POST'])
-    def api_saved_reorder():
-        """Reordena todas las playlists según una lista de IDs.
-        Body: { "ordered_ids": ["id1", "id2", "id3", ...] }"""
-        data = request.get_json(silent=True) or {}
-        ordered_ids = data.get('ordered_ids', [])
-        if not ordered_ids or not isinstance(ordered_ids, list):
-            return jsonify({'error': 'Falta ordered_ids (lista de IDs).'}), 400
-        ok = reorder_playlists(ordered_ids)
-        if not ok:
-            return jsonify({'error': 'No se pudo reordenar.'}), 500
-        return jsonify({'success': True, 'reordered': len(ordered_ids)})
-
     # ==================================================================
     # API: DUPLICADOS (NUEVAS)
     # ==================================================================
@@ -1134,41 +1005,11 @@ def create_app(template_folder=None, static_folder=None):
             msg = 'Archivo renombrado.'
             if final_path != new_path:
                 msg = f'Archivo renombrado como "{renamed_to}" (ya existía uno con ese nombre).'
-
-            # v3.17: Limpiar la entrada espuria en Eliminados.
-            # Cuando el usuario renombra un archivo, el archivo "viejo"
-            # desaparece del disco. Al re-escanear, aparece en Eliminados
-            # aunque el usuario no lo haya borrado a propósito. Como el
-            # archivo sigue existiendo (con otro nombre), lo sacamos de
-            # la lista de eliminados para no confundir.
-            removed_from_deleted = 0
-            try:
-                # Buscar el título y artista del archivo en LAST_SCAN
-                # (que tiene la metadata enriquecida)
-                song_info = None
-                for f in LAST_SCAN['files']:
-                    if f.get('path') == old_path:
-                        song_info = f
-                        break
-                if song_info:
-                    title = song_info.get('name', '') or os.path.splitext(renamed_to)[0]
-                    artist = song_info.get('artist', '')
-                else:
-                    # Si no está en LAST_SCAN, usar el nombre del archivo sin extensión
-                    title = os.path.splitext(os.path.basename(old_path))[0]
-                    artist = ''
-                removed_from_deleted = remove_deleted_by_title(title, artist)
-                if removed_from_deleted > 0:
-                    msg += f' Se eliminó {removed_from_deleted} entrada(s) espuria(s) de la lista de Eliminados.'
-            except Exception as e:
-                print(f'[WARN] No se pudo limpiar deleted_songs tras rename: {e}')
-
             return jsonify({
                 'success': True,
                 'message': msg,
                 'new_path': final_path,
                 'renamed_to': renamed_to,
-                'removed_from_deleted': removed_from_deleted,
             })
         except OSError as e:
             return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
@@ -2112,160 +1953,152 @@ def create_app(template_folder=None, static_folder=None):
         return jsonify({'success': True, 'removed': n})
 
     # ==================================================================
-    # API: M3U PARA HIBY R1 (v3.22)
+    # API: SPOTIFLAC DL (v4.0) - Integración del módulo SpotiFLAC
+    # Endpoints para la pestaña de descargas.
     # ==================================================================
 
-    @app.route('/api/m3u/preview', methods=['POST'])
-    def api_m3u_preview():
-        """Previsualiza el M3U que se generaría a partir de una playlist guardada.
-        Body: { playlist_id, hiby_folder, music_folder='Musica' }
-        - hiby_folder: carpeta raíz del Hiby (ej: G:\\)
-        - music_folder: subcarpeta de música (default: 'Musica')
-        """
+    @app.route('/api/spotiflac-dl/status', methods=['GET'])
+    def api_spdl_status():
+        """Estado del módulo SpotiFLAC (instalado, versión, updates)."""
+        return jsonify(spotiflac_check_status())
+
+    @app.route('/api/spotiflac-dl/install', methods=['POST'])
+    def api_spdl_install():
+        """Instala o actualiza el módulo SpotiFLAC vía pip."""
         data = request.get_json(silent=True) or {}
-        playlist_id = data.get('playlist_id', '')
-        hiby_folder = data.get('hiby_folder', '').strip()
-        music_folder = data.get('music_folder', 'Musica')
+        upgrade = data.get('upgrade', False)
+        result = spotiflac_install(upgrade=upgrade)
+        return jsonify(result)
 
-        if not playlist_id:
-            return jsonify({'error': 'Falta playlist_id.'}), 400
-        if not hiby_folder:
-            return jsonify({'error': 'Falta hiby_folder (carpeta del Hiby).'}), 400
+    @app.route('/api/spotiflac-dl/search', methods=['POST'])
+    def api_spdl_search():
+        """Busca canciones en Spotify por nombre/artista."""
+        data = request.get_json(silent=True) or {}
+        query = (data.get('query') or '').strip()
+        limit = int(data.get('limit', 20))
+        if not query:
+            return jsonify({'error': 'Falta el parámetro query.'}), 400
+        return jsonify(spotiflac_search(query, limit=limit))
 
-        # Obtener la playlist guardada
-        from saved_playlists import get_playlist
-        playlist = get_playlist(playlist_id)
-        if not playlist:
-            return jsonify({'error': 'Playlist no encontrada.'}), 404
+    @app.route('/api/spotiflac-dl/extensions', methods=['GET'])
+    def api_spdl_extensions():
+        """Lista extensiones instaladas."""
+        return jsonify(spotiflac_list_ext())
 
-        tracks = playlist.get('tracks', [])
+    @app.route('/api/spotiflac-dl/registry', methods=['GET'])
+    def api_spdl_registry():
+        """Lista extensiones disponibles en el registry configurado."""
+        return jsonify(spotiflac_fetch_registry())
 
-        # Escanear la carpeta del Hiby
-        hiby_path = os.path.join(hiby_folder, music_folder)
-        if not os.path.isdir(hiby_path):
-            return jsonify({'error': f'La carpeta {hiby_path} no existe en el Hiby.'}), 400
+    @app.route('/api/spotiflac-dl/extensions/install', methods=['POST'])
+    def api_spdl_extensions_install():
+        """Instala una extensión por ID."""
+        data = request.get_json(silent=True) or {}
+        ext_id = (data.get('ext_id') or '').strip()
+        if not ext_id:
+            return jsonify({'error': 'Falta ext_id.'}), 400
+        return jsonify(spotiflac_install_ext(ext_id))
 
-        raw_hiby_files = scan_folder(hiby_path)
-        # Enriquecer con metadata (igual que /api/scan)
-        hiby_files = []
-        for f in raw_hiby_files:
-            meta = read_metadata(f['path'])
-            hiby_files.append({
-                'path': f['path'],
-                'name': meta['title'] or f['name'],
-                'artist': meta['artist'],
-                'ext': f['ext'].lstrip('.'),
-                'size': f['size'],
+    @app.route('/api/spotiflac-dl/extensions/<ext_id>', methods=['DELETE'])
+    def api_spdl_extensions_remove(ext_id):
+        """Elimina una extensión instalada."""
+        return jsonify(spotiflac_remove_ext(ext_id))
+
+    @app.route('/api/spotiflac-dl/download', methods=['POST'])
+    def api_spdl_download():
+        """Inicia un trabajo de descarga en background.
+        Body: { urls: [...], output_dir, services: [...], quality }"""
+        data = request.get_json(silent=True) or {}
+        urls = data.get('urls', [])
+        output_dir = (data.get('output_dir') or '').strip()
+        services = data.get('services')
+        quality = data.get('quality', 'LOSSLESS')
+        if not urls:
+            return jsonify({'error': 'Falta la lista de URLs.'}), 400
+        if not output_dir:
+            return jsonify({'error': 'Falta output_dir.'}), 400
+        return jsonify(spotiflac_start_job(urls, output_dir, services, quality))
+
+    @app.route('/api/spotiflac-dl/jobs', methods=['GET'])
+    def api_spdl_jobs():
+        """Lista todos los trabajos de descarga."""
+        return jsonify(spotiflac_list_jobs())
+
+    @app.route('/api/spotiflac-dl/jobs/<job_id>', methods=['GET'])
+    def api_spdl_job_status(job_id):
+        """Estado de un trabajo específico (para polling)."""
+        result = spotiflac_job_status(job_id)
+        if 'error' in result:
+            return jsonify(result), 404
+        return jsonify(result)
+
+    @app.route('/api/spotiflac-dl/local-songs', methods=['GET'])
+    def api_spdl_local_songs():
+        """Lista las canciones del último escaneo con info de calidad.
+        Para la sub-pestaña "Mejorar calidad"."""
+        files = spotiflac_get_scan()
+        if not files:
+            return jsonify({'error': 'Primero escanea tu música en "Mi Música".'}), 400
+        out = []
+        for f in files:
+            q = f.get('quality', {}) or {}
+            out.append({
+                'path': f.get('path', ''),
+                'name': f.get('name', ''),
+                'artist': f.get('artist', ''),
+                'ext': f.get('ext', ''),
+                'duration_str': f.get('duration_str', ''),
+                'duration': f.get('duration', 0),
+                'size_str': f.get('size_str', ''),
+                'quality_label': q.get('label', 'N/A'),
+                'quality_category': q.get('category', ''),
+                'bitrate': q.get('bitrate', 0),
+                'bits_per_sample': q.get('bits_per_sample', 0),
+                'sample_rate': q.get('sample_rate', 0),
+                'is_lossless': f.get('ext', '').lower() in ('flac', 'wav', 'alac', 'ape', 'wv', 'aiff'),
             })
+        return jsonify({'songs': out, 'count': len(out)})
 
-        # Generar M3U
-        result = generate_m3u(tracks, hiby_files, music_folder)
-        return jsonify(result)
+    @app.route('/api/spotiflac-dl/playlists', methods=['GET'])
+    def api_spdl_playlists():
+        """Lista playlists guardadas para el selector de la sub-pestaña 3."""
+        return jsonify({'playlists': spotiflac_get_playlists()})
 
-    @app.route('/api/m3u/save', methods=['POST'])
-    def api_m3u_save():
-        """Guarda un archivo M3U en el disco.
-        Body: { content, file_path } o { content, folder, filename }
-        """
+    @app.route('/api/spotiflac-dl/playlists/<playlist_id>/tracks', methods=['GET'])
+    def api_spdl_playlist_tracks(playlist_id):
+        """Canciones de una playlist con info de cuáles faltan descargar."""
+        return jsonify(spotiflac_get_playlist_tracks(playlist_id))
+
+    # ----------------------------------------------------------------
+    # v4.1: Endpoints para gestionar el archivo .env (registry config)
+    # ----------------------------------------------------------------
+
+    @app.route('/api/spotiflac-dl/registry-config', methods=['GET'])
+    def api_spdl_registry_config():
+        """Devuelve el estado de la configuración del registry (.env)."""
+        return jsonify(spotiflac_get_env_config())
+
+    @app.route('/api/spotiflac-dl/registry-config', methods=['POST'])
+    def api_spdl_save_registry_config():
+        """Guarda la configuración del registry en el archivo .env.
+        Body: { registries: [url1, url2, ...], extra_config: '...' }"""
         data = request.get_json(silent=True) or {}
-        content = data.get('content', '')
-        file_path = data.get('file_path', '').strip()
+        registries = data.get('registries', [])
+        extra = data.get('extra_config', '')
+        if not registries:
+            return jsonify({'error': 'Falta la lista de registries.'}), 400
+        return jsonify(spotiflac_save_env_config(registries, extra))
 
-        if not file_path:
-            folder = data.get('folder', '').strip()
-            filename = data.get('filename', '').strip()
-            if not folder or not filename:
-                return jsonify({'error': 'Falta file_path o (folder + filename).'}), 400
-            # Asegurar extensión .m3u
-            if not filename.lower().endswith('.m3u'):
-                filename += '.m3u'
-            file_path = os.path.join(folder, filename)
+    @app.route('/api/spotiflac-dl/registry-config/default', methods=['POST'])
+    def api_spdl_save_default_registry():
+        """Atajo: guarda el registry oficial de SpotiFLAC en el .env."""
+        return jsonify(spotiflac_save_default_env())
 
-        result = save_m3u(content, file_path)
-        return jsonify(result)
-
-    @app.route('/api/m3u/list', methods=['POST'])
-    def api_m3u_list():
-        """Lista los archivos M3U en una carpeta.
-        Body: { folder }
-        """
-        data = request.get_json(silent=True) or {}
-        folder = data.get('folder', '').strip()
-        if not folder:
-            return jsonify({'error': 'Falta folder.'}), 400
-        files = list_m3u_files(folder)
-        return jsonify({'files': files})
-
-    @app.route('/api/m3u/read', methods=['POST'])
-    def api_m3u_read():
-        """Lee un archivo M3U y devuelve su contenido parseado.
-        Body: { file_path }
-        """
-        data = request.get_json(silent=True) or {}
-        file_path = data.get('file_path', '').strip()
-        if not file_path:
-            return jsonify({'error': 'Falta file_path.'}), 400
-        result = read_m3u_file(file_path)
-        return jsonify(result)
-
-    @app.route('/api/m3u/delete', methods=['POST'])
-    def api_m3u_delete():
-        """Elimina un archivo M3U del disco.
-        Body: { file_path }
-        """
-        data = request.get_json(silent=True) or {}
-        file_path = data.get('file_path', '').strip()
-        if not file_path:
-            return jsonify({'error': 'Falta file_path.'}), 400
-        try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                return jsonify({'success': True})
-            return jsonify({'success': False, 'error': 'Archivo no existe.'}), 404
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    # ==================================================================
-    # API: MATCHES MANUALES (v3.28)
-    # Para canciones que la comparación automática no detecta.
-    # ==================================================================
-
-    @app.route('/api/manual-match/add', methods=['POST'])
-    def api_manual_match_add():
-        """Marca manualmente que un track de playlist está descargado.
-        Body: { playlist_id, track_title, track_artist, local_name, local_artist, local_path }"""
-        data = request.get_json(silent=True) or {}
-        playlist_id = data.get('playlist_id', '')
-        track_title = data.get('track_title', '')
-        if not playlist_id or not track_title:
-            return jsonify({'error': 'Falta playlist_id o track_title.'}), 400
-        match = add_manual_match(
-            playlist_id=playlist_id,
-            track_title=track_title,
-            track_artist=data.get('track_artist', ''),
-            local_name=data.get('local_name', ''),
-            local_artist=data.get('local_artist', ''),
-            local_path=data.get('local_path', ''),
-        )
-        return jsonify({'success': True, 'match': match})
-
-    @app.route('/api/manual-match/remove', methods=['POST'])
-    def api_manual_match_remove():
-        """Desmarca un track manualmente (ya no se considera descargado).
-        Body: { playlist_id, track_title }"""
-        data = request.get_json(silent=True) or {}
-        playlist_id = data.get('playlist_id', '')
-        track_title = data.get('track_title', '')
-        if not playlist_id or not track_title:
-            return jsonify({'error': 'Falta playlist_id o track_title.'}), 400
-        ok = remove_manual_match(playlist_id, track_title)
-        return jsonify({'success': ok})
-
-    @app.route('/api/manual-match/list/<playlist_id>', methods=['GET'])
-    def api_manual_match_list(playlist_id):
-        """Devuelve los matches manuales para una playlist."""
-        matches = get_manual_matches_for_playlist(playlist_id)
-        return jsonify({'matches': matches})
+    @app.route('/api/spotiflac-dl/jobs/clear', methods=['POST'])
+    def api_spdl_jobs_clear():
+        """Limpia de la memoria los trabajos completados y con errores.
+        Los trabajos activos (pending/running) NO se eliminan."""
+        return jsonify(spotiflac_clear_jobs())
 
     # ==================================================================
     # HEADERS ANTI-CACHE (v3.6)

@@ -1,0 +1,33 @@
+# ============================================
+# Music Manager - .gitignore
+# ============================================
+
+# CREDENCIALES PRIVADAS - NUNCA subir al repo
+# (setup_spotify.bat y la pestana Spotiflac crean este archivo en tu PC)
+.env
+
+# Entornos virtuales de Python
+.venv/
+venv/
+env/
+
+# Caché de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Salida de PyInstaller (compilación local)
+build/
+dist/
+*.spec.bak
+
+# Paquetes instalados por Spotiflac DL en modo exe
+pylibs/
+
+# Exportaciones CSV de playlists (datos personales)
+data/Spotify/
+
+# Archivos del sistema
+Thumbs.db
+Desktop.ini
+*.lnk

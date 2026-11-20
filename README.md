@@ -1,130 +1,34 @@
-# Music Manager v3.34
+# Music Manager v4.5
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
 Spotify, comparar carpetas (PC vs DAP), generar dummies para Spotiflac,
-generar playlists M3U para el Hiby R1, buscar canciones en playlists
-guardadas, marcar matches manuales, guardar accesos directos a playlists,
-detectar duplicados, reproducir canciones, editar metadata + caratulas +
-letras masivamente, ver canciones eliminadas, organizar por carpetas,
-acceder a un indice de sitios para descargar musica FLAC.
+guardar accesos directos a playlists, detectar duplicados, reproducir
+canciones, editar metadata + caratulas + letras masivamente, ver
+canciones eliminadas, organizar por carpetas, acceder a un indice de
+sitios para descargar musica FLAC.
 
-## Novedades en v3.23 - v3.34
+## Novedades en v4.5
 
-- **Buscador de canciones en Playlists Guardadas** (v3.26): nuevo buscador
-  arriba del selector de orden que busca una canción en TODAS las
-  playlists guardadas de una sola vez. Muestra en qué playlist está cada
-  canción, si está en Mi Música (✓/✗), y link para abrirla en la
-  plataforma. Soporta ruso, "Artist - Title" vs "Title", y coincidencias
-  parciales.
-- **Match manual de canciones** (v3.28-v3.34): en el modal de playlist,
-  los badges ✓/✗ de la columna "¿En Mi Música?" son clickeables. Si una
-  canción no se detecta automáticamente (nombres muy distintos), hacés
-  clic en ✗ → confirmás → se marca como descargada. Se persiste en
-  `data/manual_matches.json`. También podés desmarcar con clic en ✓.
-  Funciona con títulos que contienen comillas dobles (ej: "Speed").
-- **Comparación inteligente de títulos** (v3.24): la función
-  `expand_title_variants` genera todas las variantes posibles de un
-  nombre ("Artist - Title", "Title", "Artist Title", "Title Artist")
-  para que coincida sin importar el orden. Funciona en: Comparar con
-  Playlist, modal de playlist, contador de descargadas, dots de Mi Música.
-- **Soporte para caracteres Unicode (cirílico, etc.)** (v3.25): las
-  funciones de normalización ahora mantienen letras de todos los idiomas
-  (ruso, griego, japonés, etc.) en vez de eliminarlas. También limpia
-  automáticamente el sufijo "- Topic" que añade YouTube Music.
-- **Modal de playlist unificado** (v3.32): el modal de Playlists
-  Guardadas ahora es idéntico al de Mi Música, con buscador de
-  canciones, contador de descargadas con barra de progreso, y badges
-  ✓/✗ clickeables.
-- **Filtro "Sin playlist" en Mi Música** (v3.27): nueva opción en el
-  filtro de playlist para ver solo las canciones que NO están en ninguna
-  playlist guardada.
-- **Link clickeable en buscador de canciones** (v3.27): la columna
-  Plataforma del buscador de canciones ahora es un link que abre la
-  canción directamente en YouTube Music o Spotify.
-- **Limpieza de código Spotify OAuth** (v3.23): eliminados endpoints
-  huérfanos de Spotify OAuth que nunca funcionaron para +100 canciones.
-  `setup_spotify.bat` ahora redirige a Exportify.
-
-## Novedades en v3.22
-
-- **Nueva pestana "🎵 M3U Hiby"**: genera y edita playlists M3U para el
-  Hiby R1 (y otros DAPs compatibles). Incluye 2 sub-pestanas:
-  - **Generar M3U**: selecciona una playlist guardada, escanea la musica
-    del Hiby, cruza los titulos y genera un archivo .m3u con rutas
-    relativas (../Musica/...). Solo incluye las canciones que ESTAN en
-    el Hiby. Lista las faltantes. Guarda directo en /playlist_data/.
-  - **Editar M3U**: lista los .m3u existentes en el Hiby, permite
-    editarlos inline (ruta, titulo, artista), anadir/quitar canciones,
-    guardar cambios o eliminar M3U completos.
-  - Formato: #EXTM3U + #EXTINF:duracion,Titulo - Artista + ruta relativa
-  - Codificacion UTF-8
-  - Compatible con el formato del Hiby R1 (carpeta /playlist_data/)
-
-## Novedades en v3.20 - v3.21
-
-- **Nuevas fuentes de busqueda de metadata**: SoundCloud y osu!
-  anadidas al selector de fuente en Editar Metadata.
-  - **SoundCloud** (via yt-dlp scsearch): excelente para remixes,
-    musica independiente, DJs y canciones que no estan en plataformas
-    comerciales. No requiere API key. Thumbnails en alta resolucion
-    (original o t500x500).
-  - **osu!** (beatmap search): para musica de juegos de ritmo, remixes
-    de anime y musica comunitaria de internet. Incluye BPM. Experimental
-    (el endpoint puede requerir autenticacion en algunos casos).
-  - **Todas**: ahora busca en iTunes + MusicBrainz + SoundCloud + osu!
-    a la vez (4 fuentes).
-- **Thumbnails de SoundCloud en alta resolucion** (v3.21): arreglado
-  el problema donde las caratulas venian en 16x16. Ahora se reescriben
-  las URLs a t500x500 o se hace una segunda pasada con yt-dlp para
-  obtener el thumbnail original.
-
-## Novedades en v3.17 - v3.19
-
-- **Renombrar archivos ya NO los manda a Eliminados**: cuando renombras
-  un archivo (desde Editar Metadata o la sub-pestana Renombrar), el
-  sistema automaticamente busca en la lista de Eliminados cualquier
-  entrada con el mismo titulo+artista y la elimina. Asi los archivos
-  renombrados no aparecen como "eliminados" falsamente.
-- **Hover visual en filas de Duplicados**: al pasar el cursor por una
-  fila de duplicados, se resalta con fondo verde claro, borde izquierdo
-  verde de 3px, sombra suave y se desplaza 2px a la derecha. Para la
-  fila "best" (mejor calidad), el hover es mas intenso.
-- **Ordenar Playlists Guardadas**: nuevo selector desplegable con 5 modos:
-  - Recientes (default, como antes)
-  - Nombre (A-Z) — alfabetico
-  - Fecha de agregado — las mas nuevas primero
-  - Mas canciones — por cantidad de tracks
-  - Personalizado — asignas un numero a cada playlist (input numerico
-    en cada card, menor = primero)
-  - El modo elegido se guarda en localStorage entre sesiones.
-  - Con cualquier modo que NO sea "Recientes", las playlists ya NO se
-    mueven de lugar al abrirlas o actualizarlas.
-- **Modal de playlist - columna "¿En Mi Musica?"**: cambio la columna
-  "Album" (que casi nunca mostraba nada) por "¿En Mi Musica?" que
-  muestra:
-  - ✓ verde si la cancion esta en tu biblioteca local
-  - ✗ rojo si no esta
-  - — neutral si no hay musica local escaneada
-  - Funciona en ambos modales: el de Mi Musica (clic en dots de playlist)
-    y el de Playlists Guardadas (clic en Abrir o en la card).
-- **Contador de descargadas en el modal de playlist**: debajo de la info
-  de la playlist, ahora aparece una linea con "X descargadas de Y" + una
-  barra de progreso animada. El numero cambia de color:
-  - Verde si todas estan descargadas
-  - Naranja si faltan algunas
-  - Rojo si ninguna esta descargada
-  - Se actualiza en tiempo real cuando usas el buscador del modal.
-- **Contador de descargadas en las tarjetas de Playlists Guardadas**:
-  cada tarjeta ahora muestra "X / Y descargadas" con una barra de progreso
-  mini (60px x 4px) debajo de la linea de "N canciones | Acceso: fecha".
-  Solo aparece si hay musica local escaneada.
-- **Abrir playlist desde Playlists Guardadas sin recargar la pagina**:
-  antes, al hacer clic en "Abrir" o en una card, se recargaba toda la
-  pagina. Ahora abre el modal directamente sin recarga.
-- **Modo de nombres anti-colision al renombrar**: si al renombrar ya
-  existe un archivo con ese nombre, se anade automaticamente _1, _2,
-  _3, ... hasta encontrar uno libre.
+- **Ejecutable real de Windows + Releases automáticos**: MusicManager.exe
+  compilado con PyInstaller y publicado automáticamente en GitHub Releases
+  cada vez que subes un tag `v*`. Ver la sección
+  ["Ejecutable .exe y Releases automáticos"](#ejecutable-exe-y-releases-automáticos)
+  más abajo.
+- **ZIP portable completo**: el Release no es solo el exe. Incluye el ZIP con
+  exe + app/ + templates/ + static/ + data/ + LEEME-PORTABLE.txt + checksums
+  SHA256, listo para descomprimir y usar en cualquier Windows.
+- **Archivos nuevos**: `launcher.py` (punto de entrada del exe: arranca Flask,
+  elige puerto libre 5000-5020 y abre el navegador solo), `MusicManager.spec`,
+  `version.txt`, `requirements-build.txt`, `build_local.bat`,
+  `.github/workflows/release.yml`, `.gitignore` y `LEEME-PORTABLE.txt`.
+- **Spotiflac DL funciona en modo exe**: como un .exe no puede hacer
+  `pip install` dentro de sí mismo, ahora usa un Python del sistema para
+  instalar el módulo en `pylibs/` (con `--python-version` y
+  `--only-binary`, para que las ruedas binarias coincidan con el exe).
+  Desde fuente (run.bat) todo sigue igual que siempre.
+- **`.env` protegido**: `.gitignore` evita subir credenciales de Spotify al
+  repositorio por error.
 
 ## Novedades en v3.16
 
@@ -322,30 +226,23 @@ acceder a un indice de sitios para descargar musica FLAC.
 
 ## Caracteristicas principales
 
-### 11 pestañas:
+### 9 pestanas:
 
 1. **♪ Mi Música** — escanea carpetas, muestra tabla con nombre, artista,
    álbum, duración, formato, calidad (bits/kHz), playlists, tamaño y ruta.
-   Reproductor integrado, filtros (formato, playlist, sin playlist,
-   duplicados, metadata con error, falta info técnica), búsqueda, badges
-   de duplicados. Clic en ruta abre explorador. Clic en dots de playlist
-   abre modal con buscador, columna "¿En Mi Música?" (✓/✗ clickeables),
-   contador de descargadas con barra de progreso.
+   Reproductor integrado, filtros (formato, playlist, duplicados,
+   metadata con error, falta info técnica), búsqueda, badges de
+   duplicados. Clic en ruta abre explorador.
 
 2. **⧉ Duplicados** — detecta canciones repetidas en diferentes
-   formatos/calidades. Marca la mejor versión. Hover visual en filas
-   (verde, borde, sombra). Botón borrar con doble
+   formatos/calidades. Marca la mejor versión. Botón borrar con doble
    confirmación (envia a papelera de reciclaje). Las canciones borradas
    se registran automáticamente en la pestaña Eliminados. Exportar CSV.
 
 3. **★ Playlists Guardadas** — guarda enlaces de playlists públicas de
    YouTube Music o importa playlists de Spotify desde CSV (Exportify).
    Carga masiva desde TXT. Cada playlist CSV se guarda en su propio JSON.
-   Buscador de canciones que busca en TODAS las playlists guardadas.
-   Modal de detalle unificado con buscador, columna "¿En Mi Música?"
-   (✓/✗ clickeables para match manual), contador de descargadas con
-   barra de progreso. Ordenamiento: recientes, nombre, fecha, más
-   canciones, o personalizado. Las tarjetas muestran "X / Y descargadas".
+   Modal de detalle con tabla y buscador integrado.
 
 4. **⇄ Comparar Playlist** — compara tu música local con una playlist.
    Muestra faltantes, coincidencias, calidad local, formato, botón
@@ -355,10 +252,8 @@ acceder a un indice de sitios para descargar musica FLAC.
 
 5. **✎ Metadatos** — con 4 sub-pestañas:
    - **Editar Metadata**: edita tags (título, artista, álbum, año,
-     pista, género). Busca metadata en iTunes, MusicBrainz, Last.fm,
-     SoundCloud y osu! con preview de 30s que respeta el volumen del
-     reproductor. SoundCloud excelente para remixes y música
-     independiente. osu! para música de juegos de ritmo. Gestiona
+     pista, género). Busca metadata en iTunes, MusicBrainz, Last.fm con
+     preview de 30s que respeta el volumen del reproductor. Gestiona
      carátulas. Renombrar archivo con protección anti-colisión.
    - **🖼 Carátulas** (masivo): analizar, redimensionar todas, descargar
      faltantes desde iTunes. Preserva el buscador y scroll al cambiar
@@ -393,12 +288,6 @@ acceder a un indice de sitios para descargar musica FLAC.
     al Hiby R1. Tracking de generados, soporta 11 formatos, FLAC con
     metadata real. Descarga directa del ZIP.
 
-11. **🎵 M3U Hiby** (v3.22) — genera y edita playlists M3U para el
-    Hiby R1. 2 sub-pestanas: Generar (cruza playlist guardada con la
-    música del Hiby, rutas relativas ../Musica/...) y Editar (editor
-    inline de M3U existentes). Guarda directo en /playlist_data/.
-    Formato compatible con Hiby R1.
-
 ### Reproductor flotante:
 - Carátula miniatura, controles play/pausa/skip, barra de progreso
   personalizada con gradiente verde, control de volumen.
@@ -412,7 +301,7 @@ acceder a un indice de sitios para descargar musica FLAC.
 - **Opus**: info técnica con sample_rate 48000 nativo y bitrate estimado
 - **Playlists**: YouTube Music (completo), Spotify (100 por URL o CSV
   ilimitado via Exportify)
-- **Metadata**: iTunes, MusicBrainz, Last.fm, SoundCloud, osu!
+- **Metadata**: iTunes, MusicBrainz, Last.fm
 - **CSV**: Exportify (español e inglés)
 - **Dummies Spotiflac**: FLAC, OPUS, OGG, M4A/MP4, AAC, MP3, WAV, AIFF,
   APE, WV, WMA
@@ -436,14 +325,71 @@ acceder a un indice de sitios para descargar musica FLAC.
 5. Se abre el navegador en http://127.0.0.1:5000.
 6. Para detener: cierra la ventana CMD o presiona `Ctrl+C`.
 
+## Ejecutable .exe y Releases automáticos
+
+Desde v4.5 el proyecto se compila en un `MusicManager.exe` real (PyInstaller)
+y GitHub Actions publica un **Release automático** con todo lo necesario.
+
+### ¿Qué contiene el Release? (¿solo el exe? NO)
+
+El exe lleva dentro el runtime de Python y las librerías de pip, pero los
+módulos `app/*.py`, `templates/`, `static/` y `data/` se cargan **del disco**
+(para poder editarlos sin recompilar). Por eso el Release incluye:
+
+| Archivo | Para qué sirve |
+|---|---|
+| `MusicManager-v4.5-windows-portable.zip` | **Descarga este**: exe + app/ + templates/ + static/ + data/ + LEEME-PORTABLE.txt |
+| `MusicManager-v4.5.exe` | Solo para reemplazar el exe de una instalación ya existente |
+| `SHA256SUMS.txt` | Checksums para verificar la integridad |
+
+### Cómo publicar una versión nueva
+
+```bat
+REM 1. Guarda tus cambios (el .py/.html/.js que quieras)
+git add .
+git commit -m "v4.5: descripcion del cambio"
+git push origin main
+
+REM 2. Crea y sube el tag de version (esto dispara el Release)
+git tag v4.5
+git push origin v4.5
+```
+
+- El build tarda ~10 minutos. Cuando termina, el Release aparece en:
+  `https://github.com/matias-ramirez705/-Music-Manager/releases`
+- Cada push a `main` (sin tag) también compila el exe y lo guarda como
+  **artefacto de prueba** en la pestaña *Actions* (sin crear Release).
+- Si el tag no coincide con `version.txt`, Actions te avisa con un warning.
+
+### Compilar localmente (sin GitHub)
+
+Doble clic en `build_local.bat`: genera `dist\MusicManager.exe` y el ZIP
+portable en `dist\`. Útil para probar el exe antes de publicar un tag.
+
+### Actualizar una instalación portable
+
+- **Cambios de código** (.py/.html/.js/.css): reemplaza los archivos de
+  `app/`, `templates/` y `static/`. No hace falta tocar el exe.
+- **Cambios de dependencias** (requirements.txt): reemplaza el exe por el
+  del nuevo Release. Los datos de `data/` nunca se pierden.
+
 ## Estructura del proyecto
 
 ```
 music_manager/
-|-- main.py                  <- arranca la aplicacion
+|-- main.py                  <- arranca la aplicacion (modo fuente)
+|-- launcher.py              <- arranca el exe (Flask + navegador + puerto libre)
+|-- MusicManager.spec        <- receta de PyInstaller para el .exe
+|-- version.txt              <- metadatos de version del exe (antivirus)
+|-- icon.ico                 <- icono del exe
 |-- setup_env.bat            <- configura el entorno (ejecutar 1 vez)
-|-- run.bat                  <- ejecuta la aplicacion
+|-- run.bat                  <- ejecuta la aplicacion (modo fuente)
+|-- build_local.bat          <- compila el exe localmente (sin GitHub)
 |-- requirements.txt         <- librerias necesarias
+|-- requirements-build.txt   <- pyinstaller (solo para compilar)
+|-- LEEME-PORTABLE.txt       <- instrucciones dentro del ZIP portable
+|-- .github/workflows/
+|   `-- release.yml          <- CI: compila exe + crea Release automatico
 |-- data/                    <- se crea automaticamente al arrancar
 |   |-- saved_playlists.json <- indice de playlists guardadas
 |   |-- deleted_songs.json   <- registro de canciones eliminadas
@@ -472,8 +418,7 @@ music_manager/
 |   |-- download_sites.py    -> gestiona indice de sitios FLAC
 |   |-- folder_compare.py    -> compara 2 carpetas (PC vs DAP)
 |   |-- spotiflac_dummy.py   -> genera dummies para Spotiflac
-|   |-- m3u_generator.py     -> genera/edita M3U para Hiby R1 (v3.22)
-|   |-- manual_matches.py    -> matches manuales de canciones (v3.28)
+|   |-- spotiflac_dl.py      -> descargas via modulo SpotiFLAC (pip)
 |   `-- web_app.py           -> servidor Flask con todas las rutas
 |-- templates/               <- HTML de las pestanas
 |   |-- base.html, index.html, duplicates.html
@@ -481,7 +426,6 @@ music_manager/
 |   |-- metadata_master.html (sub-pestanas Metadatos)
 |   |-- editor.html, organize.html, downloads.html
 |   |-- deleted.html, folder_compare.html, spotiflac.html
-|   `-- m3u_hiby.html        -> M3U para Hiby R1 (v3.22)
 `-- static/                  <- CSS y JS
     |-- favicon.svg          -> icono de nota musical
     |-- css/style.css        -> estilo oscuro tipo Spotify
@@ -491,7 +435,6 @@ music_manager/
         |-- duplicates.js, saved_playlists.js
         |-- organize.js, downloads.js
         |-- deleted.js, folder_compare.js, spotiflac.js
-        |-- m3u_hiby.js      -> M3U para Hiby R1 (v3.22)
         |-- batch_artwork.js, batch_lyrics.js
 ```
 
@@ -512,19 +455,6 @@ music_manager/
 | Pestaña Spotiflac vacia | Escanea tu musica en "Mi Musica" primero. |
 | Info tecnica N/A en Opus | Normal en v3.14 y anteriores. Actualiza a v3.15+ que tiene workaround. |
 | Caratulas solo muestra 363 canciones | Bug de v3.13 y anteriores. Actualiza a v3.14+. |
-| Archivo renombrado aparece en Eliminados | Bug de v3.16 y anteriores. Actualiza a v3.17+ que lo limpia automaticamente. |
-| Playlists se mueven de lugar al abrirlas | Bug de v3.16 y anteriores. Actualiza a v3.17+ y usa orden por nombre/fecha/personalizado. |
-| Modal de playlist no muestra "¿En Mi Música?" | Actualiza a v3.17+. Requiere haber escaneado Mi Musica primero. |
-| Contador de descargadas no aparece en cards | Actualiza a v3.19+. Requiere haber escaneado Mi Musica primero. |
-| No encuentro metadata de remixes o música independiente | Actualiza a v3.20+. Usa SoundCloud como fuente de búsqueda. |
-| Carátulas de SoundCloud se ven pixeladas (16x16) | Bug de v3.20. Actualiza a v3.21+ que reescribe URLs a t500x500. |
-| Quiero crear playlists M3U para el Hiby R1 | v3.22+. Pestaña "🎵 M3U Hiby" → Generar desde playlist guardada. |
-| El Hiby no lee el M3U | Asegúrate de guardarlo en /playlist_data/ con rutas relativas ../Musica/... y codificación UTF-8. |
-| Canciones en ruso no se detectan | Actualiza a v3.25+. Soporte Unicode completo (cirílico, etc.). |
-| "Artist - Title" no coincide con "Title" | Actualiza a v3.24+. Comparación inteligente con variantes. |
-| Quiero marcar manualmente una canción como descargada | v3.28+. Clic en ✗ en el modal de playlist → confirmar. |
-| El badge ✓/✗ no responde al clic | Actualiza a v3.34+. Usa event delegation + encodeURIComponent. |
-| No encuentro en qué playlist está una canción | v3.26+. Buscador de canciones en Playlists Guardadas. |
 | El reproductor se detiene al cambiar de pestana | Es normal: hay una pausa breve. Al volver, se restaura desde la posicion guardada. |
 
 ## Actualizar dependencias
@@ -535,7 +465,7 @@ cd music_manager
 pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv Send2Trash
 ```
 
-## Flujo de trabajo tipico (PC → Hiby R1 → Spotiflac → M3U)
+## Flujo de trabajo tipico (PC → Hiby R1 → Spotiflac)
 
 1. **Descargar en Spotiflac** (Android): descarga las canciones que quieras.
 2. **Pasar al PC**: copia los archivos de audio del telefono a una carpeta
@@ -543,9 +473,7 @@ pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv
 3. **Escanear en Mi Musica**: abre Music Manager → Mi Musica → escanea
    la carpeta donde copiaste las canciones.
 4. **Arreglar metadata**: ve a Metadatos → Editar Metadata. Corrige
-   titulo, artista, album. Busca metadata en iTunes/MusicBrainz/Last.fm/
-   SoundCloud/osu! segun el tipo de cancion (SoundCloud para remixes,
-   osu! para musica de juegos).
+   titulo, artista, album. Busca metadata en iTunes si hace falta.
 5. **Ajustar caratulas**: ve a Metadatos → Caratulas. Analiza, descarga
    faltantes, redimensiona.
 6. **Revisar letras**: ve a Metadatos → Letras. Analiza, descarga
@@ -563,11 +491,3 @@ pip install --upgrade flask mutagen yt-dlp requests Pillow spotipy python-dotenv
     `/storage/emulated/0/Music/SpotyFlac/`. Escanea la biblioteca en
     Spotiflac. Ahora las canciones que ya pasaste al Hiby R1 aparecen
     como duplicadas al buscar, evitando que las descargues de nuevo.
-12. **Generar playlists M3U para el Hiby**: ve a M3U Hiby → Generar.
-    Selecciona una playlist guardada, indica la carpeta del Hiby (ej: G:\),
-    y genera el .m3u con las canciones que estan en el DAP. Guarda en
-    `G:\playlist_data\`. El Hiby mostrara la playlist con su nombre.
-13. **Marcar matches manuales**: si una cancion no se detecta
-    automaticamente (nombres muy distintos), abri la playlist desde
-    Mi Musica o Playlists Guardadas, busca la cancion, haz clic en ✗
-    y confirmalo. Se marcara como descargada.

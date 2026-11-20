@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Manager</title>
     <!-- Favicon: nota musical sobre fondo verde -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=210">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=210">
-    <!-- Cache-busting: el ?v=210 fuerza al navegador a cargar fresco -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=210">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=195">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=195">
+    <!-- Cache-busting: el ?v=195 fuerza al navegador a cargar fresco -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=195">
 </head>
 <body>
     <!-- ============================================
@@ -50,12 +50,12 @@
             <a href="/spotiflac" class="tab {{ 'active' if active_tab == 'spotiflac' else '' }}">
                 <span class="tab-icon">📦</span><span class="tab-label">Spotiflac</span>
             </a>
-            <a href="/m3u-hiby" class="tab {{ 'active' if active_tab == 'm3u-hiby' else '' }}">
-                <span class="tab-icon">🎵</span><span class="tab-label">M3U Hiby</span>
+            <a href="/spotiflac-dl" class="tab {{ 'active' if active_tab == 'spotiflac-dl' else '' }}">
+                <span class="tab-icon">🎵</span><span class="tab-label">Descargas</span>
             </a>
         </nav>
         <div class="topbar-right">
-            <span class="version-tag">v3.36</span>
+            <span class="version-tag">v4.5</span>
         </div>
     </header>
 
@@ -100,8 +100,8 @@
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=210"></script>
-    <script src="{{ url_for('static', filename='js/player.js') }}?v=210"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=195"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=195"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

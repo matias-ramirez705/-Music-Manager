@@ -1,83 +1,114 @@
 # -*- mode: python ; coding: utf-8 -*-
-# ============================================================================
-#  MusicManager.spec - configuración de PyInstaller (archivo único)
-#
-#  Compila la app como UN SOLO ejecutable:
-#      pyinstaller MusicManager.spec --noconfirm
-#
-#  IMPORTANTE: Los módulos de app/ NO se incluyen en el bundle.
-#  Se cargan desde el disco junto al .exe para que el usuario
-#  pueda editarlos sin recompilar.
-#
-#  El .exe solo contiene: Python runtime + librerías pip compiladas.
-#
-#  Resultado: dist/MusicManager.exe
-# ============================================================================
+# ============================================================
+# MusicManager.spec - genera MusicManager.exe (onefile)
+# ============================================================
+# ARQUITECTURA (importante):
+#   El .exe SOLO contiene el runtime de Python + las librerias de pip
+#   (flask, mutagen, yt-dlp, spotipy, Pillow...).
+#   Los modulos de app/, templates/, static/ y data/ NO van dentro del
+#   exe: se cargan DESDE EL DISCO (al lado del exe), asi se pueden
+#   editar y actualizar sin recompilar.
+#   Por eso:
+#     - hiddenimports = solo librerias externas (pip)
+#     - excludes      = todos los modulos de app/ (van en el ZIP portable)
+#     - datas         = vacio (templates/static viajan en el ZIP)
+# ============================================================
 
-import os
-
-# Lista de módulos de la app que NO deben incluirse en el bundle
-# (se cargan desde el disco en runtime)
-app_modules = [
-    'scanner', 'metadata_reader', 'audio_quality',
-    'playlist_youtube', 'playlist_spotify', 'spotify_official',
-    'auto_metadata', 'csv_playlist', 'txt_playlist',
-    'saved_playlists', 'duplicates', 'deleted_songs',
-    'artwork', 'batch_artwork', 'lyrics', 'batch_lyrics',
-    'organizer', 'download_sites', 'folder_compare',
-    'spotiflac_dummy', 'm3u_generator', 'manual_matches',
+APP_MODULES = [
+    '__init__',
+    'artwork',
+    'audio_quality',
+    'auto_metadata',
+    'batch_artwork',
+    'csv_playlist',
+    'deleted_songs',
+    'download_sites',
+    'duplicates',
+    'folder_compare',
+    'lyrics',
+    'metadata_reader',
+    'organizer',
+    'playlist_spotify',
+    'playlist_youtube',
+    'saved_playlists',
+    'scanner',
+    'spotiflac_dl',
+    'spotiflac_dummy',
+    'spotify_official',
+    'txt_playlist',
     'web_app',
 ]
 
 a = Analysis(
-    ['app_desktop.py'],
+    ['launcher.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    # v3.36: NO incluir los módulos de app/ - se cargan desde disco
-    excludes=app_modules + [
-        'tkinter',           # no lo usamos
-        'matplotlib',        # no lo usamos
-        'numpy',             # no lo usamos
-        'pandas',            # no lo usamos
-        'scipy',             # no lo usamos
-        'IPython',           # no lo usamos
-        'pytest',            # no lo usamos
-    ],
     hiddenimports=[
-        # Dependencias externas que DEBEN estar en el bundle
+        # --- Flask y sus dependencias ---
         'flask',
-        'flask.json',
         'jinja2',
         'werkzeug',
-        'markupsafe',
-        'itsdangerous',
         'click',
+        'itsdangerous',
+        'markupsafe',
         'blinker',
+        # --- Metadata de audio (mutagen carga estos submodulos por dentro) ---
         'mutagen',
+        'mutagen.id3',
         'mutagen.flac',
         'mutagen.mp3',
         'mutagen.mp4',
+        'mutagen.ogg',
         'mutagen.oggopus',
         'mutagen.oggvorbis',
+        'mutagen.oggspeex',
+        'mutagen.oggtheora',
         'mutagen.wave',
+        'mutagen.aiff',
+        'mutagen.apev2',
+        'mutagen.asf',
+        'mutagen.aac',
+        'mutagen.monkeysaudio',
+        'mutagen.trueaudio',
+        'mutagen.wv',
+        'mutagen.dsf',
+        'mutagen.easyid3',
+        # --- Playlists de YouTube (yt-dlp) ---
+        'yt_dlp',
+        # --- Red / HTTP ---
         'requests',
-        'PIL',
-        'PIL.Image',
-        'pywebview',
-        'send2trash',
-        'dotenv',
-        'spotipy',
+        'urllib3',
         'certifi',
         'charset_normalizer',
-        'urllib3',
+        'idna',
+        'brotli',
         'packaging',
+        # --- Imagenes (caratulas) ---
+        'PIL',
+        'PIL.Image',
+        'PIL.ImageOps',
+        'PIL.ImageDraw',
+        'PIL.ImageFilter',
+        'PIL.ImageEnhance',
+        # --- Spotify / config / papelera ---
+        'spotipy',
+        'dotenv',
+        'send2trash',
+        # --- Extras de yt-dlp que mejoran compatibilidad ---
+        # (pycryptodomex es la distribucion pip; el paquete importable
+        #  se llama Cryptodome)
+        'Cryptodome',
     ],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
+    excludes=APP_MODULES + [
+        # Stdlib pesada que la app no usa (reduce tamano y falsos positivos)
+        'tkinter',
+        'curses',
+        'unittest',
+        'pydoc_data',
+        'lib2to3',
+    ],
     noarchive=False,
-    optimize=0,
 )
 
 pyz = PYZ(a.pure)
@@ -95,12 +126,12 @@ exe = EXE(
     upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,           # mostrar consola para logs de debug
+    console=True,          # ventana de consola con logs (Ctrl+C para salir)
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='version.txt',
     icon='icon.ico',
+    version='version.txt',
 )

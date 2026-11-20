@@ -90,7 +90,6 @@ def ensure_file():
 # coincidan con las que usa build_local_playlist_index)
 # ------------------------------------------------------------------
 def _normalize(s):
-    """v3.25: mantiene letras de todos los idiomas (cirílico, etc.)."""
     import unicodedata
     import re
     if not s:
@@ -101,9 +100,7 @@ def _normalize(s):
     s = re.sub(r'\([^)]*\)', '', s)
     s = re.sub(r'\[[^]]*\]', '', s)
     s = re.sub(r'\b(feat|ft)\b\.?', '', s)
-    s = re.sub(r'\s*-\s*topic\s*$', '', s)  # v3.25: quitar "- Topic" de YT Music
-    s = re.sub(r'[^\w\s]', ' ', s)  # v3.25: mantener Unicode letters
-    s = s.replace('_', ' ')
+    s = re.sub(r'[^a-z0-9\s]', '', s)
     s = re.sub(r'\s+', ' ', s).strip()
     return s
 
@@ -223,56 +220,6 @@ def remove_deleted_song(song_id):
         _save_all(data)
         return True
     return False
-
-
-def remove_deleted_by_title(title, artist=''):
-    """
-    Elimina de la lista de eliminados cualquier canción cuyo título
-    normalizado coincida con el dado (y opcionalmente el artista).
-
-    Caso de uso: cuando el usuario renombra un archivo, el archivo
-    "viejo" técnicamente desaparece del disco y aparece en Eliminados
-    al re-escanear. Pero como el usuario lo renombró a propósito (no
-    lo borró), no debería estar en Eliminados. Esta función limpia
-    esa entrada espuria.
-
-    Args:
-        title (str): título de la canción (se normaliza internamente).
-        artist (str): artista (opcional, para no borrar canciones
-                      homónimas de otros artistas).
-
-    Returns:
-        int: cuántas entradas se eliminaron.
-    """
-    if not title:
-        return 0
-    title_norm = _normalize(title)
-    artist_norm = _normalize(artist) if artist else ''
-
-    data = _load_all()
-    before = len(data['songs'])
-    kept = []
-    for s in data['songs']:
-        s_title_norm = _normalize(s.get('name', ''))
-        s_artist_norm = _normalize(s.get('artist', ''))
-        # Coincide si el título normalizado es igual
-        title_match = (title_norm == s_title_norm)
-        # Y si dimos artista, que también coincida (o contenga)
-        artist_match = True
-        if artist_norm:
-            if not (s_artist_norm == artist_norm
-                    or artist_norm in s_artist_norm
-                    or s_artist_norm in artist_norm):
-                artist_match = False
-        if title_match and artist_match:
-            # Esta entrada coincide → la eliminamos de la lista
-            continue
-        kept.append(s)
-    data['songs'] = kept
-    removed = before - len(kept)
-    if removed > 0:
-        _save_all(data)
-    return removed
 
 
 def clear_all_deleted():

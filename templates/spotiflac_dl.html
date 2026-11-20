@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: SPOTIFLAC DL (v4.0)
+     Descargas con el módulo SpotiFLAC.
+     3 sub-pestañas: Buscar | Mejorar | Playlist
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Spotiflac DL</h1>
+        <p class="subtitle">
+            Descarga música en FLAC usando el módulo SpotiFLAC (PyPI).
+            Requiere instalar el módulo y al menos una extensión.
+        </p>
+    </header>
+
+    <!-- Estado del módulo -->
+    <div id="spdl-module-status" class="local-status">
+        <span class="status-icon" id="spdl-status-icon">⏳</span>
+        <div style="flex:1;">
+            <strong id="spdl-status-title">Verificando módulo SpotiFLAC...</strong><br>
+            <span id="spdl-status-detail" style="font-size:12px; color:var(--text-secondary);"></span>
+        </div>
+        <button id="btn-spdl-install" class="btn btn-primary btn-sm hidden">Instalar</button>
+        <button id="btn-spdl-upgrade" class="btn btn-secondary btn-sm hidden">Actualizar</button>
+    </div>
+
+    <!-- Estado del registry (v4.1) -->
+    <div id="spdl-registry-status" class="local-status" style="margin-top:8px;">
+        <span class="status-icon" id="spdl-registry-icon">⏳</span>
+        <div style="flex:1;">
+            <strong id="spdl-registry-title">Verificando configuración del registry...</strong><br>
+            <span id="spdl-registry-detail" style="font-size:12px; color:var(--text-secondary);"></span>
+            <div id="spdl-registry-detail-extra" style="font-size:11px; color:var(--text-muted); margin-top:4px;"></div>
+        </div>
+        <button id="btn-spdl-config-registry" class="btn btn-secondary btn-sm">Configurar</button>
+        <button id="btn-spdl-auto-config" class="btn btn-primary btn-sm hidden">Auto-configurar</button>
+    </div>
+
+    <!-- Sub-pestañas -->
+    <div class="sub-tabs">
+        <a href="#" class="sub-tab active" data-spdl-subtab="search">
+            🔍 Buscar
+        </a>
+        <a href="#" class="sub-tab" data-spdl-subtab="improve">
+            ⬆ Mejorar Calidad
+        </a>
+        <a href="#" class="sub-tab" data-spdl-subtab="playlist">
+            📋 Por Playlist
+        </a>
+        <a href="#" class="sub-tab" data-spdl-subtab="queue">
+            📥 Cola de Descargas
+            <span id="spdl-queue-badge" class="needs-rename-badge hidden" style="margin-left:6px; padding:1px 6px;">0</span>
+        </a>
+    </div>
+
+    <!-- ============================================
+         SUB-PESTAÑA 1: BUSCAR
+         ============================================ -->
+    <div id="spdl-subtab-search" class="sub-content">
+        <header class="page-header" style="margin-bottom:12px;">
+            <h2 style="font-size:18px;">Buscar y descargar canciones</h2>
+            <p class="subtitle" style="font-size:12px;">
+                Busca por nombre, artista o pega una URL de Spotify (track/album/playlist).
+            </p>
+        </header>
+
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <input type="text" id="spdl-search-input" class="search-input"
+                   placeholder="Buscar: 'After Hours Poorchoice' o pegar URL de Spotify..."
+                   style="flex:1;">
+            <button id="btn-spdl-search" class="btn btn-primary">🔍 Buscar</button>
+        </div>
+
+        <!-- Config de descarga -->
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <input type="text" id="spdl-output-dir" class="folder-input"
+                   placeholder="Carpeta de destino: C:\Users\...\Music\Downloads"
+                   style="flex:1;">
+            <button id="btn-spdl-browse" class="btn btn-secondary">Explorar</button>
+            <select id="spdl-quality" class="filter-select" title="Calidad">
+                <option value="LOSSLESS" selected>FLAC Lossless</option>
+                <option value="HI_RES_LOSSLESS">HI-RES Lossless</option>
+                <option value="HIGH">High (320kbps)</option>
+            </select>
+        </div>
+
+        <!-- Extensiones instaladas -->
+        <div id="spdl-extensions-info" style="margin-bottom:12px; padding:8px 12px; background:var(--bg-elevated); border-radius:6px; font-size:12px;">
+            <strong>Extensiones:</strong> <span id="spdl-extensions-list">Cargando...</span>
+            <button id="btn-spdl-manage-ext" class="btn btn-ghost btn-sm" style="margin-left:8px;">Gestionar</button>
+        </div>
+
+        <!-- Resultados de búsqueda -->
+        <div id="spdl-search-results" class="table-container hidden">
+            <table class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th>Álbum</th>
+                        <th>Duración</th>
+                        <th>Descargar</th>
+                    </tr>
+                </thead>
+                <tbody id="spdl-search-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- Estado de descarga -->
+        <div id="spdl-download-status" class="hidden" style="margin-top:16px; padding:16px; background:var(--bg-elevated); border-radius:8px;">
+            <h3 style="margin:0 0 8px 0;">Descarga en progreso</h3>
+            <div id="spdl-download-logs" style="font-family:var(--font-mono); font-size:11px; max-height:200px; overflow-y:auto; background:var(--bg-card); padding:8px; border-radius:4px;"></div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SUB-PESTAÑA 2: MEJORAR CALIDAD
+         ============================================ -->
+    <div id="spdl-subtab-improve" class="sub-content hidden">
+        <header class="page-header" style="margin-bottom:12px;">
+            <h2 style="font-size:18px;">Mejorar calidad de tu biblioteca</h2>
+            <p class="subtitle" style="font-size:12px;">
+                Lista tus canciones locales. Las que están en MP3 o baja calidad pueden
+                descargarse en FLAC desde Spotify.
+            </p>
+        </header>
+
+        <!-- Estado de música local -->
+        <div id="spdl-improve-status" class="local-status">
+            <span class="status-icon">♪</span>
+            <span>No has escaneado tu música. Ve a "Mi Música" primero.</span>
+            <a href="/" class="btn btn-ghost btn-sm">Ir a Mi Música</a>
+        </div>
+
+        <!-- Filtros -->
+        <div id="spdl-improve-filters" class="filter-bar hidden">
+            <input type="text" id="spdl-improve-search" class="search-input" placeholder="Buscar...">
+            <select id="spdl-improve-filter-quality" class="filter-select">
+                <option value="">Todas las calidades</option>
+                <option value="lossless">✓ Solo Lossless (FLAC/WAV)</option>
+                <option value="lossy">⚠ Solo Lossy (MP3/AAC/OGG)</option>
+                <option value="low">⚠ Solo baja calidad</option>
+            </select>
+            <span id="spdl-improve-count" style="font-size:12px; color:var(--text-muted); padding:4px 8px;">0 canciones</span>
+        </div>
+
+        <!-- Output dir para mejoras -->
+        <div id="spdl-improve-output" class="filter-bar hidden">
+            <input type="text" id="spdl-improve-dir" class="folder-input"
+                   placeholder="Carpeta de destino para descargas mejoradas..."
+                   style="flex:1;">
+            <button id="btn-spdl-improve-browse" class="btn btn-secondary">Explorar</button>
+            <select id="spdl-improve-quality" class="filter-select">
+                <option value="LOSSLESS" selected>FLAC Lossless</option>
+                <option value="HI_RES_LOSSLESS">HI-RES Lossless</option>
+            </select>
+        </div>
+
+        <!-- Tabla -->
+        <div id="spdl-improve-table-container" class="table-container hidden">
+            <table id="spdl-improve-table" class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre</th>
+                        <th>Artista</th>
+                        <th>Formato</th>
+                        <th>Hz/kbps</th>
+                        <th>Calidad</th>
+                        <th>Descargar</th>
+                    </tr>
+                </thead>
+                <tbody id="spdl-improve-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SUB-PESTAÑA 3: POR PLAYLIST
+         ============================================ -->
+    <div id="spdl-subtab-playlist" class="sub-content hidden">
+        <header class="page-header" style="margin-bottom:12px;">
+            <h2 style="font-size:18px;">Descargar playlist completa</h2>
+            <p class="subtitle" style="font-size:12px;">
+                Selecciona una playlist guardada y descarga las canciones que te faltan.
+            </p>
+        </header>
+
+        <!-- Selector de playlist -->
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <select id="spdl-playlist-select" class="filter-select" style="flex:1;">
+                <option value="">Selecciona una playlist...</option>
+            </select>
+            <button id="btn-spdl-load-playlist" class="btn btn-primary">Cargar</button>
+        </div>
+
+        <!-- Output dir -->
+        <div class="filter-bar" style="margin-bottom:12px;">
+            <input type="text" id="spdl-playlist-dir" class="folder-input"
+                   placeholder="Carpeta de destino..."
+                   style="flex:1;">
+            <button id="btn-spdl-playlist-browse" class="btn btn-secondary">Explorar</button>
+            <select id="spdl-playlist-quality" class="filter-select">
+                <option value="LOSSLESS" selected>FLAC Lossless</option>
+                <option value="HI_RES_LOSSLESS">HI-RES Lossless</option>
+            </select>
+        </div>
+
+        <!-- Stats de la playlist cargada -->
+        <div id="spdl-playlist-stats" class="stats-bar hidden">
+            <div class="stat">
+                <span class="stat-label">Total</span>
+                <span class="stat-value" id="spdl-pl-total">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Descargadas</span>
+                <span class="stat-value" id="spdl-pl-downloaded" style="color:var(--accent);">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Faltantes</span>
+                <span class="stat-value" id="spdl-pl-missing" style="color:var(--danger);">0</span>
+            </div>
+            <button id="btn-spdl-download-all-missing" class="btn btn-primary">⬇ Descargar todas las faltantes</button>
+        </div>
+
+        <!-- Tabla de canciones -->
+        <div id="spdl-playlist-table-container" class="table-container hidden">
+            <table id="spdl-playlist-table" class="music-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th>Álbum</th>
+                        <th>Estado</th>
+                        <th>Descargar</th>
+                    </tr>
+                </thead>
+                <tbody id="spdl-playlist-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SUB-PESTAÑA 4: COLA DE DESCARGAS (v4.2)
+         ============================================ -->
+    <div id="spdl-subtab-queue" class="sub-content hidden">
+        <header class="page-header" style="margin-bottom:12px;">
+            <h2 style="font-size:18px;">Cola de Descargas</h2>
+            <p class="subtitle" style="font-size:12px;">
+                Estado de todos tus trabajos de descarga. Se actualiza automáticamente cada 2 segundos.
+            </p>
+        </header>
+
+        <!-- Stats globales -->
+        <div id="spdl-queue-stats" class="stats-bar hidden">
+            <div class="stat">
+                <span class="stat-label">Total trabajos</span>
+                <span class="stat-value" id="spdl-q-total">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Descargando</span>
+                <span class="stat-value" id="spdl-q-running" style="color:var(--accent);">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Pendientes</span>
+                <span class="stat-value" id="spdl-q-pending" style="color:var(--warning);">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Completados</span>
+                <span class="stat-value" id="spdl-q-done" style="color:var(--accent-hover);">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Con errores</span>
+                <span class="stat-value" id="spdl-q-error" style="color:var(--danger);">0</span>
+            </div>
+            <button id="btn-spdl-refresh-queue" class="btn btn-secondary btn-sm">↻ Recargar</button>
+            <button id="btn-spdl-clear-completed" class="btn btn-ghost btn-sm" title="Limpiar trabajos completados">🗑 Limpiar completados</button>
+        </div>
+
+        <!-- Lista de trabajos -->
+        <div id="spdl-queue-list" style="margin-top:16px;">
+            <div class="empty-state">
+                <div class="empty-icon">📥</div>
+                <h3>Sin descargas activas</h3>
+                <p>Cuando inicies una descarga desde las otras sub-pestañas, aparecerá acá con su progreso en tiempo real.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MODAL: Gestionar extensiones
+         ============================================ -->
+    <div id="spdl-ext-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Extensiones SpotiFLAC</h2>
+                <button class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
+                    Las extensiones proveen los servicios de descarga (Tidal, Qobuz, Amazon, etc.).
+                    Necesitas tener configurado <code>SPOTIFLAC_REGISTRIES</code> en el entorno
+                    para ver el catálogo disponible.
+                </p>
+                <h3 style="font-size:14px; margin-bottom:8px;">Instaladas</h3>
+                <div id="spdl-installed-ext-list"></div>
+                <h3 style="font-size:14px; margin:16px 0 8px 0;">Disponibles en registry</h3>
+                <div id="spdl-registry-ext-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MODAL: Configurar registry (.env)
+         ============================================ -->
+    <div id="spdl-env-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h2>Configurar Registry de SpotiFLAC</h2>
+                <button class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                    El módulo SpotiFLAC necesita saber de dónde descargar las extensiones
+                    (Tidal, Qobuz, Amazon, etc.). Esto se configura en un archivo
+                    <code style="background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">.env</code>
+                    en la carpeta de Music Manager.
+                </p>
+
+                <div style="background:var(--bg-elevated); padding:12px; border-radius:6px; margin-bottom:16px;">
+                    <strong style="font-size:13px;">📍 Ruta del archivo:</strong><br>
+                    <code id="spdl-env-path" style="font-size:11px; color:var(--text-muted); word-break:break-all;">—</code>
+                </div>
+
+                <label style="display:block; margin-bottom:6px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                    URL(s) del registry (una por línea o separadas por comas)
+                </label>
+                <textarea id="spdl-env-registries" rows="4"
+                    style="width:100%; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:8px; color:var(--text-primary); font-family:var(--font-mono); font-size:12px; margin-bottom:8px;"
+                    placeholder="https://raw.githubusercontent.com/spotiflacapp/SpotiFLAC-Extension/main/registry.json"></textarea>
+
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button id="btn-spdl-use-default-registry" class="btn btn-secondary btn-sm">
+                        Usar registry oficial
+                    </button>
+                </div>
+
+                <label style="display:block; margin-bottom:6px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                    Contenido actual del .env (puedes editarlo manualmente)
+                </label>
+                <textarea id="spdl-env-content" rows="8" readonly
+                    style="width:100%; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:8px; color:var(--text-secondary); font-family:var(--font-mono); font-size:11px; margin-bottom:16px;"></textarea>
+
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-ghost" id="btn-spdl-env-close">Cancelar</button>
+                    <button class="btn btn-primary" id="btn-spdl-env-save">Guardar configuración</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para descargas -->
+    <div id="spdl-toast" class="toast"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/spotiflac_dl.js') }}?v=195"></script>
+{% endblock %}

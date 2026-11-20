@@ -1,0 +1,55 @@
+Music Manager - VERSION PORTABLE (exe)
+=======================================
+
+QUE HAY EN ESTA CARPETA
+-----------------------
+MusicManager.exe      -> el programa (doble clic para abrir)
+app/                  -> modulos Python (SE NECESITAN)
+templates/            -> paginas HTML (SE NECESITAN)
+static/               -> estilos, scripts, iconos (SE NECESITAN)
+data/                 -> tus datos (playlists, borrados, dummies)
+setup_spotify.bat     -> configurar credenciales de Spotify (una vez)
+requirements.txt      -> dependencias (solo si quieres correr desde fuente)
+README.md             -> documentacion completa
+LEEME-PORTABLE.txt    -> este archivo
+
+IMPORTANTE: no borres ni separes las carpetas app/, templates/,
+static/ del exe: el exe las carga desde el disco. Si mueves el
+programa, mueve TODO el contenido de esta carpeta juntos.
+
+COMO USAR
+---------
+1. Doble clic en MusicManager.exe
+2. Se abre una ventana de consola (logs) y tu navegador en
+   http://127.0.0.1:5000
+3. Para salir: cierra la ventana de consola o presiona Ctrl+C
+
+SPOTIFY (playlists privadas / API)
+----------------------------------
+Ejecuta setup_spotify.bat UNA sola vez y sigue los pasos.
+Eso crea el archivo .env junto al exe con tus credenciales.
+
+SPOTIFLAC DL (descargas)
+------------------------
+La primera vez que uses la pestana "Spotiflac DL" y pulses
+"Instalar modulo" se necesita Python 3 instalado en el sistema
+(python.org, marca "Add python.exe to PATH"). El boton instala
+el modulo en la carpeta pylibs/ de esta instalacion y no vuelve
+a preguntar. Si no usas esa pestana, no necesitas Python.
+
+ACTUALIZAR
+----------
+- Cambios de interfaz o logica (.py / .js / .html): reemplaza los
+  archivos de app/, templates/ y static/ por los nuevos.
+  NO hace falta reemplazar el exe.
+- Cambios de dependencias (requirements.txt): reemplaza el exe por
+  la version nueva del Release.
+- Tus datos en data/ nunca se tocan al actualizar.
+
+ANTIVIRUS
+---------
+El exe no esta firmado digitalmente, por lo que Windows SmartScreen
+o algunos antivirus pueden mostrar una advertencia la primera vez.
+Es un falso positivo tipico de exes de PyInstaller sin firma:
+elige "Mas informacion" -> "Ejecutar de todas formas" o agrega una
+excepcion para esta carpeta.

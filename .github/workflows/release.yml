@@ -1,0 +1,195 @@
+# ============================================================================
+# Release automático de Music Manager (Windows)
+# ============================================================================
+# QUÉ HACE:
+#   1. Cada vez que haces PUSH a main (o ejecución manual)  -> compila el
+#      .exe y lo guarda como ARTEFACTO de prueba (no crea Release).
+#   2. Cada vez que haces PUSH de un TAG v* (ej: v4.5)       -> compila el
+#      .exe, arma el ZIP portable CON TODO LO NECESARIO y crea un RELEASE
+#      automático en GitHub con estos archivos:
+#
+#        MusicManager-v4.5-windows-portable.zip   <- descargar ESTE
+#        MusicManager-v4.5.exe                    <- solo para actualizar exe
+#        SHA256SUMS.txt                           <- checksums de verificación
+#
+# CÓMO PUBLICAR UNA VERSIÓN NUEVA:
+#      git add . && git commit -m "v4.5"
+#      git push origin main
+#      git tag v4.5
+#      git push origin v4.5
+#   -> ~10 minutos después el Release aparece en:
+#      https://github.com/matias-ramirez705/-Music-Manager/releases
+#
+# CONTENIDO DEL ZIP (por qué NO basta el exe solo):
+#   El exe lleva dentro el runtime de Python y las librerías de pip, pero
+#   los módulos app/*.py, templates/, static/ y data/ se cargan del disco
+#   (para poder editarlos sin recompilar). Sin esas carpetas el exe no
+#   arranca. El workflow las incluye TODAS en el ZIP.
+# ============================================================================
+
+name: Build & Release (Windows)
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # necesario para crear el Release
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build-windows:
+    name: Compilar MusicManager.exe
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+          pyinstaller --version
+
+      - name: Verificar versión del tag (solo tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $tag = $env:GITHUB_REF_NAME.TrimStart('v')
+          $parts = ($tag -split '\.') | ForEach-Object { [int]$_ }
+          while ($parts.Count -lt 3) { $parts += 0 }
+          $expected = "($($parts[0]), $($parts[1]), $($parts[2]), 0)"
+          if ((Get-Content version.txt -Raw) -notlike "*filevers=$expected*") {
+            Write-Output "::warning::El tag $env:GITHUB_REF_NAME no coincide con version.txt (esperaba filevers=$expected). El exe se compila igual, pero revisa version.txt."
+          } else {
+            Write-Output "Version OK: $tag"
+          }
+
+      - name: Compilar MusicManager.exe
+        run: pyinstaller MusicManager.spec --noconfirm --clean
+
+      - name: Verificar que el exe existe
+        run: |
+          if (-not (Test-Path 'dist/MusicManager.exe')) {
+            throw 'PyInstaller termino pero dist/MusicManager.exe no existe.'
+          }
+          $mb = [math]::Round((Get-Item 'dist/MusicManager.exe').Length / 1MB, 1)
+          Write-Output "MusicManager.exe generado: $mb MB"
+
+      # ------------------------------------------------------------------
+      # ARMAR EL ZIP PORTABLE (todo lo que el usuario necesita)
+      # ------------------------------------------------------------------
+      - name: Armar ZIP portable
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $ref = $env:GITHUB_REF_NAME -replace '[\\/]', '-'
+          if ($ref -like 'v*') {
+            $ver = $ref.TrimStart('v')
+          } else {
+            $ver = 'dev'
+          }
+
+          # Carpeta con la estructura final que va dentro del ZIP
+          $out = 'dist/portable/MusicManager'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+          # 1) El exe (runtime de Python + librerias de pip)
+          Copy-Item 'dist/MusicManager.exe' $out
+
+          # 2) Carpetas que el exe carga del DISCO (obligatorias)
+          Copy-Item 'app' $out -Recurse
+          Copy-Item 'templates' $out -Recurse
+          Copy-Item 'static' $out -Recurse
+          Copy-Item 'data' $out -Recurse
+
+          # 3) Documentación y config de Spotify
+          Copy-Item 'README.md' $out
+          Copy-Item 'LEEME-PORTABLE.txt' $out
+          Copy-Item 'requirements.txt' $out
+          Copy-Item 'setup_spotify.bat' $out
+
+          # 4) ZIP (tar de Windows crea ZIP correcto con 'tar -a')
+          $zipName = "MusicManager-v$ver-windows-portable.zip"
+          tar -a -c -f "dist/$zipName" -C 'dist/portable' MusicManager
+
+          # 5) Exe suelto con versión (para actualizar una instalación existente)
+          Copy-Item 'dist/MusicManager.exe' "dist/MusicManager-v$ver.exe"
+
+          # 6) Checksums SHA256
+          $files = @("dist/$zipName", "dist/MusicManager-v$ver.exe")
+          $lines = $files | ForEach-Object {
+            '{0}  {1}' -f (Get-FileHash $_ -Algorithm SHA256).Hash, (Split-Path $_ -Leaf)
+          }
+          $lines | Set-Content -Encoding ascii 'dist/SHA256SUMS.txt'
+
+          # 7) Notas del cuerpo del Release
+          $notes = @"
+          ## Music Manager v$ver
+
+          Descarga el archivo MusicManager-v$ver-windows-portable.zip (contiene todo lo necesario: exe + app/ + templates/ + static/ + data/).
+
+          Pasos:
+          1. Descomprime TODO el ZIP en una carpeta (ej: C:\MusicManager)
+          2. Doble clic en MusicManager.exe (se abre la consola y tu navegador)
+          3. Para Spotify: ejecuta setup_spotify.bat una vez
+
+          MusicManager-v$ver.exe (suelto) es SOLO para actualizar el exe de una
+          instalación existente: reemplaza el exe viejo por este, manteniendo tus
+          carpetas app/, templates/, static/ y data/ actuales.
+
+          Verifica la integridad de los archivos con SHA256SUMS.txt.
+          "@
+          $notes | Set-Content -Encoding utf8 'dist/RELEASE_NOTES.txt'
+
+          # Exportar para los pasos siguientes
+          "ZIP_NAME=$zipName"      | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VER=$ver"               | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Output "ZIP listo: dist/$zipName"
+
+      # ------------------------------------------------------------------
+      # ARTEFACTO DE PRUEBA (siempre disponible en la pestaña Actions,
+      # aunque NO sea un tag). Sirve para probar el exe antes de publicar.
+      # ------------------------------------------------------------------
+      - name: Subir artefacto a Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusicManager-windows-${{ github.ref_name }}
+          path: |
+            dist/*.zip
+            dist/MusicManager-v*.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      # ------------------------------------------------------------------
+      # RELEASE AUTOMÁTICO (solo cuando el push es de un tag v*)
+      # ------------------------------------------------------------------
+      - name: Crear Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: dist/RELEASE_NOTES.txt
+          files: |
+            dist/*.zip
+            dist/MusicManager-v*.exe
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          make_latest: true
