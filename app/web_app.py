@@ -107,12 +107,20 @@ LAST_SCAN = {
 }
 
 
-def create_app():
-    """Fabrica de la aplicacion Flask."""
+def create_app(template_folder=None, static_folder=None):
+    """Fabrica de la aplicacion Flask.
+    v3.36: acepta template_folder y static_folder como parámetros
+    para soportar PyInstaller (donde los archivos están en el disco
+    junto al .exe, no dentro del bundle)."""
+    if template_folder is None:
+        template_folder = str(Path(__file__).parent.parent / 'templates')
+    if static_folder is None:
+        static_folder = str(Path(__file__).parent.parent / 'static')
+
     app = Flask(
         __name__,
-        template_folder=str(Path(__file__).parent.parent / 'templates'),
-        static_folder=str(Path(__file__).parent.parent / 'static'),
+        template_folder=template_folder,
+        static_folder=static_folder,
     )
 
     # ==================================================================
