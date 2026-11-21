@@ -28,14 +28,8 @@ SPOTIFY (playlists privadas / API)
 ----------------------------------
 Ejecuta setup_spotify.bat UNA sola vez y sigue los pasos.
 Eso crea el archivo .env junto al exe con tus credenciales.
-
-SPOTIFLAC DL (descargas)
-------------------------
-La primera vez que uses la pestana "Spotiflac DL" y pulses
-"Instalar modulo" se necesita Python 3 instalado en el sistema
-(python.org, marca "Add python.exe to PATH"). El boton instala
-el modulo en la carpeta pylibs/ de esta instalacion y no vuelve
-a preguntar. Si no usas esa pestana, no necesitas Python.
+Sin esto, las playlists privadas de Spotify no se pueden leer
+(las publicas si funcionan sin configuracion).
 
 ACTUALIZAR
 ----------

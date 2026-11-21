@@ -1,5 +1,5 @@
 # ============================================
-# Dependencias de Music Manager v4.5
+# Dependencias de Music Manager v3.5-exe
 # ============================================
 # Instaladas automaticamente por setup_env.bat
 # (y por build_local.bat / GitHub Actions al compilar el exe)
@@ -7,13 +7,13 @@
 flask>=3.0.0          # Servidor web para la interfaz en navegador
 mutagen>=1.47.0       # Lectura y escritura de metadatos (ID3, FLAC, MP4, etc.)
 yt-dlp>=2024.8.6      # Lectura de playlists publicas de YouTube Music
-requests>=2.31.0      # Peticiones HTTP (iTunes, MusicBrainz, Last.fm)
+requests>=2.31.0      # Peticiones HTTP (iTunes, MusicBrainz, Last.fm, lrclib.net)
 Pillow>=10.0.0        # Manipulacion de imagenes (redimensionar caratulas)
 spotipy>=2.23.0       # Lectura de playlists publicas de Spotify via API oficial
 python-dotenv>=1.0.0  # Carga credenciales desde archivo .env
 Send2Trash>=1.8.0     # Enviar archivos duplicados a papelera de reciclaje
 
-# --- Usadas por yt-dlp / Spotiflac DL (mejoran compatibilidad) ---
+# --- Usadas por yt-dlp / mejoran compatibilidad ---
 brotli>=1.1.0         # Compresion Brotli (yt-dlp)
 pycryptodomex>=3.20.0 # Cifrado que usan algunos extractores de yt-dlp
-packaging>=23.0       # Comparar versiones (Spotiflac DL)
+packaging>=23.0       # Comparar versiones

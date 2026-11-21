@@ -2,21 +2,22 @@
 # Release automático de Music Manager (Windows)
 # ============================================================================
 # QUÉ HACE:
-#   1. Cada vez que haces PUSH a main (o ejecución manual)  -> compila el
+#   1. Cada vez que haces PUSH a main (o ejecución manual) -> compila el
 #      .exe y lo guarda como ARTEFACTO de prueba (no crea Release).
-#   2. Cada vez que haces PUSH de un TAG v* (ej: v4.5)       -> compila el
+#   2. Cada vez que haces PUSH de un TAG v* (ej: v3.5-exe) -> compila el
 #      .exe, arma el ZIP portable CON TODO LO NECESARIO y crea un RELEASE
 #      automático en GitHub con estos archivos:
 #
-#        MusicManager-v4.5-windows-portable.zip   <- descargar ESTE
-#        MusicManager-v4.5.exe                    <- solo para actualizar exe
-#        SHA256SUMS.txt                           <- checksums de verificación
+#        MusicManager-v3.5-exe-windows-portable.zip   <- descargar ESTE
+#        MusicManager-v3.5-exe.exe                    <- solo para actualizar exe
+#        SHA256SUMS.txt                               <- checksums de verificación
 #
 # CÓMO PUBLICAR UNA VERSIÓN NUEVA:
-#      git add . && git commit -m "v4.5"
+#      git add .
+#      git commit -m "v3.5-exe: descripcion del cambio"
 #      git push origin main
-#      git tag v4.5
-#      git push origin v4.5
+#      git tag v3.5-exe
+#      git push origin v3.5-exe
 #   -> ~10 minutos después el Release aparece en:
 #      https://github.com/matias-ramirez705/-Music-Manager/releases
 #
@@ -68,19 +69,6 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-build.txt
           pyinstaller --version
-
-      - name: Verificar versión del tag (solo tags)
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          $tag = $env:GITHUB_REF_NAME.TrimStart('v')
-          $parts = ($tag -split '\.') | ForEach-Object { [int]$_ }
-          while ($parts.Count -lt 3) { $parts += 0 }
-          $expected = "($($parts[0]), $($parts[1]), $($parts[2]), 0)"
-          if ((Get-Content version.txt -Raw) -notlike "*filevers=$expected*") {
-            Write-Output "::warning::El tag $env:GITHUB_REF_NAME no coincide con version.txt (esperaba filevers=$expected). El exe se compila igual, pero revisa version.txt."
-          } else {
-            Write-Output "Version OK: $tag"
-          }
 
       - name: Compilar MusicManager.exe
         run: pyinstaller MusicManager.spec --noconfirm --clean
@@ -144,7 +132,8 @@ jobs:
           $notes = @"
           ## Music Manager v$ver
 
-          Descarga el archivo MusicManager-v$ver-windows-portable.zip (contiene todo lo necesario: exe + app/ + templates/ + static/ + data/).
+          Descarga el archivo MusicManager-v$ver-windows-portable.zip (contiene
+          todo lo necesario: exe + app/ + templates/ + static/ + data/).
 
           Pasos:
           1. Descomprime TODO el ZIP en una carpeta (ej: C:\MusicManager)
@@ -160,8 +149,8 @@ jobs:
           $notes | Set-Content -Encoding utf8 'dist/RELEASE_NOTES.txt'
 
           # Exportar para los pasos siguientes
-          "ZIP_NAME=$zipName"      | Out-File -FilePath $env:GITHUB_ENV -Append
-          "VER=$ver"               | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VER=$ver"          | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Output "ZIP listo: dist/$zipName"
 
       # ------------------------------------------------------------------

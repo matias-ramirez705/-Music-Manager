@@ -5,7 +5,7 @@ REM  (igual que hace GitHub Actions, pero local)
 REM ============================================
 REM  Requisitos: Python 3.10+ instalado y en PATH.
 REM  Resultado:  dist\MusicManager.exe
-REM              dist\MusicManager-v4.5-windows-portable.zip
+REM              dist\MusicManager-portable.zip
 REM ============================================
 
 chcp 65001 >nul
@@ -42,13 +42,12 @@ copy /y "setup_spotify.bat"  "dist\portable\MusicManager\" >nul
 
 echo.
 echo [4/5] Creando ZIP portable...
-set VER=4.5
-powershell -NoProfile -Command "tar -a -c -f 'dist/MusicManager-v%VER%-windows-portable.zip' -C 'dist/portable' MusicManager"
+powershell -NoProfile -Command "tar -a -c -f 'dist/MusicManager-portable.zip' -C 'dist/portable' MusicManager"
 
 echo.
 echo [5/5] Listo. Archivos generados:
 echo    dist\MusicManager.exe
-echo    dist\MusicManager-v%VER%-windows-portable.zip
+echo    dist\MusicManager-portable.zip
 echo.
 echo Prueba el exe con doble clic ANTES de publicar un Release.
 pause

@@ -61,10 +61,17 @@ def _save_all(data):
     tmp.replace(DATA_FILE)
 
 
-def list_playlists():
+def list_playlists(sort_by='last_accessed'):
     """
     Devuelve todas las playlists guardadas.
-    Las mas recientemente accesadas aparecen primero.
+
+    Args:
+        sort_by (str): criterio de ordenamiento. Opciones:
+            - 'last_accessed' (default): las más recientemente accesadas primero
+            - 'name': orden alfabético por nombre (A-Z)
+            - 'added_at': las más recientemente agregadas primero
+            - 'track_count': las que tienen más canciones primero
+            - 'sort_order': orden personalizado definido por el usuario (menor a mayor)
 
     Returns:
         list[dict]: playlists sin el campo 'tracks' (para no pesar
@@ -77,10 +84,80 @@ def list_playlists():
         # Copiar sin tracks para aligerar
         meta = {k: v for k, v in p.items() if k != 'tracks'}
         meta['track_count'] = len(p.get('tracks', []))
+        # Asegurar que todos los campos de sort existan (para evitar KeyError)
+        if 'sort_order' not in meta:
+            meta['sort_order'] = 0
+        if 'added_at' not in meta:
+            meta['added_at'] = ''
+        if 'last_accessed' not in meta:
+            meta['last_accessed'] = ''
         playlists.append(meta)
-    # Ordenar por last_accessed descendente (mas recientes primero)
-    playlists.sort(key=lambda x: x.get('last_accessed', ''), reverse=True)
+
+    # Ordenar según criterio
+    if sort_by == 'name':
+        playlists.sort(key=lambda x: x.get('name', '').lower())
+    elif sort_by == 'added_at':
+        playlists.sort(key=lambda x: x.get('added_at', ''), reverse=True)
+    elif sort_by == 'track_count':
+        playlists.sort(key=lambda x: x.get('track_count', 0), reverse=True)
+    elif sort_by == 'sort_order':
+        # Orden personalizado: por sort_order ascendente (menor primero)
+        # Las que no tienen sort_order (0) van al final
+        playlists.sort(key=lambda x: (x.get('sort_order', 0) == 0, x.get('sort_order', 0)))
+    else:  # 'last_accessed' (default)
+        playlists.sort(key=lambda x: x.get('last_accessed', ''), reverse=True)
     return playlists
+
+
+def count_local_in_playlists(local_title_index):
+    """
+    Para cada playlist guardada, cuenta cuántas de sus canciones
+    están en la biblioteca local (Mi Música).
+
+    Args:
+        local_title_index (set): conjunto de títulos normalizados de
+                                  la música local. Se construye desde
+                                  web_app usando build_local_playlist_index
+                                  o similar.
+
+    Returns:
+        dict: { playlist_id: { 'total': int, 'downloaded': int } }
+    """
+    data = _load_all()
+    result = {}
+    for p in data['playlists']:
+        tracks = p.get('tracks', [])
+        total = len(tracks)
+        downloaded = 0
+        for t in tracks:
+            title = t.get('title', '') if isinstance(t, dict) else ''
+            artist = t.get('artist', '') if isinstance(t, dict) else ''
+            # v3.24: probar múltiples variantes del título
+            # para que "Artist - Title" coincida con "Title" y viceversa
+            norm = _normalize(title)
+            found = norm and norm in local_title_index
+            if not found and ' - ' in title:
+                # Probar partes del título dividido por " - "
+                for part in title.split(' - ', 1):
+                    n = _normalize(part)
+                    if n and n in local_title_index:
+                        found = True
+                        break
+            if not found and artist:
+                # Probar combinaciones "title artist" y "artist title"
+                norm_a = _normalize(artist)
+                norm_t = _normalize(title)
+                if norm_a and norm_t:
+                    if f"{norm_t} {norm_a}" in local_title_index or \
+                       f"{norm_a} {norm_t}" in local_title_index:
+                        found = True
+            if found:
+                downloaded += 1
+        result[p['id']] = {
+            'total': total,
+            'downloaded': downloaded,
+        }
+    return result
 
 
 def _sanitize_filename(name):
@@ -254,7 +331,7 @@ def delete_playlist(playlist_id):
 def update_playlist(playlist_id, updates):
     """
     Actualiza campos de una playlist (por ejemplo, renombrar).
-    Solo permite actualizar campos no criticos: name.
+    Solo permite actualizar campos no criticos: name, sort_order.
 
     Args:
         playlist_id (str): ID de la playlist.
@@ -268,9 +345,39 @@ def update_playlist(playlist_id, updates):
         if p['id'] == playlist_id:
             if 'name' in updates:
                 p['name'] = updates['name'][:200]  # limitar longitud
+            # v3.17: orden personalizado
+            if 'sort_order' in updates:
+                try:
+                    p['sort_order'] = int(updates['sort_order'])
+                except (ValueError, TypeError):
+                    p['sort_order'] = 0
             _save_all(data)
             return {k: v for k, v in p.items() if k != 'tracks'}
     return None
+
+
+def reorder_playlists(ordered_ids):
+    """
+    Reordena las playlists según una lista de IDs en el orden deseado.
+    Asigna sort_order secuencial (1, 2, 3, ...) a cada una.
+
+    Args:
+        ordered_ids (list[str]): IDs de playlists en el orden deseado.
+
+    Returns:
+        bool: True si se reordenó, False si hubo error.
+    """
+    if not ordered_ids:
+        return False
+    data = _load_all()
+    # Construir dict para acceso rápido
+    by_id = {p['id']: p for p in data['playlists']}
+    # Asignar sort_order secuencial
+    for i, pid in enumerate(ordered_ids, start=1):
+        if pid in by_id:
+            by_id[pid]['sort_order'] = i
+    _save_all(data)
+    return True
 
 
 def refresh_playlist(playlist_id, new_data):
@@ -331,18 +438,36 @@ def build_local_playlist_index():
         # la misma playlist de YouTube Music)
         seen_keys_for_this_playlist = set()
         for track in p.get('tracks', []):
-            key = _normalize(track.get('title', ''))
-            if not key:
-                continue
-            if key in seen_keys_for_this_playlist:
-                continue  # ya contamos esta cancion en esta playlist
-            seen_keys_for_this_playlist.add(key)
-            index.setdefault(key, []).append(info)
+            # v3.24: usar variantes para que "Artist - Title" coincida con "Title"
+            track_title = track.get('title', '')
+            track_artist = track.get('artist', '')
+            keys = set()
+            keys.add(_normalize(track_title))
+            # Si el título contiene " - ", también añadir las partes
+            if ' - ' in track_title:
+                for part in track_title.split(' - ', 1):
+                    n = _normalize(part)
+                    if n:
+                        keys.add(n)
+            # Si hay artista, añadir combinaciones
+            if track_artist:
+                norm_a = _normalize(track_artist)
+                norm_t = _normalize(track_title)
+                if norm_a and norm_t:
+                    keys.add(f"{norm_t} {norm_a}".strip())
+                    keys.add(f"{norm_a} {norm_t}".strip())
+            for key in keys:
+                if not key or key in seen_keys_for_this_playlist:
+                    continue
+                seen_keys_for_this_playlist.add(key)
+                index.setdefault(key, []).append(info)
     return index
 
 
 def _normalize(s):
-    """Normaliza un string para comparacion (sin acentos, minusculas)."""
+    """Normaliza un string para comparacion (sin acentos, minusculas).
+    v3.25: mantiene letras de todos los idiomas (cirílico, griego, etc.)
+    y quita sufijo "- Topic" de YouTube Music."""
     import unicodedata
     import re
     if not s:
@@ -353,6 +478,10 @@ def _normalize(s):
     s = re.sub(r'\([^)]*\)', '', s)
     s = re.sub(r'\[[^)]*\]', '', s)
     s = re.sub(r'\b(feat|ft)\b\.?', '', s)
-    s = re.sub(r'[^a-z0-9\s]', '', s)
+    # v3.25: quitar "- Topic" de YT Music
+    s = re.sub(r'\s*-\s*topic\s*$', '', s)
+    # v3.25: mantener Unicode letters
+    s = re.sub(r'[^\w\s]', ' ', s)
+    s = s.replace('_', ' ')
     s = re.sub(r'\s+', ' ', s).strip()
     return s

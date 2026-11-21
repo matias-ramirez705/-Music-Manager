@@ -5,17 +5,15 @@ Este archivo es el que compila PyInstaller para generar el .exe.
 
 Diferencias con main.py (modo fuente):
   - Detecta la carpeta del .exe (no la de Python) y hace cd a ella,
-    para que .env, data/ y las descargas de SpotiFLAC queden junto al exe.
+    para que .env, data/ y los archivos temporales queden junto al exe.
   - Anade la carpeta app/ al sys.path para que los modulos .py se carguen
     DESDE EL DISCO (asi puedes editarlos sin recompilar el exe).
-  - Si existe la carpeta pylibs/ (paquetes instalados por la pestana
-    Spotiflac DL), tambien la anade al sys.path.
   - Elige un puerto libre (5000, 5001... si 5000 esta ocupado).
   - Abre el navegador automaticamente cuando el servidor esta listo.
 
 El .exe SOLO contiene el runtime de Python + las librerias de pip
-(flask, mutagen, yt-dlp...). Los modulos de app/, templates/, static/
-y data/ van SIEMPRE al lado del exe (ver LEEME-PORTABLE.txt).
+(flask, mutagen, yt-dlp, spotipy...). Los modulos de app/, templates/,
+static/ y data/ van SIEMPRE al lado del exe (ver LEEME-PORTABLE.txt).
 """
 
 import os
@@ -60,18 +58,12 @@ def wait_for_server(port: int, timeout: float = 20.0) -> bool:
 
 def main():
     base_dir = get_base_dir()
-    # cd a la carpeta del exe: asi Path.cwd()/.env (Spotiflac) y las rutas
-    # relativas siempre apuntan a la carpeta del programa, no a System32 etc.
+    # cd a la carpeta del exe: asi Path.cwd()/.env y las rutas relativas
+    # siempre apuntan a la carpeta del programa, no a System32 etc.
     os.chdir(base_dir)
 
     # app/ contiene los modulos .py de la app (se cargan del disco)
     sys.path.insert(0, str(base_dir / 'app'))
-
-    # pylibs/: paquetes instalados por la pestana Spotiflac DL en modo exe
-    # (se instalan con pip --target pylibs usando el Python del sistema)
-    pylibs_dir = base_dir / 'pylibs'
-    if pylibs_dir.is_dir():
-        sys.path.insert(0, str(pylibs_dir))
 
     # Crear data/ y archivos por defecto si no existen
     try:

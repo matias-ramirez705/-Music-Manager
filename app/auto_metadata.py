@@ -16,16 +16,23 @@ Fuentes soportadas (selector en la UI):
   3. Last.fm (public search via web scraping ligero)
      - Sin API key: usamos el endpoint publico de busqueda.
      - Cobertura: buena para artistas y albums populares.
-     - Nota: puede dejar de funcionar si Last.fm cambia la pagina.
-
-  4. Spotify public search (via embed)
-     - Experimental: Spotify no expone search publico sin
-       credenciales. Lo dejamos como "no disponible" pero
-       la estructura permite agregarlo facil en el futuro.
+  4. SoundCloud (v3.20) - via yt-dlp
+     - Usa yt-dlp con scsearch: para buscar en SoundCloud.
+     - GRATUITA, sin API key (yt-dlp ya está instalado).
+     - Cobertura: excelente para remixes, musica independiente,
+       DJs, y canciones que no estan en plataformas comerciales.
+  5. osu! (v3.20) - beatmap search
+     - Usa el endpoint publico de busqueda de beatmapsets.
+     - GRATUITA, sin API key.
+     - Cobertura: excelente para musica de juegos de ritmo,
+       remixes de anime, y musica comunitaria de internet.
 
 Todas las fuentes devuelven el mismo formato (ver search_track()).
 """
 
+import os
+import json
+import subprocess
 import requests
 
 
@@ -37,6 +44,9 @@ MUSICBRAINZ_ENDPOINT = "https://musicbrainz.org/ws/2/recording"
 
 # Last.fm public search (HTML)
 LASTFM_SEARCH = "https://www.last.fm/search"
+
+# osu! beatmap search endpoint (publico, sin API key)
+OSU_SEARCH_ENDPOINT = "https://osu.ppy.sh/beatmapsets/search/"
 
 
 # Cabeceras comunes
@@ -247,6 +257,270 @@ def _search_lastfm(title, artist='', limit=5):
 
 
 # ==================================================================
+# SOUNDCLOUD (v3.20) - via yt-dlp scsearch
+# ==================================================================
+def _upgrade_soundcloud_thumbnail(url):
+    """
+    v3.21: SoundCloud sirve thumbnails en varios tamaños.
+    yt-dlp en --flat-playlist suele devolver el más chico (t50x50 o t67x67).
+    Reescribimos la URL para pedir el tamaño más grande disponible.
+
+    Patrones comunes en URLs de SoundCloud:
+    - https://i1.sndcdn.com/artworks-XXX-t50x50.jpg
+    - https://i1.sndcdn.com/artworks-XXX-t120x120.jpg
+    - https://i1.sndcdn.com/artworks-XXX-t300x300.jpg
+    - https://i1.sndcdn.com/artworks-XXX-t500x500.jpg
+    - https://i1.sndcdn.com/artworks-XXX-original.jpg
+
+    Reemplazamos cualquier -tNNxNN por -t500x500, y si ya es original lo dejamos.
+    """
+    import re
+    if not url:
+        return ''
+    # Reemplazar -tNNxNN por -t500x500
+    upgraded = re.sub(r'-t\d+x\d+\.(jpg|jpeg|png|webp)', r'-t500x500.\1', url)
+    # Si la URL no tenía patrón -tNNxNN, intentar con -large o -t300x300
+    if upgraded == url:
+        upgraded = url.replace('-large.', '-t500x500.')
+        if upgraded == url:
+            upgraded = url.replace('-t300x300.', '-t500x500.')
+    return upgraded
+
+
+def _pick_best_thumbnail(thumbs_list):
+    """
+    v3.21: de una lista de thumbnails de yt-dlp, devuelve la URL
+    del más grande disponible. yt-dlp devuelve una lista ordenada
+    de menor a mayor normalmente, pero no siempre.
+    """
+    if not isinstance(thumbs_list, list) or not thumbs_list:
+        return ''
+    best_url = ''
+    best_pref = -1
+    for t in thumbs_list:
+        if not isinstance(t, dict):
+            continue
+        url = t.get('url', '') or t.get('id', '')
+        if not url:
+            continue
+        # Preferir las que dicen "original" o tienen t500x500
+        pref = 0
+        if 'original' in url:
+            pref = 100
+        elif 't500x500' in url:
+            pref = 90
+        elif 't300x300' in url:
+            pref = 80
+        elif 't120x120' in url:
+            pref = 50
+        elif 't67x67' in url or 't50x50' in url:
+            pref = 10
+        # Si tiene campo 'preference' de yt-dlp, usarlo
+        if t.get('preference'):
+            pref += t.get('preference')
+        if pref > best_pref:
+            best_pref = pref
+            best_url = url
+    return best_url
+
+
+def _fetch_soundcloud_thumbnail(url):
+    """
+    v3.21: hace una segunda pasada con yt-dlp SIN --flat-playlist
+    para obtener el thumbnail en alta resolución de una canción
+    específica de SoundCloud. Es más lento pero trae la carátula grande.
+
+    Solo se llama como fallback si la primera pasada dio thumbnail chico.
+    """
+    if not url:
+        return ''
+    try:
+        result = subprocess.run(
+            ['yt-dlp', '--dump-json', '--no-warnings', '--no-playlist', url],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return ''
+        item = json.loads(result.stdout.strip().split('\n')[0])
+        thumbs = item.get('thumbnails')
+        if isinstance(thumbs, list) and thumbs:
+            return _pick_best_thumbnail(thumbs)
+        if item.get('thumbnail'):
+            return _upgrade_soundcloud_thumbnail(item.get('thumbnail'))
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        pass
+    return ''
+
+
+def _search_soundcloud(title, artist='', limit=5):
+    """
+    Busca en SoundCloud usando yt-dlp (scsearch:).
+    No requiere API key. yt-dlp ya esta instalado en el proyecto.
+
+    Cobertura: excelente para remixes, musica independiente, DJs,
+    y canciones que no estan en plataformas comerciales.
+
+    v3.21: mejora el manejo de thumbnails para no devolver caratulas
+    de 16x16. Estrategia:
+    1. En la primera pasada (--flat-playlist), buscar el thumbnail más
+       grande de la lista de thumbnails.
+    2. Si el thumbnail sigue siendo chico (t50x50, t67x67), reescribir
+       la URL a t500x500 (SoundCloud los sirve si existen).
+    3. Como último recurso, hacer una segunda pasada sin --flat-playlist
+       para esa canción específica (más lento pero trae thumbnail grande).
+    """
+    query = f"{title} {artist}".strip()
+    if not query:
+        return []
+
+    search_query = f"scsearch{limit}:{query}"
+
+    try:
+        result = subprocess.run(
+            ['yt-dlp', '--dump-json', '--no-warnings', '--flat-playlist', search_query],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            result = subprocess.run(
+                ['yt-dlp', '--dump-json', '--no-warnings', search_query],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if result.returncode != 0:
+                return []
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return []
+
+    results = []
+    for line in result.stdout.strip().split('\n'):
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        sc_title = item.get('title', '')
+        sc_artist = item.get('uploader', item.get('uploader_id', item.get('channel', '')))
+        sc_url = item.get('url', item.get('webpage_url', item.get('id', '')))
+        if sc_url and not sc_url.startswith('http'):
+            sc_url = f"https://soundcloud.com/{sc_url}"
+        sc_duration = item.get('duration', 0) or 0
+
+        # v3.21: mejor manejo de thumbnails
+        # 1. Intentar con la lista de thumbnails (buscar el más grande)
+        sc_thumbnail = _pick_best_thumbnail(item.get('thumbnails'))
+        # 2. Si no hay lista, usar el campo 'thumbnail' directo
+        if not sc_thumbnail and item.get('thumbnail'):
+            sc_thumbnail = item.get('thumbnail')
+        # 3. Si el thumbnail es chico, reescribir la URL a t500x500
+        if sc_thumbnail and ('t50x50' in sc_thumbnail or 't67x67' in sc_thumbnail
+                              or 't120x120' in sc_thumbnail or 'large' in sc_thumbnail):
+            sc_thumbnail = _upgrade_soundcloud_thumbnail(sc_thumbnail)
+        # 4. Si no hay thumbnail o sigue siendo chico, hacer segunda pasada
+        #    (solo para los primeros 3 resultados para no demorar demasiado)
+        if (not sc_thumbnail or 't50x50' in sc_thumbnail or 't67x67' in sc_thumbnail) \
+                and sc_url and len(results) < 3:
+            fetched = _fetch_soundcloud_thumbnail(sc_url)
+            if fetched:
+                sc_thumbnail = fetched
+
+        results.append({
+            'source': 'SoundCloud',
+            'title':        sc_title,
+            'artist':       sc_artist,
+            'album':        '',
+            'year':         '',
+            'genre':        '',
+            'track_number': '',
+            'duration':     sc_duration,
+            'artwork_url':  sc_thumbnail,
+            'preview_url':  '',
+            'external_url': sc_url,
+        })
+
+    return results[:limit]
+
+
+# ==================================================================
+# osu! (v3.20) - beatmap search
+# ==================================================================
+def _search_osu(title, artist='', limit=5):
+    """
+    Busca en la base de datos de beatmaps de osu! (juego de ritmo).
+    Usa el endpoint publico de busqueda del sitio web.
+
+    Cobertura: excelente para musica de juegos de ritmo, remixes de
+    anime, y musica comunitaria de internet. Incluye BPM.
+    """
+    query = f"{title} {artist}".strip()
+    if not query:
+        return []
+
+    params = {
+        'q': query,
+        'mode': 'any',
+        's': 'any',
+    }
+
+    try:
+        resp = requests.get(OSU_SEARCH_ENDPOINT, params=params,
+                            headers=_headers({
+                                'Accept': 'application/json',
+                            }), timeout=15)
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+    except (requests.RequestException, ValueError):
+        return []
+
+    results = []
+    beatmapsets = data.get('beatmapsets', [])
+    for bs in beatmapsets[:limit]:
+        beatmaps = bs.get('beatmaps', [])
+        bpm = 0
+        if beatmaps:
+            bpm = beatmaps[0].get('bpm', 0) or 0
+
+        osu_title = bs.get('title', '')
+        osu_artist = bs.get('artist', '')
+        osu_creator = bs.get('creator', '')
+        osu_source = bs.get('source', '')
+        osu_album = osu_source if osu_source else f"osu! beatmap by {osu_creator}"
+        osu_year = ''
+        submitted = bs.get('submitted_date', '')
+        if submitted:
+            osu_year = submitted[:4]
+        osu_covers = bs.get('covers', {})
+        osu_artwork = osu_covers.get('list', osu_covers.get('cover', ''))
+        osu_id = bs.get('id', '')
+        osu_url = f"https://osu.ppy.sh/beatmapsets/{osu_id}" if osu_id else ''
+
+        results.append({
+            'source': 'osu!',
+            'title':        osu_title,
+            'artist':       osu_artist,
+            'album':        osu_album,
+            'year':         osu_year,
+            'genre':        '',
+            'track_number': '',
+            'duration':     0,
+            'artwork_url':  osu_artwork,
+            'preview_url':  '',
+            'external_url': osu_url,
+            'bpm':          bpm,
+            'mapper':       osu_creator,
+        })
+
+    return results
+
+
+# ==================================================================
 # FUNCION PUBLICA: search_track
 # ==================================================================
 def search_track(title, artist='', limit=5, source='itunes'):
@@ -273,13 +547,18 @@ def search_track(title, artist='', limit=5, source='itunes'):
         return _search_musicbrainz(title, artist, limit)
     elif source == 'lastfm':
         return _search_lastfm(title, artist, limit)
+    elif source == 'soundcloud':
+        return _search_soundcloud(title, artist, limit)
+    elif source == 'osu':
+        return _search_osu(title, artist, limit)
     elif source == 'all':
-        # Buscar en las 3 fuentes en paralelo (secuencial por simplicidad)
+        # Buscar en todas las fuentes
         all_results = []
         all_results.extend(_search_itunes(title, artist, limit))
         all_results.extend(_search_musicbrainz(title, artist, limit))
-        all_results.extend(_search_lastfm(title, artist, limit))
-        return all_results[:limit * 2]
+        all_results.extend(_search_soundcloud(title, artist, limit))
+        all_results.extend(_search_osu(title, artist, limit))
+        return all_results[:limit * 3]
     else:
         return []
 

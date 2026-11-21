@@ -1,7 +1,7 @@
 # ============================================
 # Dependencias SOLO para compilar el .exe
 # ============================================
-# No se necesitan para usar la app desde fuente (main.py).
+# No se necesitan para usar la app desde fuente (main.py / run.bat).
 # Las instala build_local.bat y el workflow de GitHub Actions.
 
 pyinstaller>=6.10.0

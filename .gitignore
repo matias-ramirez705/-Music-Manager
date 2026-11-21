@@ -3,8 +3,11 @@
 # ============================================
 
 # CREDENCIALES PRIVADAS - NUNCA subir al repo
-# (setup_spotify.bat y la pestana Spotiflac crean este archivo en tu PC)
+# (setup_spotify.bat crea este archivo en tu PC)
 .env
+
+# Cache de tokens de Spotify OAuth
+data/.spotify_cache
 
 # Entornos virtuales de Python
 .venv/
@@ -21,9 +24,6 @@ build/
 dist/
 *.spec.bak
 
-# Paquetes instalados por Spotiflac DL en modo exe
-pylibs/
-
 # Exportaciones CSV de playlists (datos personales)
 data/Spotify/
 
@@ -31,3 +31,6 @@ data/Spotify/
 Thumbs.db
 Desktop.ini
 *.lnk
+
+# Documentación interna de desarrollo (se mantiene fuera del repo)
+Doc informacion/

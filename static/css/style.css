@@ -940,7 +940,6 @@ body {
 .info-banner-warning .info-banner-icon { color: var(--warning); }
 .info-banner-success .info-banner-icon { color: var(--accent); }
 
-.spotify-status-panel { margin-bottom: 20px; }
 
 .info-banner-icon {
     font-size: 32px;
@@ -1936,6 +1935,23 @@ body {
     background: rgba(29, 185, 84, 0.05);
     border-radius: var(--radius-sm);
     padding: 8px;
+}
+
+/* v3.17: hover visual en filas de duplicados para identificar cuál estás seleccionando */
+.dup-file-row {
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    border-left: 3px solid transparent;
+}
+.dup-file-row:hover {
+    background: rgba(29, 185, 84, 0.12);
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 12px rgba(0,0,0,0.3);
+    border-left-color: var(--accent);
+    transform: translateX(2px);
+    cursor: default;
+}
+.dup-file-row.best:hover {
+    background: rgba(29, 185, 84, 0.18);
+    box-shadow: 0 0 0 2px var(--accent), 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .dup-best-tag {

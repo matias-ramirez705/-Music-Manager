@@ -168,6 +168,9 @@ async function scanFolder() {
         allFiles = data.files;
         // Guardar carpeta en localStorage para mantenerla entre pestanas
         localStorage.setItem('last_scan_folder', folder);
+        // v3.17: invalidar índice de títulos locales para que el modal
+        // de playlist se rebuild con los datos nuevos.
+        _localTitleIndex = null;
         await loadDuplicatePaths();
         renderTable();
         renderStats(data);
@@ -239,7 +242,10 @@ function applyFilters() {
 
     filteredFiles = allFiles.filter(f => {
         if (format && f.ext !== format) return false;
-        if (playlistId && !(f.playlists || []).some(p => p.id === playlistId)) return false;
+        // v3.27: soporte para filtro "Sin playlist" (__none__)
+        if (playlistId === '__none__') {
+            if ((f.playlists || []).length > 0) return false;
+        } else if (playlistId && !(f.playlists || []).some(p => p.id === playlistId)) return false;
         if (dupFilter === 'duplicates' && !duplicatePaths.has(f.path)) return false;
         if (dupFilter === 'unique' && duplicatePaths.has(f.path)) return false;
         if (metaFilter === 'error' && !f.has_error) return false;
@@ -429,6 +435,13 @@ function showPlaylistDetailModal(p) {
                     ${escapeHtml(p.uploader || '')} • ${p.track_count} canciones • ${platformLabel}
                     ${p.url && !p.url.startsWith('csv://') ? `• <a href="${escapeHtml(p.url)}" target="_blank" style="color:var(--accent);">Abrir original ↗</a>` : ''}
                 </p>
+                <p id="pl-detail-downloaded-info" style="margin-bottom:12px; flex-shrink:0; font-size:13px; color:var(--text-secondary); display:none;">
+                    <span style="color:var(--accent); font-weight:600;" id="pl-detail-downloaded-count">0</span>
+                    <span> descargadas de ${p.track_count}</span>
+                    <span id="pl-detail-downloaded-bar-container" style="display:inline-block; width:120px; height:6px; background:var(--bg-elevated); border-radius:3px; margin-left:8px; vertical-align:middle; overflow:hidden;">
+                        <span id="pl-detail-downloaded-bar" style="display:block; height:100%; background:var(--accent); width:0%; transition: width 0.4s ease;"></span>
+                    </span>
+                </p>
                 <div class="filter-bar" style="margin-bottom:8px; flex-shrink:0;">
                     <input type="text" id="pl-detail-search" class="search-input"
                         placeholder="Buscar cancion en esta playlist...">
@@ -439,7 +452,7 @@ function showPlaylistDetailModal(p) {
                             <th style="width:4%; text-align:center;">#</th>
                             <th style="width:45%; text-align:left;">Titulo</th>
                             <th style="width:12%; text-align:left;">Artista</th>
-                            <th style="width:20%; text-align:center;">Album</th>
+                            <th style="width:20%; text-align:center;" title="Indica si la canción está en tu biblioteca local (Mi Música)">¿En Mi Música?</th>
                             <th style="width:8%; text-align:center;">Duracion</th>
                             <th style="width:4%; text-align:center;">Ir</th>
                         </tr></thead>
@@ -454,7 +467,22 @@ function showPlaylistDetailModal(p) {
 
     // Guardar tracks para el filtro
     window._playlistDetailTracks = p.tracks || [];
-    renderPlaylistDetailRows(p.tracks || []);
+    // v3.28: guardar playlist_id para matches manuales
+    window._currentPlaylistId = p.id || '';
+
+    // v3.17: construir índice de títulos locales desde /api/last-scan
+    // para marcar cuáles canciones de la playlist están en Mi Música.
+    // Se hace en paralelo al render para no demorar la apertura del modal.
+    // v3.28: también cargar matches manuales
+    Promise.all([
+        buildLocalTitleIndex(),
+        loadManualMatches(p.id || ''),
+    ]).then(() => {
+        renderPlaylistDetailRows(p.tracks || []);
+        updateDownloadedCount(p.tracks || [], p.track_count);
+    }).catch(() => {
+        renderPlaylistDetailRows(p.tracks || []);
+    });
 
     // Buscador
     document.getElementById('pl-detail-search').addEventListener('input', (e) => {
@@ -463,7 +491,183 @@ function showPlaylistDetailModal(p) {
             (t.title + ' ' + t.artist + ' ' + (t.album || '')).toLowerCase().includes(q)
         );
         renderPlaylistDetailRows(filtered);
+        // v3.17: actualizar contador solo con las filtradas
+        updateDownloadedCount(filtered, p.track_count);
     });
+}
+
+// v3.17: cuenta cuántas canciones de la playlist están en Mi Música
+// y actualiza el contador + barra de progreso del modal.
+function updateDownloadedCount(tracks, totalCount) {
+    const countEl = document.getElementById('pl-detail-downloaded-count');
+    const infoEl = document.getElementById('pl-detail-downloaded-info');
+    const barEl = document.getElementById('pl-detail-downloaded-bar');
+    if (!countEl || !infoEl) return;
+
+    // Si no hay índice local, no mostrar el contador
+    if (_localTitleIndex === null) {
+        infoEl.style.display = 'none';
+        return;
+    }
+
+    let downloaded = 0;
+    for (const t of tracks) {
+        // v3.24: usar variantes para contar correctamente
+        const trackVariants = _expandTitleVariants(t.title || '', t.artist || '');
+        let found = false;
+        for (const v of trackVariants) {
+            if (_localTitleIndex.has(v)) {
+                found = true;
+                break;
+            }
+        }
+        // v3.28: también contar matches manuales
+        if (!found && _isManuallyMatched(t.title || '')) {
+            found = true;
+        }
+        if (found) downloaded++;
+    }
+    countEl.textContent = downloaded;
+    infoEl.style.display = 'block';
+    // Barra de progreso
+    if (barEl) {
+        const pct = totalCount > 0 ? Math.round((downloaded / totalCount) * 100) : 0;
+        // Usar setTimeout para que la transición CSS se vea
+        setTimeout(() => { barEl.style.width = pct + '%'; }, 50);
+    }
+    // Color del count: verde si todas, naranja si faltan, rojo si 0
+    if (downloaded === totalCount) {
+        countEl.style.color = 'var(--accent)';
+    } else if (downloaded === 0) {
+        countEl.style.color = 'var(--danger)';
+    } else {
+        countEl.style.color = 'var(--warning)';
+    }
+}
+
+// v3.17: construye un Set de títulos normalizados de la música local
+// para responder rápido "¿esta canción está en Mi Música?".
+let _localTitleIndex = null;
+async function buildLocalTitleIndex() {
+    if (_localTitleIndex !== null) return; // ya construido
+    try {
+        const data = await getJSON('/api/last-scan');
+        const files = data.files || [];
+        _localTitleIndex = new Set();
+        for (const f of files) {
+            // v3.24: añadir todas las variantes del nombre al índice
+            const variants = _expandTitleVariants(f.name || '', f.artist || '');
+            for (const v of variants) {
+                if (v) _localTitleIndex.add(v);
+            }
+        }
+    } catch (e) {
+        _localTitleIndex = new Set(); // vacío si falla
+    }
+}
+
+function _normalizeTitle(s) {
+    if (!s) return '';
+    return s.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // quitar acentos
+        .replace(/\([^)]*\)/g, '')        // quitar paréntesis
+        .replace(/\[[^]]*\]/g, '')        // quitar corchetes
+        .replace(/\b(feat|ft)\b\.?/g, '') // quitar feat/ft
+        .replace(/\s*-\s*topic\s*$/i, '') // v3.25: quitar "- Topic" de YT Music
+        // v3.25: mantener letras de todos los idiomas con \p{L} (Unicode property escapes)
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ') // quitar todo excepto letras Unicode, números y espacios
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// v3.24: genera todas las variantes normalizadas de un nombre
+// para que "Artist - Title" coincida con "Title" y viceversa
+function _expandTitleVariants(name, artist) {
+    const variants = new Set();
+    if (!name) return variants;
+    const norm = _normalizeTitle(name);
+    if (norm) variants.add(norm);
+    // Si el nombre contiene " - ", dividir y añadir cada parte
+    if (name.indexOf(' - ') >= 0) {
+        const parts = name.split(' - ');
+        for (const part of parts) {
+            const n = _normalizeTitle(part);
+            if (n) variants.add(n);
+        }
+    }
+    // Si hay artist, generar combinaciones
+    if (artist) {
+        const normA = _normalizeTitle(artist);
+        if (normA && norm.indexOf(normA) < 0) {
+            variants.add((norm + ' ' + normA).trim());
+            variants.add((normA + ' ' + norm).trim());
+        }
+    }
+    return variants;
+}
+
+// v3.28: Matches manuales para canciones que la comparación automática no detecta
+let _manualMatches = {}; // { title_norm: match_info }
+
+async function loadManualMatches(playlistId) {
+    if (!playlistId) return;
+    try {
+        const data = await getJSON('/api/manual-match/list/' + playlistId);
+        _manualMatches = data.matches || {};
+    } catch (e) {
+        _manualMatches = {};
+    }
+}
+
+function _isManuallyMatched(title) {
+    if (!_manualMatches) return false;
+    const norm = _normalizeTitle(title);
+    return _manualMatches.hasOwnProperty(norm);
+}
+
+async function toggleManualMatch(track, isCurrentlyMatched) {
+    const playlistId = window._currentPlaylistId;
+    if (!playlistId) {
+        showToast('Error: no hay playlist activa.', 'error');
+        return;
+    }
+    const action = isCurrentlyMatched ? 'remove' : 'add';
+    const confirmMsg = isCurrentlyMatched
+        ? `¿Desmarcar "${track.title}" como descargada?\n\nSe volverá a mostrar como ✗ (no en Mi Música).`
+        : `¿Marcar "${track.title}" como descargada?\n\nSe mostrará como ✓ (en Mi Música) aunque la comparación automática no la detecte.`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const data = await postJSON('/api/manual-match/' + action, {
+            playlist_id: playlistId,
+            track_title: track.title,
+            track_artist: track.artist || '',
+        });
+        if (data.success !== undefined) {
+            // Actualizar cache local
+            const norm = _normalizeTitle(track.title);
+            if (action === 'add') {
+                _manualMatches[norm] = true;
+            } else {
+                delete _manualMatches[norm];
+            }
+            // Re-renderizar (v3.33: await porque es async)
+            const tracks = window._playlistDetailTracks || [];
+            const searchInput = document.getElementById('pl-detail-search');
+            const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const filtered = q ? tracks.filter(t =>
+                (t.title + ' ' + t.artist + ' ' + (t.album || '')).toLowerCase().includes(q)
+            ) : tracks;
+            await renderPlaylistDetailRows(filtered);
+            updateDownloadedCount(filtered, tracks.length);
+            showToast(action === 'add' ? 'Marcada como descargada.' : 'Desmarcada.', 'success');
+        } else {
+            showToast('Error: ' + (data.error || 'desconocido'), 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
 }
 
 function renderPlaylistDetailRows(tracks) {
@@ -484,17 +688,60 @@ function renderPlaylistDetailRows(tracks) {
             ? `<a href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="Abrir" style="color:var(--accent); text-decoration:none;">${platformLabel}</a>`
             : '—';
 
+        // v3.17: determinar si la canción está en Mi Música
+        // v3.24: usar variantes para que "Artist - Title" coincida con "Title"
+        // v3.28: también verificar matches manuales
+        const trackVariants = _expandTitleVariants(t.title || '', t.artist || '');
+        let isInLocal = false;
+        if (_localTitleIndex) {
+            for (const v of trackVariants) {
+                if (_localTitleIndex.has(v)) {
+                    isInLocal = true;
+                    break;
+                }
+            }
+        }
+        // v3.28: si no está detectado automáticamente, verificar match manual
+        const isManual = _isManuallyMatched(t.title || '');
+        if (isManual) isInLocal = true;
+
+        // v3.28: badge clickeable para toggle manual
+        // v3.34: usar encodeURIComponent en vez de escapeHtml para data-* attributes
+        // porque escapeHtml convierte " a &quot; que puede truncar el atributo
+        const badgeTitle = isInLocal ? 'Sí está en tu biblioteca local (clic para desmarcar)' : 'No está en tu biblioteca local (clic para marcar manualmente)';
+        const localBadge = _localTitleIndex === null
+            ? '<span style="color:var(--text-muted); font-size:11px;">—</span>'
+            : (isInLocal
+                ? `<span class="badge-toggle" style="color:var(--accent); font-size:16px; cursor:pointer;" title="${badgeTitle}" data-title="${encodeURIComponent(t.title || '')}" data-artist="${encodeURIComponent(t.artist || '')}" data-matched="true">✓</span>`
+                : `<span class="badge-toggle" style="color:var(--danger); font-size:16px; cursor:pointer;" title="${badgeTitle}" data-title="${encodeURIComponent(t.title || '')}" data-artist="${encodeURIComponent(t.artist || '')}" data-matched="false">✗</span>`);
+
         tr.innerHTML = `
             <td>${i + 1}</td>
             <td style="text-align:left;"><strong>${escapeHtml(t.title)}</strong></td>
             <td>${escapeHtml(t.artist)}</td>
-            <td style="text-align:center;">${escapeHtml(t.album || '—')}</td>
+            <td style="text-align:center; font-size:14px;">${localBadge}</td>
             <td style="text-align:center;">${formatDuration(t.duration)}</td>
             <td style="text-align:center;">${link}</td>
         `;
         tbody.appendChild(tr);
     });
+
+    // v3.31: event delegation en el tbody para badges ✓/✗
+    // v3.34: usar decodeURIComponent para leer data-* attributes
+    tbody.onclick = function(e) {
+        const span = e.target.closest('.badge-toggle');
+        if (!span) return;
+        e.stopPropagation();
+        const track = {
+            title: decodeURIComponent(span.dataset.title || ''),
+            artist: decodeURIComponent(span.dataset.artist || ''),
+        };
+        const isMatched = span.dataset.matched === 'true';
+        toggleManualMatch(track, isMatched);
+    };
 }
+
+// v3.30/v3.31: handler global eliminado, ahora usa event delegation directo
 
 function formatDuration(seconds) {
     if (!seconds || seconds <= 0) return '0:00';
