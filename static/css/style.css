@@ -62,6 +62,11 @@ body {
     padding: 0 20px;
     gap: 24px;
     flex-shrink: 0;
+    /* v3.6-ui: visible explicito para que los dropdowns de los grupos
+       no se clipeen al caer debajo del topbar. */
+    overflow: visible;
+    position: relative;
+    z-index: 100;
 }
 
 .topbar-left {
@@ -87,7 +92,12 @@ body {
     align-items: center;
     gap: 2px;
     flex: 1;
-    overflow-x: auto;
+    /* v3.6-ui: overflow-y visible (necesario para que los dropdowns
+       se vean debajo del topbar). overflow-x auto clipeaba el eje Y
+       tambien. Si en pantallas chicas se necesita scroll horizontal,
+       el usuario puede hacer scroll en la pagina; el dropdown siempre
+       tiene prioridad. */
+    overflow: visible;
 }
 
 .tab {
@@ -2849,4 +2859,491 @@ details summary:hover {
     background: rgba(29, 185, 84, 0.15);
     color: var(--accent-hover);
     border: 1px solid var(--accent);
+}
+
+/* ============================================================
+   v3.6-ui: TOPBAR CON GRUPOS DESPLEGABLES
+   ============================================================
+   Estilos para el menú generado dinámicamente desde tabs_config.py.
+   Se añaden DESPUÉS del CSS existente para no romper las reglas
+   previas del topbar.
+   ============================================================ */
+
+/* Grupo desplegable (contenedor del botón + dropdown) */
+.tab-group {
+    position: relative;
+    display: inline-flex;
+}
+
+/* Botón que abre el grupo (mismo look que .tab para consistencia) */
+.tab-group-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #b3b3b3);
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tab-group-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text, #fff);
+}
+
+/* Caret (▼) que indica que es desplegable */
+.tab-caret {
+    font-size: 10px;
+    opacity: 0.7;
+    transition: transform 0.2s;
+}
+
+.tab-group.open .tab-caret {
+    transform: rotate(180deg);
+}
+
+/* El grupo completo se marca activo cuando una de sus subpestañas está activa */
+.tab-group.active > .tab-group-btn {
+    color: var(--accent, #1db954);
+}
+
+.tab-group.active > .tab-group-btn .tab-caret {
+    opacity: 1;
+}
+
+/* Dropdown: menú vertical que aparece al hacer click */
+.tab-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    background: var(--bg-elevated, #282828);
+    border: 1px solid var(--border, #3a3a3a);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    /* z-index alto: por encima del topbar (z-index:100) y del main */
+    z-index: 1000;
+    padding: 4px 0;
+    /* Animación suave de entrada */
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.tab-group.open .tab-dropdown {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Item dentro del dropdown (mantiene look tipo "tab" pero vertical) */
+.tab-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    color: var(--text-muted, #b3b3b3);
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s;
+}
+
+.tab-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text, #fff);
+}
+
+.tab-dropdown-item.active {
+    color: var(--accent, #1db954);
+    background: rgba(29, 185, 84, 0.1);
+    /* Barra lateral izquierda para indicar activo */
+    box-shadow: inset 3px 0 0 var(--accent, #1db954);
+}
+
+.tab-dropdown-item .tab-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* ============================================================
+   RESPONSIVE: en pantallas angostas, el topbar se vuelve
+   desplazable horizontalmente (igual que antes) y el dropdown
+   se ajusta para no salirse de la pantalla.
+   ============================================================ */
+@media (max-width: 768px) {
+    .tab-label {
+        display: none;  /* en móvil solo iconos para ahorrar espacio */
+    }
+    .tab-group-btn .tab-label {
+        display: none;
+    }
+    .tab-dropdown {
+        min-width: 180px;
+    }
+    .tab-dropdown-item .tab-label {
+        display: inline;  /* en el dropdown sí se ve el nombre */
+    }
+}
+
+/* En pantallas muy angostas, los dropdowns se alinean a la derecha
+   del grupo para no salirse por la izquierda */
+@media (max-width: 480px) {
+    .tab-dropdown {
+        left: auto;
+        right: 0;
+    }
+}
+
+/* ============================================================
+   v3.7-sync: SINCRONIZAR CARPETAS
+   ============================================================
+   Píldoras de colores para cada tipo de cambio + layout de
+   la tabla y modales.
+   ============================================================ */
+
+/* ---- Píldoras (badges) de tipos de cambio ---- */
+.sync-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.sync-pill-add {
+    background: rgba(29, 185, 84, 0.15);
+    color: var(--accent, #1db954);
+    border-color: rgba(29, 185, 84, 0.4);
+}
+
+.sync-pill-delete {
+    background: rgba(220, 50, 47, 0.15);
+    color: #e74c3c;
+    border-color: rgba(220, 50, 47, 0.4);
+}
+
+.sync-pill-move {
+    background: rgba(241, 196, 15, 0.15);
+    color: #f1c40f;
+    border-color: rgba(241, 196, 15, 0.4);
+}
+
+.sync-pill-metadata {
+    background: rgba(52, 152, 219, 0.15);
+    color: #3498db;
+    border-color: rgba(52, 152, 219, 0.4);
+}
+
+/* ---- Filtros tipo pill (checkboxes con pildora visual) ---- */
+.sync-pill-filter {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sync-pill-filter input[type=checkbox] {
+    display: none;
+}
+
+.sync-pill-filter input[type=checkbox]:not(:checked) + .sync-pill {
+    opacity: 0.35;
+    filter: grayscale(0.6);
+}
+
+.sync-filter-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sync-filter-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+
+/* ---- Opciones (checkboxes con texto) ---- */
+.sync-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.sync-option input[type=checkbox] {
+    margin: 0;
+}
+
+/* ---- Tabla de cambios ---- */
+.sync-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.sync-table .sync-path,
+.sync-table .sync-detail {
+    font-size: 11px;
+    color: var(--text-muted);
+    word-break: break-all;
+    max-width: 280px;
+}
+
+.sync-table .sync-detail em {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Filas coloreadas por tipo */
+.sync-row-add      { border-left: 3px solid var(--accent, #1db954); }
+.sync-row-delete   { border-left: 3px solid #e74c3c; }
+.sync-row-move     { border-left: 3px solid #f1c40f; }
+.sync-row-metadata { border-left: 3px solid #3498db; }
+
+.sync-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ---- Resumen pre-aplicar ---- */
+.sync-summary {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg-card, #1f1f1f);
+    border: 1px solid var(--border, #3a3a3a);
+    border-radius: 8px;
+}
+
+.sync-summary h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.sync-summary-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.sync-summary-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sync-apply-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #3a3a3a);
+}
+
+/* ---- Botón danger (aplicar cambios) ---- */
+.btn-danger {
+    background: var(--accent, #1db954) !important;
+    color: #fff !important;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background: var(--accent-hover, #1ed760) !important;
+}
+
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---- Modales ---- */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--bg-elevated, #282828);
+    border: 1px solid var(--border, #3a3a3a);
+    border-radius: 10px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border, #3a3a3a);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 16px 20px;
+}
+
+.modal-body ul {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.modal-body li {
+    margin: 4px 0;
+    color: var(--text-secondary);
+}
+
+.sync-warn {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(241, 196, 15, 0.1);
+    border-left: 3px solid #f1c40f;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border, #3a3a3a);
+}
+
+/* ---- Resultado ---- */
+.sync-result-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.sync-result-stat {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.sync-result-stat.ok {
+    background: rgba(29, 185, 84, 0.1);
+    color: var(--accent, #1db954);
+}
+
+.sync-result-stat.warn {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+}
+
+.sync-result-stat.err {
+    background: rgba(220, 50, 47, 0.1);
+    color: #e74c3c;
+}
+
+.sync-result-details {
+    margin-top: 16px;
+    max-height: 320px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.sync-result-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sync-detail-ok   { color: var(--text-secondary); }
+.sync-detail-err  { color: #e74c3c; }
+.sync-detail-skip { color: var(--text-muted); }
+
+.sync-result-icon {
+    width: 14px;
+    font-weight: bold;
+}
+
+.sync-result-type {
+    flex-shrink: 0;
+}
+
+.sync-result-title {
+    flex: 1;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+
+.sync-result-msg {
+    flex: 2;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+    .sync-table .sync-path,
+    .sync-table .sync-detail {
+        max-width: 120px;
+    }
+    .sync-summary-grid {
+        gap: 12px;
+    }
+    .sync-apply-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }

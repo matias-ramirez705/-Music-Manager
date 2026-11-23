@@ -60,7 +60,15 @@ def _get_first_tag(mutagen_file, possible_keys):
     if mutagen_file is None:
         return None
     for key in possible_keys:
-        if key in mutagen_file:
+        # v3.7-sync: en FLAC easy=True, 'in' puede lanzar ValueError
+        # para claves exoticas como '\xa9nam' (MP4) o 'Name'. Lo
+        # envolvemos para que continue con la siguiente clave en vez
+        # de abortar todo el read_metadata().
+        try:
+            has_key = key in mutagen_file
+        except (ValueError, KeyError):
+            continue
+        if has_key:
             value = mutagen_file[key]
             # Algunos tags son listas (FLAC, MP4), otros son strings (MP3)
             if isinstance(value, list) and len(value) > 0:

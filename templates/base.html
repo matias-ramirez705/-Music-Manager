@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Manager</title>
     <!-- Favicon: nota musical sobre fondo verde -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=211">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=211">
-    <!-- Cache-busting: el ?v=211 fuerza al navegador a cargar fresco -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=211">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=214">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=214">
+    <!-- Cache-busting: el ?v=214 fuerza al navegador a cargar fresco -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=214">
 </head>
 <body>
     <!-- ============================================
-         BARRA SUPERIOR - Logo + Pestañas horizontales
+         BARRA SUPERIOR - Logo + Pestañas agrupadas
+         (v3.6-ui: menú generado desde app/tabs_config.py)
          ============================================ -->
     <header class="topbar">
         <div class="topbar-left">
@@ -20,42 +21,36 @@
             <span class="logo-text">Music Manager</span>
         </div>
         <nav class="topbar-nav">
-            <a href="/" class="tab {{ 'active' if active_tab == 'local' else '' }}">
-                <span class="tab-icon">♪</span><span class="tab-label">Mi Música</span>
+            {# ── Pestañas directas (sin grupo) ──────────────────────── #}
+            {% for t in mm_direct_tabs %}
+            <a href="{{ t.url }}" class="tab {{ 'active' if active_tab == t.id else '' }}">
+                <span class="tab-icon">{{ t.icon }}</span>
+                <span class="tab-label">{{ t.label }}</span>
             </a>
-            <a href="/duplicates" class="tab {{ 'active' if active_tab == 'duplicates' else '' }}">
-                <span class="tab-icon">⧉</span><span class="tab-label">Duplicados</span>
-            </a>
-            <a href="/saved" class="tab {{ 'active' if active_tab == 'saved' else '' }}">
-                <span class="tab-icon">★</span><span class="tab-label">Playlists Guardadas</span>
-            </a>
-            <a href="/compare" class="tab {{ 'active' if active_tab == 'compare' else '' }}">
-                <span class="tab-icon">⇄</span><span class="tab-label">Comparar Playlist</span>
-            </a>
-            <a href="/editor" class="tab {{ 'active' if active_tab == 'editor' else '' }}">
-                <span class="tab-icon">✎</span><span class="tab-label">Metadatos</span>
-            </a>
-            <a href="/organize" class="tab {{ 'active' if active_tab == 'organize' else '' }}">
-                <span class="tab-icon">📁</span><span class="tab-label">Organizar</span>
-            </a>
-            <a href="/downloads" class="tab {{ 'active' if active_tab == 'downloads' else '' }}">
-                <span class="tab-icon">⬇</span><span class="tab-label">Descargas FLAC</span>
-            </a>
-            <a href="/deleted" class="tab {{ 'active' if active_tab == 'deleted' else '' }}">
-                <span class="tab-icon">🗑</span><span class="tab-label">Eliminados</span>
-            </a>
-            <a href="/folder-compare" class="tab {{ 'active' if active_tab == 'folder-compare' else '' }}">
-                <span class="tab-icon">⇄</span><span class="tab-label">Comparar Carpetas</span>
-            </a>
-            <a href="/spotiflac" class="tab {{ 'active' if active_tab == 'spotiflac' else '' }}">
-                <span class="tab-icon">📦</span><span class="tab-label">Spotiflac</span>
-            </a>
-            <a href="/m3u-hiby" class="tab {{ 'active' if active_tab == 'm3u-hiby' else '' }}">
-                <span class="tab-icon">🎵</span><span class="tab-label">M3U Hiby</span>
-            </a>
+            {% endfor %}
+
+            {# ── Grupos desplegables ───────────────────────────────── #}
+            {% for group in mm_group_names %}
+            <div class="tab-group {{ 'active' if active_tab in mm_group_tabs[group]|map(attribute='id')|list else '' }}">
+                <button class="tab-group-btn" type="button" aria-expanded="false">
+                    {% set group_tabs = mm_group_tabs[group] %}
+                    <span class="tab-icon">{% if group == 'Biblioteca' %}📚{% elif group == 'Playlists' %}🎧{% elif group == 'Metadatos' %}✎{% elif group == 'Herramientas' %}🧰{% else %}☰{% endif %}</span>
+                    <span class="tab-label">{{ group }}</span>
+                    <span class="tab-caret">▾</span>
+                </button>
+                <div class="tab-dropdown" role="menu">
+                    {% for t in group_tabs %}
+                    <a href="{{ t.url }}" class="tab-dropdown-item {{ 'active' if active_tab == t.id else '' }}">
+                        <span class="tab-icon">{{ t.icon }}</span>
+                        <span class="tab-label">{{ t.label }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
         </nav>
         <div class="topbar-right">
-            <span class="version-tag">v3.5-exe</span>
+            <span class="version-tag">v3.7-sync</span>
         </div>
     </header>
 
@@ -100,8 +95,9 @@
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=211"></script>
-    <script src="{{ url_for('static', filename='js/player.js') }}?v=211"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=214"></script>
+    <script src="{{ url_for('static', filename='js/topbar.js') }}?v=214"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=214"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

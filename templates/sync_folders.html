@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================
+     PESTANA: SINCRONIZAR CARPETAS (v3.7-sync)
+     Sincroniza carpeta A (origen, ej: PC) → B (destino, ej: Hiby R1).
+     Detecta 4 tipos de cambios: add, delete, move, metadata.
+     ============================================ -->
+<section class="page">
+    <header class="page-header">
+        <h1>Sincronizar Carpetas</h1>
+        <p class="subtitle">
+            Sincroniza tu música del PC (carpeta A) con tu DAP u otra carpeta (B).
+            Detecta canciones nuevas para copiar, canciones que ya no están para borrar,
+            canciones movidas de carpeta y cambios en metadatos o carátulas.
+            El PC es la fuente de verdad: todo cambio en A se reflejará en B.
+        </p>
+    </header>
+
+    <!-- Selector de carpetas -->
+    <div class="folder-picker">
+        <input type="text" id="sync-folder-a" placeholder="Carpeta A (origen, ej: PC): C:\Users\TU\Music"
+               class="folder-input">
+        <button id="sync-browse-a" class="btn btn-secondary">Explorar A</button>
+    </div>
+    <div class="folder-picker" style="margin-top:8px;">
+        <input type="text" id="sync-folder-b" placeholder="Carpeta B (destino, ej: Hiby R1): E:\Music"
+               class="folder-input">
+        <button id="sync-browse-b" class="btn btn-secondary">Explorar B</button>
+    </div>
+
+    <!-- Opciones de análisis -->
+    <div class="folder-picker" style="margin-top:8px; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <button id="sync-analyze" class="btn btn-primary">🔄 Analizar cambios</button>
+        <button id="sync-clear" class="btn btn-ghost">✕ Limpiar</button>
+        <span style="flex:1"></span>
+        <label class="sync-option">
+            <input type="checkbox" id="sync-opt-metadata" checked>
+            <span>Comparar metadatos (tags)</span>
+        </label>
+        <label class="sync-option">
+            <input type="checkbox" id="sync-opt-artwork" checked>
+            <span>Comparar carátulas</span>
+        </label>
+        <label class="sync-option">
+            <input type="checkbox" id="sync-opt-moves" checked>
+            <span>Detectar movimientos</span>
+        </label>
+    </div>
+
+    <!-- Stats con totales por tipo -->
+    <div id="sync-stats" class="stats-bar hidden">
+        <div class="stat">
+            <span class="stat-label">A (origen)</span>
+            <span class="stat-value" id="sync-stat-a-total">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">B (destino)</span>
+            <span class="stat-value" id="sync-stat-b-total">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">A copiar</span>
+            <span class="stat-value" id="sync-stat-add" style="color: var(--accent);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">A borrar</span>
+            <span class="stat-value" id="sync-stat-delete" style="color: var(--danger);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">A mover</span>
+            <span class="stat-value" id="sync-stat-move" style="color: var(--warning);">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">A actualizar</span>
+            <span class="stat-value" id="sync-stat-metadata" style="color: var(--info);">0</span>
+        </div>
+    </div>
+
+    <!-- Filtros y selección -->
+    <div id="sync-filters" class="filter-bar hidden">
+        <input type="text" id="sync-search" class="search-input" placeholder="Buscar canción/artista/ruta...">
+
+        <span class="sync-filter-group">
+            <span class="sync-filter-label">Tipo:</span>
+            <label class="sync-pill-filter">
+                <input type="checkbox" data-filter="add" checked>
+                <span class="sync-pill sync-pill-add">+ Copiar</span>
+            </label>
+            <label class="sync-pill-filter">
+                <input type="checkbox" data-filter="delete" checked>
+                <span class="sync-pill sync-pill-delete">− Borrar</span>
+            </label>
+            <label class="sync-pill-filter">
+                <input type="checkbox" data-filter="move" checked>
+                <span class="sync-pill sync-pill-move">→ Mover</span>
+            </label>
+            <label class="sync-pill-filter">
+                <input type="checkbox" data-filter="metadata" checked>
+                <span class="sync-pill sync-pill-metadata">✎ Metadatos</span>
+            </label>
+        </span>
+
+        <span style="flex:1"></span>
+
+        <button id="sync-select-all" class="btn btn-secondary btn-sm">Marcar todos</button>
+        <button id="sync-select-none" class="btn btn-secondary btn-sm">Desmarcar todos</button>
+        <button id="sync-select-add" class="btn btn-secondary btn-sm" title="Marcar solo Copiar">Solo +</button>
+        <button id="sync-select-del" class="btn btn-secondary btn-sm" title="Marcar solo Borrar">Solo −</button>
+    </div>
+
+    <!-- Tabla de cambios -->
+    <div id="sync-results" class="hidden">
+        <div class="table-container">
+            <table class="music-table sync-table">
+                <thead>
+                    <tr>
+                        <th style="width:30px;"><input type="checkbox" id="sync-check-all" checked></th>
+                        <th style="width:130px;">Acción</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th style="width:90px;">Formato</th>
+                        <th style="width:80px;">Duración</th>
+                        <th>Ruta en A</th>
+                        <th>Ruta en B</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody id="sync-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- Resumen antes de aplicar -->
+        <div id="sync-summary" class="sync-summary hidden">
+            <h3>Resumen de cambios</h3>
+            <div class="sync-summary-grid">
+                <div class="sync-summary-item">
+                    <span class="sync-pill sync-pill-add">+ Copiar</span>
+                    <span id="sync-sum-add">0</span>
+                </div>
+                <div class="sync-summary-item">
+                    <span class="sync-pill sync-pill-delete">− Borrar</span>
+                    <span id="sync-sum-delete">0</span>
+                </div>
+                <div class="sync-summary-item">
+                    <span class="sync-pill sync-pill-move">→ Mover</span>
+                    <span id="sync-sum-move">0</span>
+                </div>
+                <div class="sync-summary-item">
+                    <span class="sync-pill sync-pill-metadata">✎ Metadatos</span>
+                    <span id="sync-sum-metadata">0</span>
+                </div>
+            </div>
+            <div class="sync-apply-bar">
+                <label class="sync-option">
+                    <input type="checkbox" id="sync-opt-trash" checked>
+                    <span>Borrar a papelera (recomendado)</span>
+                </label>
+                <label class="sync-option">
+                    <input type="checkbox" id="sync-opt-overwrite" checked>
+                    <span>Sobreescribir si existe</span>
+                </label>
+                <span style="flex:1"></span>
+                <button id="sync-apply" class="btn btn-primary btn-danger">✓ Aplicar cambios seleccionados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="sync-empty" class="empty-state">
+        <div class="empty-icon">🔄</div>
+        <h3>Sin análisis</h3>
+        <p>Indica las dos carpetas arriba y haz clic en "Analizar cambios".</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+            El análisis solo lee archivos. No se modificará nada hasta que confirmes.
+        </p>
+    </div>
+
+    <!-- Loading -->
+    <div id="sync-loading" class="empty-state hidden">
+        <div class="spinner"></div>
+        <h3>Analizando carpetas...</h3>
+        <p>Esto puede tardar según cuántas canciones haya en cada una.</p>
+    </div>
+
+    <!-- Modal de confirmación final -->
+    <div id="sync-confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar sincronización</h3>
+                <button id="sync-confirm-close" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>Se aplicarán los siguientes cambios en <strong id="sync-confirm-folder-b">—</strong>:</p>
+                <ul id="sync-confirm-list"></ul>
+                <p class="sync-warn" id="sync-confirm-warn"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="sync-confirm-cancel" class="btn btn-ghost">Cancelar</button>
+                <button id="sync-confirm-ok" class="btn btn-primary btn-danger">Aplicar ahora</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de resultado -->
+    <div id="sync-result-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Resultado de la sincronización</h3>
+                <button id="sync-result-close" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="sync-result-summary"></div>
+                <div id="sync-result-details" class="sync-result-details"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="sync-result-ok" class="btn btn-primary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sync_folders.js') }}?v=214"></script>
+{% endblock %}

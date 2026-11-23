@@ -1,4 +1,4 @@
-# Music Manager v3.5-exe
+# Music Manager v3.7-sync
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
@@ -7,7 +7,47 @@ generar playlists M3U para el Hiby R1, buscar canciones en playlists
 guardadas, marcar matches manuales, guardar accesos directos a playlists,
 detectar duplicados, reproducir canciones, editar metadata + caratulas +
 letras masivamente, ver canciones eliminadas, organizar por carpetas,
-acceder a un indice de sitios para descargar musica FLAC.
+acceder a un indice de sitios para descargar musica FLAC,
+**sincronizar carpetas A → B** (copia, borrar, mover, actualizar metadatos).
+
+## Novedades en v3.7-sync
+
+- **Nueva pestaña "Sincronizar Carpetas"** (grupo Biblioteca): sincroniza tu
+  música del PC (carpeta A) con tu DAP u otra carpeta (B). Detecta:
+  - **+ Copiar**: canciones nuevas en A que faltan en B
+  - **− Borrar**: canciones en B que ya no están en A
+  - **→ Mover**: canciones presentes en ambos pero en distintas carpetas
+  - **✎ Metadatos**: canciones presentes en ambos pero con tags distintos
+    (título/artista/álbum/año/género/pista) o carátula distinta
+- **Flujo de 3 pasos**: (1) Analizar (solo lectura, no toca nada) → (2)
+  Revisar tabla con píldoras de colores y selección por checkbox → (3)
+  Confirmar con modal de resumen y aplicar.
+- **Píldoras de colores**: cada tipo de cambio tiene su color distintivo
+  (verde copiar, rojo borrar, amarillo mover, azul metadatos) tanto en
+  filtros como en filas y resumen.
+- **Papelera por defecto**: los borrados van a la papelera de reciclaje
+  (configurable), no se borran definitivamente.
+- **Nuevo módulo `app/sync_folders.py`**: `preview_sync()` genera el plan,
+  `apply_sync()` lo ejecuta. El matching es por (título+artista)
+  normalizado, igual que `folder_compare.py`.
+- **Bugfix en `metadata_reader._get_first_tag`**: en FLAC easy=True,
+  mutagen lanzaba `ValueError` al probar claves exóticas como `©nam`
+  (MP4). Ahora se envuelve en try-except y continúa con la siguiente
+  clave. Sin este fix, la detección de cambios de metadatos fallaba en
+  archivos FLAC.
+
+## Novedades en v3.6-ui
+
+- **Topbar con grupos desplegables**: las 11 pestañas planas se agrupan en
+  5 botones (Mi Música directo + 4 grupos: Biblioteca, Playlists, Metadatos,
+  Herramientas). El menú se genera dinámicamente desde `app/tabs_config.py`.
+- **`app/tabs_config.py`**: registro central de pestañas y subpestañas.
+  Agregar / reordenar / ocultar / reagrupar se hace editando solo este archivo
+  (sin tocar web_app.py ni base.html). Las rutas Flask se registran solas.
+- **CSS responsive**: en pantallas angostas los labels se ocultan (solo iconos)
+  y los dropdowns se alinean a la derecha para no salirse.
+- **`static/js/topbar.js`**: lógica mínima para abrir/cerrar los dropdowns
+  (click, click fuera, Esc).
 
 ## Novedades en v3.5-exe
 

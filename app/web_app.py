@@ -79,6 +79,8 @@ from deleted_songs import (
     remove_deleted_by_title,
 )
 from folder_compare import compare_folders
+# v3.7-sync: Sincronización bidireccional A → B (copia/borra/mueve/actualiza)
+from sync_folders import preview_sync, apply_sync
 from spotiflac_dummy import (
     preview_generation, generate_dummy_zip,
     get_history as get_dummy_history, clear_history as clear_dummy_history,
@@ -116,64 +118,52 @@ def create_app():
     )
 
     # ==================================================================
-    # RUTAS DE PAGINAS
+    # RUTAS DE PAGINAS (registradas automáticamente desde tabs_config.py)
     # ==================================================================
+    # v3.6-ui: El orden, nombre y grupo de las pestañas vive en
+    # app/tabs_config.py. Aquí solo recorremos ese registro y registramos
+    # cada ruta apuntando a su template. Las subpestañas internas (Metadatos)
+    # se manejan vía ?sub=<id> en una misma ruta.
+    # ==================================================================
+    from tabs_config import get_visible_tabs
 
-    @app.route('/')
-    def index():
-        """Pestaña 1: Lista de musica local."""
-        return render_template('index.html', active_tab='local')
+    def _make_page_handler(tab):
+        """Crea el handler de una ruta de página según la configuración
+        de la pestaña. Soporta subpestañas internas (?sub=<id>)."""
+        def handler():
+            kwargs = {'active_tab': tab.id}
+            # Si la pestaña tiene subpestañas internas, leer el parámetro
+            # de la URL y pasarlo al template. Por defecto, la primera.
+            if tab.sub_tabs and tab.sub_param:
+                sub = request.args.get(tab.sub_param, tab.sub_tabs[0].id)
+                kwargs[tab.sub_param + '_tab'] = sub
+            return render_template(tab.template, **kwargs)
+        handler.__name__ = f'page_{tab.id.replace("-", "_")}'
+        return handler
 
-    @app.route('/duplicates')
-    def duplicates():
-        """Pestaña: Duplicados."""
-        return render_template('duplicates.html', active_tab='duplicates')
+    for tab in get_visible_tabs():
+        app.add_url_rule(tab.url, view_func=_make_page_handler(tab))
 
-    @app.route('/saved')
-    def saved():
-        """Pestaña 2: Playlists guardadas."""
-        return render_template('saved_playlists.html', active_tab='saved')
+    # ==================================================================
+    # CONTEXT PROCESSOR: inyecta la estructura del menú en TODOS los
+    # templates para que base.html arme el topbar automáticamente
+    # desde tabs_config.py (sin que cada handler tenga que pasarlo).
+    # ==================================================================
+    from tabs_config import (
+        get_direct_tabs, get_group_names, get_tabs_by_group,
+        get_tab_by_id,
+    )
 
-    @app.route('/compare')
-    def compare():
-        """Pestaña 3: Comparacion con playlist."""
-        return render_template('compare.html', active_tab='compare')
-
-    @app.route('/editor')
-    def editor():
-        """Pestaña 4: Editor de metadata (sub-pestaña individual)."""
-        sub = request.args.get('sub', 'edit')
-        return render_template('metadata_master.html', active_tab='editor', sub_tab=sub)
-
-    @app.route('/organize')
-    def organize():
-        """Pestaña 5: Organizar por playlist."""
-        return render_template('organize.html', active_tab='organize')
-
-    @app.route('/downloads')
-    def downloads():
-        """Pestaña 6: Index de sitios para descargar FLAC."""
-        return render_template('downloads.html', active_tab='downloads')
-
-    @app.route('/deleted')
-    def deleted():
-        """Pestaña 7: Canciones eliminadas del disco (detectadas)."""
-        return render_template('deleted.html', active_tab='deleted')
-
-    @app.route('/folder-compare')
-    def folder_compare():
-        """Pestaña 8: Comparar carpetas (PC vs DAP, etc.)."""
-        return render_template('folder_compare.html', active_tab='folder-compare')
-
-    @app.route('/spotiflac')
-    def spotiflac():
-        """Pestaña 9: Generador de dummies para Spotiflac."""
-        return render_template('spotiflac.html', active_tab='spotiflac')
-
-    @app.route('/m3u-hiby')
-    def m3u_hiby():
-        """Pestaña 11 (v3.22): Generador/editor de M3U para Hiby R1."""
-        return render_template('m3u_hiby.html', active_tab='m3u-hiby')
+    @app.context_processor
+    def inject_menu():
+        return {
+            'mm_direct_tabs': get_direct_tabs(),
+            'mm_group_names': get_group_names(),
+            'mm_group_tabs': {
+                g: get_tabs_by_group(g) for g in get_group_names()
+            },
+            'mm_get_tab_by_id': get_tab_by_id,
+        }
 
     # ==================================================================
     # API: ESCANEO
@@ -2032,6 +2022,77 @@ def create_app():
             return jsonify(result)
         except Exception as e:
             return jsonify({'error': f'Error al comparar: {str(e)}'}), 500
+
+    # ==================================================================
+    # API: SINCRONIZAR CARPETAS (v3.7-sync)
+    # Sincroniza carpeta A (origen, ej: PC) → B (destino, ej: Hiby R1).
+    # Detecta 4 tipos de cambios: add, delete, move, metadata.
+    # ==================================================================
+
+    @app.route('/api/sync/preview', methods=['POST'])
+    def api_sync_preview():
+        """
+        Genera un plan de sincronización A → B (NO modifica archivos).
+
+        Body JSON:
+            {
+                "folder_a": "C:\\Music",
+                "folder_b": "E:\\Hiby R1\\Music",
+                "options": {
+                    "compare_artwork": true,   # comparar carátulas
+                    "compare_metadata": true,  # comparar tags
+                    "detect_moves": true      # detectar movimientos
+                }
+            }
+
+        Returns:
+            JSON con plan: { changes: [...], stats: {...}, folder_a, folder_b, options }
+        """
+        data = request.get_json(silent=True) or {}
+        folder_a = (data.get('folder_a') or '').strip()
+        folder_b = (data.get('folder_b') or '').strip()
+        options = data.get('options') or {}
+
+        if not folder_a or not folder_b:
+            return jsonify({'error': 'Debes indicar las dos carpetas.'}), 400
+
+        try:
+            result = preview_sync(folder_a, folder_b, options)
+            if result.get('error'):
+                return jsonify({'error': result['error']}), 400
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': f'Error al generar plan: {str(e)}'}), 500
+
+    @app.route('/api/sync/apply', methods=['POST'])
+    def api_sync_apply():
+        """
+        Aplica un plan de sincronización.
+
+        Body JSON:
+            {
+                "plan": { ... },     # plan completo o filtrado por el usuario
+                "options": {
+                    "use_trash": true,           # borrados a papelera
+                    "overwrite_target": true     # sobreescribir si existe
+                }
+            }
+
+        Returns:
+            JSON con: { success, applied, skipped, errors, details }
+        """
+        data = request.get_json(silent=True) or {}
+        plan = data.get('plan')
+        options = data.get('options') or {}
+
+        if not plan or 'changes' not in plan:
+            return jsonify({'error': 'Plan inválido o vacío.'}), 400
+
+        try:
+            result = apply_sync(plan, options)
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': f'Error al aplicar: {str(e)}'}), 500
 
     # ==================================================================
     # API: SPOTIFLAC DUMMY GENERATOR (v3.16)
