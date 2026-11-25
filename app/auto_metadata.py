@@ -231,6 +231,9 @@ def _search_lastfm(title, artist='', limit=5):
         title_m = re.search(r'<a[^>]*class="link-block-target"[^>]*>([^<]+)</a>', block)
         artist_m = re.search(r'<a[^>]*>([^<]+)</a>\s*</p>', block)
         img_m = re.search(r'<img[^>]*src="(https?://[^"]+)"[^>]*>', block)
+        # v3.7.1-fix: extraer el match de track ANTES del dict (antes usaba
+        # walrus dentro de f-string, lo cual falla en Python 3.11 y anteriores).
+        track_m = re.search(r'href="(/music/[^"]+)"', block)
 
         if not title_m:
             continue
@@ -251,7 +254,9 @@ def _search_lastfm(title, artist='', limit=5):
             'duration': 0,
             'artwork_url': t_artwork,
             'preview_url': '',
-            'external_url': f"https://www.last.fm{track_m.group(1) if (track_m := re.search(r'href=\"(/music/[^\"]+)\"', block)) else ''}",
+            'external_url': 'https://www.last.fm' + (
+                track_m.group(1) if track_m else ''
+            ),
         })
     return results
 

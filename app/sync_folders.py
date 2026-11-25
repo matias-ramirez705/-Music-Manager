@@ -54,16 +54,29 @@ from artwork import extract_artwork
 # ======================================================================
 
 def _normalize(s):
-    """Normaliza un string para comparación (sin acentos, lowercase, etc.)."""
+    """Normaliza un string para comparación.
+
+    v3.7.5: MANTIENE caracteres Unicode (cirílico, japonés, chino, etc.).
+    Antes se usaba `[^a-z0-9\\s]` que eliminaba TODO lo no-ASCII, así que
+    títulos como "Тоска" o "怪物" se normalizaban a "" y el match_key
+    quedaba None, haciendo que el archivo se ignorara por completo en el
+    análisis (ni ADD, ni DELETE, ni MOVE, ni METADATA). Eso causaba que
+    el sync reportara 0 cambios aunque hubiera canciones faltantes.
+    """
     if not s:
         return ''
     s = unicodedata.normalize('NFD', s)
+    # Quitar acentos/diacríticos (Mn = Mark, Nonspacing)
     s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
     s = s.lower()
     s = re.sub(r'\([^)]*\)', '', s)
     s = re.sub(r'\[[^]]*\]', '', s)
     s = re.sub(r'\b(feat|ft)\b\.?', '', s)
-    s = re.sub(r'[^a-z0-9\s]', '', s)
+    # v3.7.5: mantener letras y dígitos Unicode (NO solo ASCII).
+    # \w con re.UNICODE (default en Python 3 para str) matchea [a-zA-Z0-9_]
+    # + todas las letras Unicode (cirílico, CJK, árabe, etc.).
+    # Solo eliminamos puntuación y símbolos.
+    s = re.sub(r'[^\w\s]', '', s, flags=re.UNICODE)
     s = re.sub(r'\s+', ' ', s).strip()
     return s
 
@@ -270,15 +283,46 @@ def preview_sync(folder_a, folder_b, options=None):
     # ----------------------------------------------------------------
     # 3+4. Comunes: detectar MOVE y METADATA
     # ----------------------------------------------------------------
+    # v3.7.2: normalizamos rutas relativas antes de comparar para evitar
+    # falsos MOVE por:
+    #   - Mayusculas/minusculas (Windows es case-insensitive en filesystem)
+    #   - Separadores mixtos (\ vs /)
+    #   - Espacios en blanco al final
+    # Ademas, si hay varios archivos con el mismo match_key en B, elegimos
+    # el que tenga la ruta mas parecida al de A (no siempre el [0]).
+
+    def _norm_rel(p):
+        """Normaliza ruta relativa para comparacion robusta."""
+        if not p:
+            return ''
+        return p.replace('\\', '/').rstrip('/').lower().strip()
+
+    def _pick_best_b_match(a_file, b_candidates):
+        """De todos los candidatos en B con el mismo match_key, elige el que
+        tenga la ruta relativa mas parecida al archivo de A. Si ninguno
+        coincide exactamente, devuelve el de [0] (comportamiento anterior).
+        """
+        a_norm = _norm_rel(a_file['rel_path'])
+        # 1) Mismo filename exacto
+        for b in b_candidates:
+            if _norm_rel(b['rel_path']) == a_norm:
+                return b
+        # 2) Mismo filename (ignorando carpeta)
+        a_fname = a_file['filename'].lower()
+        for b in b_candidates:
+            if b['filename'].lower() == a_fname:
+                return b
+        # 3) Fallback: el primero
+        return b_candidates[0]
+
     for key in common_keys:
         a_file = a_by_key[key][0]
-        b_file = b_by_key[key][0]
+        b_file = _pick_best_b_match(a_file, b_by_key[key])
 
-        a_rel = a_file['rel_path']
-        b_rel = b_file['rel_path']
-
-        # ¿Misma ruta relativa?
-        same_path = (a_rel == b_rel)
+        # v3.7.2: comparar rutas normalizadas (case-insensitive, separadores unificados)
+        a_rel_norm = _norm_rel(a_file['rel_path'])
+        b_rel_norm = _norm_rel(b_file['rel_path'])
+        same_path = (a_rel_norm == b_rel_norm)
 
         # ¿Mismos metadatos?
         same_metadata = True
@@ -400,7 +444,7 @@ def preview_sync(folder_a, folder_b, options=None):
 # APLICACIÓN DEL PLAN
 # ======================================================================
 
-def apply_sync(plan, options=None):
+def apply_sync(plan, options=None, progress_callback=None):
     """
     Ejecuta un plan de sincronización generado por preview_sync().
 
@@ -415,6 +459,12 @@ def apply_sync(plan, options=None):
             - 'overwrite_target' (bool, default True): si el destino ya
               existe (caso MOVE donde la ruta nueva ya está ocupada por
               otro archivo), sobreescribir.
+        progress_callback (callable|None): v3.7.4 función invocada después
+            de CADA cambio con la firma:
+                callback(event_type, change, detail)
+            donde event_type ∈ {'start', 'ok', 'skipped', 'error'} y
+            detail es el dict del resultado. Permite reportar progreso
+            en vivo desde el frontend (modal de progreso).
 
     Returns:
         dict con:
@@ -429,6 +479,13 @@ def apply_sync(plan, options=None):
 
     use_trash = options.get('use_trash', True)
     overwrite_target = options.get('overwrite_target', True)
+
+    def _emit(event, change, detail=None):
+        if progress_callback:
+            try:
+                progress_callback(event, change, detail or {})
+            except Exception:
+                pass  # el callback nunca debe romper el apply
 
     if not plan or 'changes' not in plan:
         return {
@@ -456,56 +513,69 @@ def apply_sync(plan, options=None):
 
     for change in plan['changes']:
         ctype = change.get('type')
+        _emit('start', change)  # v3.7.4: avisar al frontend qué archivo va
         try:
             if ctype == 'add':
                 _apply_add(change, folder_b, overwrite_target)
                 applied += 1
-                details.append({
+                detail = {
                     'type': 'add', 'title': change.get('title'),
                     'status': 'ok',
                     'msg': f'Copiado: {change["source_rel_path"]}',
-                })
+                }
+                details.append(detail)
+                _emit('ok', change, detail)
             elif ctype == 'delete':
                 _apply_delete(change, use_trash)
                 applied += 1
-                details.append({
+                detail = {
                     'type': 'delete', 'title': change.get('title'),
                     'status': 'ok',
                     'msg': f'Borrado: {change["target_rel_path"]}',
-                })
+                }
+                details.append(detail)
+                _emit('ok', change, detail)
             elif ctype == 'move':
                 _apply_move(change, folder_b, overwrite_target, use_trash)
                 applied += 1
-                details.append({
+                detail = {
                     'type': 'move', 'title': change.get('title'),
                     'status': 'ok',
                     'msg': (f'Movido: {change["target_rel_path"]} → '
                             f'{change["new_target_rel_path"]}'),
-                })
+                }
+                details.append(detail)
+                _emit('ok', change, detail)
             elif ctype == 'metadata':
                 _apply_metadata(change, folder_b, overwrite_target)
                 applied += 1
-                details.append({
+                detail = {
                     'type': 'metadata', 'title': change.get('title'),
                     'status': 'ok',
                     'msg': f'Actualizado: {change["source_rel_path"]}',
-                })
+                }
+                details.append(detail)
+                _emit('ok', change, detail)
             else:
                 skipped += 1
-                details.append({
+                detail = {
                     'type': ctype, 'title': change.get('title'),
                     'status': 'skipped',
                     'msg': f'Tipo desconocido: {ctype}',
-                })
+                }
+                details.append(detail)
+                _emit('skipped', change, detail)
         except Exception as exc:
             skipped += 1
             err = f'{change.get("title", "?")}: {exc}'
             errors.append(err)
-            details.append({
+            detail = {
                 'type': ctype, 'title': change.get('title'),
                 'status': 'error',
                 'msg': str(exc),
-            })
+            }
+            details.append(detail)
+            _emit('error', change, detail)
 
     return {
         'success': len(errors) == 0,

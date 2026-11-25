@@ -81,6 +81,8 @@ from deleted_songs import (
 from folder_compare import compare_folders
 # v3.7-sync: Sincronización bidireccional A → B (copia/borra/mueve/actualiza)
 from sync_folders import preview_sync, apply_sync
+# v3.7.4: Gestor de jobs en background para reportar progreso en vivo
+from sync_jobs import start_job as start_sync_job, get_status as get_sync_status
 from spotiflac_dummy import (
     preview_generation, generate_dummy_zip,
     get_history as get_dummy_history, clear_history as clear_dummy_history,
@@ -2067,7 +2069,8 @@ def create_app():
     @app.route('/api/sync/apply', methods=['POST'])
     def api_sync_apply():
         """
-        Aplica un plan de sincronización.
+        v3.7.4: Aplica un plan de sincronización EN BACKGROUND.
+        Devuelve inmediatamente un job_id para hacer polling del estado.
 
         Body JSON:
             {
@@ -2079,7 +2082,8 @@ def create_app():
             }
 
         Returns:
-            JSON con: { success, applied, skipped, errors, details }
+            { "job_id": "...", "total": int }
+            El frontend hace polling a /api/sync/status?job_id=...
         """
         data = request.get_json(silent=True) or {}
         plan = data.get('plan')
@@ -2089,10 +2093,45 @@ def create_app():
             return jsonify({'error': 'Plan inválido o vacío.'}), 400
 
         try:
-            result = apply_sync(plan, options)
-            return jsonify(result)
+            job_id = start_sync_job(plan, options)
+            return jsonify({
+                'job_id': job_id,
+                'total': len(plan['changes']),
+            })
         except Exception as e:
-            return jsonify({'error': f'Error al aplicar: {str(e)}'}), 500
+            return jsonify({'error': f'Error al iniciar job: {str(e)}'}), 500
+
+    @app.route('/api/sync/status', methods=['GET'])
+    def api_sync_status():
+        """
+        v3.7.4: Devuelve el estado actual de un job de sincronización.
+
+        Query params:
+            job_id: id del job devuelto por /api/sync/apply
+
+        Returns:
+            {
+                'job_id': str,
+                'status': 'running' | 'done' | 'error',
+                'total': int,
+                'applied': int,
+                'skipped': int,
+                'errors_count': int,
+                'current_change': { change o None },
+                'current_action': str,
+                'log_tail': [ últimos 20 eventos ],
+                'finished': bool,
+                'result': { resultado final o None },
+                'elapsed': float
+            }
+        """
+        job_id = request.args.get('job_id', '').strip()
+        if not job_id:
+            return jsonify({'error': 'Falta job_id'}), 400
+        status = get_sync_status(job_id)
+        if status is None:
+            return jsonify({'error': 'Job no encontrado (puede haber expirado).'}), 404
+        return jsonify(status)
 
     # ==================================================================
     # API: SPOTIFLAC DUMMY GENERATOR (v3.16)

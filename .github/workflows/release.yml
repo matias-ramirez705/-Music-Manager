@@ -4,20 +4,20 @@
 # QUÉ HACE:
 #   1. Cada vez que haces PUSH a main (o ejecución manual) -> compila el
 #      .exe y lo guarda como ARTEFACTO de prueba (no crea Release).
-#   2. Cada vez que haces PUSH de un TAG v* (ej: v3.5-exe) -> compila el
+#   2. Cada vez que haces PUSH de un TAG v* (ej: v3.7-sync) -> compila el
 #      .exe, arma el ZIP portable CON TODO LO NECESARIO y crea un RELEASE
 #      automático en GitHub con estos archivos:
 #
-#        MusicManager-v3.5-exe-windows-portable.zip   <- descargar ESTE
-#        MusicManager-v3.5-exe.exe                    <- solo para actualizar exe
-#        SHA256SUMS.txt                               <- checksums de verificación
+#        MusicManager-v3.7-sync-windows-portable.zip   <- descargar ESTE
+#        MusicManager-v3.7-sync.exe                    <- solo para actualizar exe
+#        SHA256SUMS.txt                                <- checksums de verificación
 #
 # CÓMO PUBLICAR UNA VERSIÓN NUEVA:
 #      git add .
-#      git commit -m "v3.5-exe: descripcion del cambio"
+#      git commit -m "v3.7-sync: descripcion del cambio"
 #      git push origin main
-#      git tag v3.5-exe
-#      git push origin v3.5-exe
+#      git tag v3.7-sync
+#      git push origin v3.7-sync
 #   -> ~10 minutos después el Release aparece en:
 #      https://github.com/matias-ramirez705/-Music-Manager/releases
 #
@@ -57,10 +57,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: pip
 
       - name: Instalar dependencias
@@ -69,6 +69,19 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-build.txt
           pyinstaller --version
+          python --version
+
+      - name: Sanity check de sintaxis (todos los .py)
+        run: |
+          # v3.7.1-fix: compilar todos los .py ANTES de invocar PyInstaller
+          # para detectar SyntaxErrors rápido (en vez de esperar a que el
+          # exe arranque y caiga en runtime con traceback).
+          $ErrorActionPreference = 'Stop'
+          Get-ChildItem -Path 'app' -Filter '*.py' | ForEach-Object {
+            python -m py_compile $_.FullName
+          }
+          python -m py_compile launcher.py main.py
+          Write-Output "Sintaxis OK en todos los .py"
 
       - name: Compilar MusicManager.exe
         run: pyinstaller MusicManager.spec --noconfirm --clean

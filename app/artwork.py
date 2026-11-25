@@ -23,6 +23,15 @@ from mutagen import File
 from mutagen.id3 import ID3, APIC, error as ID3Error
 from mutagen.flac import FLAC, Picture
 from mutagen.mp4 import MP4, MP4Cover
+
+# v3.7.2: mutagen cambió el nombre de las constantes de formato de carátula.
+# - En versiones viejas: MP4Cover.FMT_JPEG / MP4Cover.FMT_PNG
+# - En mutagen >=1.46:   MP4Cover.FORMAT_JPEG / MP4Cover.FORMAT_PNG
+# Resolvemos ambos en runtime con getattr + fallback a enteros del estándar MP4.
+MP4_FMT_JPEG = getattr(MP4Cover, 'FORMAT_JPEG',
+                       getattr(MP4Cover, 'FMT_JPEG', 0x0D))
+MP4_FMT_PNG = getattr(MP4Cover, 'FORMAT_PNG',
+                      getattr(MP4Cover, 'FMT_PNG', 0x0E))
 from mutagen.oggvorbis import OggVorbis
 
 
@@ -103,8 +112,8 @@ def _extract_mp4(file_path):
             # MP4Cover no tiene MIME directo; imageformat indica JPEG/PNG
             mime = 'image/jpeg'  # por defecto
             if hasattr(covr, 'imageformat'):
-                # 0x0D = JPEG, 0x0E = PNG en atom MP4
-                if covr.imageformat == MP4Cover.FMT_PNG:
+                # v3.7.2: usar constantes resueltas en runtime (compat mutagen viejo/nuevo)
+                if covr.imageformat == MP4_FMT_PNG:
                     mime = 'image/png'
             return _build_artwork_result(bytes(covr), mime)
     return None
@@ -356,9 +365,9 @@ def _save_mp4(file_path, image_bytes, mime):
     """Guarda covr atom en M4A/MP4."""
     audio = MP4(file_path)
     if mime == 'image/png':
-        cover = MP4Cover(image_bytes, imageformat=MP4Cover.FMT_PNG)
+        cover = MP4Cover(image_bytes, imageformat=MP4_FMT_PNG)
     else:
-        cover = MP4Cover(image_bytes, imageformat=MP4Cover.FMT_JPEG)
+        cover = MP4Cover(image_bytes, imageformat=MP4_FMT_JPEG)
     audio['covr'] = [cover]
     audio.save()
     return (True, 'Caratula guardada en M4A.')

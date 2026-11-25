@@ -110,7 +110,7 @@
 
     <!-- Tabla de cambios -->
     <div id="sync-results" class="hidden">
-        <div class="table-container">
+        <div class="table-container sync-table-container">
             <table class="music-table sync-table">
                 <thead>
                     <tr>
@@ -217,9 +217,46 @@
             </div>
         </div>
     </div>
+
+    <!-- v3.7.4: Modal de progreso en vivo -->
+    <div id="sync-progress-modal" class="modal hidden">
+        <div class="modal-content sync-progress-content">
+            <div class="modal-header">
+                <h3 id="sync-progress-title">Sincronizando...</h3>
+            </div>
+            <div class="modal-body">
+                <!-- Acción actual (archivo que se está procesando) -->
+                <div class="sync-progress-current">
+                    <div class="sync-progress-action" id="sync-progress-action">Iniciando...</div>
+                    <div class="sync-progress-file" id="sync-progress-file">—</div>
+                </div>
+
+                <!-- Barra de progreso -->
+                <div class="sync-progress-bar-wrapper">
+                    <div class="sync-progress-bar">
+                        <div class="sync-progress-filled" id="sync-progress-filled" style="width: 0%"></div>
+                    </div>
+                    <div class="sync-progress-counts">
+                        <span id="sync-progress-counter">0 / 0</span>
+                        <span class="sync-progress-stats">
+                            <span class="sync-stat-ok" id="sync-progress-ok">0 ✓</span>
+                            <span class="sync-stat-err" id="sync-progress-err">0 ✗</span>
+                            <span class="sync-stat-skip" id="sync-progress-skip">0 ↷</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Log scrollable -->
+                <div class="sync-progress-log-wrapper">
+                    <div class="sync-progress-log-title">Log de operaciones</div>
+                    <div class="sync-progress-log" id="sync-progress-log"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/sync_folders.js') }}?v=214"></script>
+<script src="{{ url_for('static', filename='js/sync_folders.js') }}?v=219"></script>
 {% endblock %}

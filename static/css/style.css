@@ -3088,25 +3088,78 @@ details summary:hover {
     margin: 0;
 }
 
-/* ---- Tabla de cambios ---- */
+/* ---- Tabla de cambios (v3.7.3: detalle con wrap, paths con ellipsis) ---- */
+.sync-table {
+    table-layout: auto;  /* las columnas se ajustan al contenido */
+}
+
 .sync-table th {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted);
+    white-space: nowrap;
 }
 
-.sync-table .sync-path,
-.sync-table .sync-detail {
+/* v3.7.3: las RUTAS siguen con ellipsis (son paths monótonos, no vale
+   la pena envolverlos). El usuario ve la ruta completa via title="". */
+.sync-table .sync-path {
     font-size: 11px;
     color: var(--text-muted);
-    word-break: break-all;
-    max-width: 280px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* v3.7.3: el DETALLE ahora ENVUELVE en varias líneas en vez de cortarse
+   con '...'. La fila crece en vertical según el tamaño del texto, que
+   es lo que el usuario pidió. Las palabras largas (URLs, paths) se
+   parten con word-break para no desbordar la celda.
+   IMPORTANTE: usamos !important porque .music-table td:last-child
+   (línea ~424) fuerza nowrap + ellipsis en la última columna, y tiene
+   mayor especificidad que .sync-table .sync-detail. */
+.sync-table .sync-detail {
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    max-width: 260px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: anywhere !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.4 !important;
+    vertical-align: top !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    font-family: inherit !important;
 }
 
 .sync-table .sync-detail em {
     color: var(--text-secondary);
     font-style: italic;
+}
+
+/* v3.7.3: las celdas con texto que puede envolverse también alinean arriba */
+.sync-table td {
+    vertical-align: top;
+}
+
+/* v3.7.2: el contenedor de la tabla de sync permite scroll horizontal
+   cuando hay muchas columnas y la pantalla es angosta. */
+.sync-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* En pantallas anchas, dar más espacio a las rutas */
+@media (min-width: 1400px) {
+    .sync-table .sync-path {
+        max-width: 320px;
+    }
+    .sync-table .sync-detail {
+        max-width: 400px;
+    }
 }
 
 /* Filas coloreadas por tipo */
@@ -3335,9 +3388,11 @@ details summary:hover {
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
-    .sync-table .sync-path,
+    .sync-table .sync-path {
+        max-width: 100px;
+    }
     .sync-table .sync-detail {
-        max-width: 120px;
+        max-width: 140px;
     }
     .sync-summary-grid {
         gap: 12px;
@@ -3346,4 +3401,164 @@ details summary:hover {
         flex-direction: column;
         align-items: stretch;
     }
+}
+
+/* ============================================================
+   v3.7.4: MODAL DE PROGRESO DE SINCRONIZACIÓN
+   ============================================================ */
+.sync-progress-content {
+    max-width: 640px;
+}
+
+.sync-progress-current {
+    padding: 12px 16px;
+    background: var(--bg-card, #1f1f1f);
+    border-radius: 6px;
+    margin-bottom: 14px;
+    border-left: 3px solid var(--accent, #1db954);
+}
+
+.sync-progress-action {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.sync-progress-file {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono, monospace);
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+.sync-progress-bar-wrapper {
+    margin-bottom: 14px;
+}
+
+.sync-progress-bar {
+    width: 100%;
+    height: 18px;
+    background: var(--bg-card, #1f1f1f);
+    border-radius: 9px;
+    overflow: hidden;
+    border: 1px solid var(--border, #3a3a3a);
+}
+
+.sync-progress-filled {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent, #1db954) 0%, var(--accent-hover, #1ed760) 100%);
+    transition: width 0.3s ease;
+    border-radius: 9px;
+}
+
+.sync-progress-counts {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+#sync-progress-counter {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.sync-progress-stats {
+    display: inline-flex;
+    gap: 12px;
+}
+
+.sync-stat-ok {
+    color: var(--accent, #1db954);
+}
+
+.sync-stat-err {
+    color: #e74c3c;
+}
+
+.sync-stat-skip {
+    color: var(--text-muted);
+}
+
+.sync-progress-log-wrapper {
+    margin-top: 8px;
+}
+
+.sync-progress-log-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.sync-progress-log {
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--bg-base, #121212);
+    border: 1px solid var(--border, #3a3a3a);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+}
+
+.sync-log-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.sync-log-row:last-child {
+    border-bottom: none;
+}
+
+.sync-log-icon {
+    width: 12px;
+    text-align: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.sync-log-type {
+    width: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.sync-log-title {
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+    flex-shrink: 1;
+}
+
+.sync-log-msg {
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.sync-log-ok   { color: var(--accent, #1db954); }
+.sync-log-err  { color: #e74c3c; }
+.sync-log-skip { color: var(--text-muted); }
+
+.sync-log-ok .sync-log-icon   { color: var(--accent, #1db954); }
+.sync-log-err .sync-log-icon  { color: #e74c3c; }
+.sync-log-skip .sync-log-icon { color: var(--text-muted); }
+
+/* El modal de progreso NO se puede cerrar con la X (no hay botón close).
+   El usuario debe esperar a que termine. */
+#sync-progress-modal .modal-content {
+    pointer-events: auto;
 }

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Manager</title>
     <!-- Favicon: nota musical sobre fondo verde -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=214">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=214">
-    <!-- Cache-busting: el ?v=214 fuerza al navegador a cargar fresco -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=214">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=219">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}?v=219">
+    <!-- Cache-busting: el ?v=219 fuerza al navegador a cargar fresco -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=219">
 </head>
 <body>
     <!-- ============================================
@@ -50,7 +50,7 @@
             {% endfor %}
         </nav>
         <div class="topbar-right">
-            <span class="version-tag">v3.7-sync</span>
+            <span class="version-tag">v3.7.5</span>
         </div>
     </header>
 
@@ -95,9 +95,9 @@
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=214"></script>
-    <script src="{{ url_for('static', filename='js/topbar.js') }}?v=214"></script>
-    <script src="{{ url_for('static', filename='js/player.js') }}?v=214"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=219"></script>
+    <script src="{{ url_for('static', filename='js/topbar.js') }}?v=219"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=219"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

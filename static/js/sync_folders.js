@@ -168,6 +168,13 @@
             const id = uid(c);
             const checked = state.selected.has(id) ? ' checked' : '';
             const rowClass = 'sync-row sync-row-' + c.type;
+            // v3.7.2: añadir title="" a las celdas truncables para que el usuario
+            // vea el contenido completo al pasar el mouse (la celda se corta con ...).
+            const sourcePath = c.source_rel_path || '—';
+            const targetPath = c.target_rel_path || c.new_target_rel_path || '—';
+            const detailHtml = detailHTML(c);
+            // Quitar tags HTML del detalle para el title (texto plano)
+            const detailText = detailHtml.replace(/<[^>]*>/g, '').trim();
             return [
                 '<tr class="' + rowClass + '" data-uid="' + escapeHtml(id) + '">',
                 '<td><input type="checkbox" class="sync-row-check"' + checked + '></td>',
@@ -176,9 +183,9 @@
                 '<td>' + escapeHtml(c.artist || '—') + '</td>',
                 '<td>' + escapeHtml(c.ext || '') + '</td>',
                 '<td>' + escapeHtml(c.duration_str || '—') + '</td>',
-                '<td class="sync-path">' + escapeHtml(c.source_rel_path || '—') + '</td>',
-                '<td class="sync-path">' + escapeHtml(c.target_rel_path || c.new_target_rel_path || '—') + '</td>',
-                '<td class="sync-detail">' + detailHTML(c) + '</td>',
+                '<td class="sync-path" title="' + escapeHtml(sourcePath) + '">' + escapeHtml(sourcePath) + '</td>',
+                '<td class="sync-path" title="' + escapeHtml(targetPath) + '">' + escapeHtml(targetPath) + '</td>',
+                '<td class="sync-detail" title="' + escapeHtml(detailText) + '">' + detailHtml + '</td>',
                 '</tr>',
             ].join('');
         });
@@ -299,25 +306,138 @@
             folder_b: state.plan.folder_b,
         };
 
+        // v3.7.4: mostrar modal de progreso INMEDIATAMENTE
+        showProgressModal(selectedChanges.length);
+
         $('sync-apply').disabled = true;
         $('sync-apply').textContent = 'Aplicando...';
 
+        // Disparar el job en background
         postJSON('/api/sync/apply', {
             plan: filteredPlan,
             options: options,
-        }).then(result => {
-            $('sync-apply').disabled = false;
-            $('sync-apply').textContent = '✓ Aplicar cambios seleccionados';
-            if (result.error) {
-                showToast(result.error, 'error');
+        }).then(data => {
+            if (data.error) {
+                hideProgressModal();
+                $('sync-apply').disabled = false;
+                $('sync-apply').textContent = '✓ Aplicar cambios seleccionados';
+                showToast(data.error, 'error');
                 return;
             }
-            showResultModal(result);
+            // Iniciar polling del estado
+            pollJobStatus(data.job_id, data.total);
         }).catch(err => {
+            hideProgressModal();
             $('sync-apply').disabled = false;
             $('sync-apply').textContent = '✓ Aplicar cambios seleccionados';
-            showToast('Error al aplicar: ' + err, 'error');
+            showToast('Error al iniciar job: ' + err, 'error');
         });
+    }
+
+    // ----------------------------------------------------------------
+    // v3.7.4: Modal de progreso en vivo (polling)
+    // ----------------------------------------------------------------
+    function showProgressModal(total) {
+        $('sync-progress-title').textContent = 'Sincronizando...';
+        $('sync-progress-action').textContent = 'Iniciando...';
+        $('sync-progress-file').textContent = '—';
+        $('sync-progress-filled').style.width = '0%';
+        $('sync-progress-counter').textContent = '0 / ' + total;
+        $('sync-progress-ok').textContent = '0 ✓';
+        $('sync-progress-err').textContent = '0 ✗';
+        $('sync-progress-skip').textContent = '0 ↷';
+        $('sync-progress-log').innerHTML = '';
+        $('sync-progress-modal').classList.remove('hidden');
+    }
+
+    function hideProgressModal() {
+        $('sync-progress-modal').classList.add('hidden');
+    }
+
+    function pollJobStatus(jobId, total) {
+        let lastLogCount = 0;
+        const pollOnce = () => {
+            getJSON('/api/sync/status?job_id=' + encodeURIComponent(jobId)).then(status => {
+                if (status.error) {
+                    hideProgressModal();
+                    $('sync-apply').disabled = false;
+                    $('sync-apply').textContent = '✓ Aplicar cambios seleccionados';
+                    showToast(status.error, 'error');
+                    return;
+                }
+
+                // Actualizar UI del modal
+                const processed = status.applied + status.skipped;
+                const pct = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+                $('sync-progress-filled').style.width = pct + '%';
+                $('sync-progress-counter').textContent = processed + ' / ' + total;
+                $('sync-progress-ok').textContent = status.applied + ' ✓';
+                $('sync-progress-err').textContent = status.errors_count + ' ✗';
+                $('sync-progress-skip').textContent = status.skipped + ' ↷';
+
+                // Acción actual
+                if (status.current_action) {
+                    $('sync-progress-action').textContent = status.current_action;
+                    const cc = status.current_change;
+                    if (cc) {
+                        const pathStr = cc.source_rel_path || cc.target_rel_path || '—';
+                        $('sync-progress-file').textContent = pathStr;
+                    } else {
+                        $('sync-progress-file').textContent = '—';
+                    }
+                } else if (status.finished) {
+                    $('sync-progress-action').textContent = 'Completado';
+                    $('sync-progress-file').textContent = '—';
+                }
+
+                // Append nuevos eventos del log
+                if (status.log_tail && status.log_tail.length > lastLogCount) {
+                    const logEl = $('sync-progress-log');
+                    // Para simplicidad: si el log creció mucho, re-render completo
+                    // de los últimos 20 eventos
+                    const newEvents = status.log_tail;
+                    logEl.innerHTML = newEvents.map(ev => {
+                        const cls = ev.status === 'ok' ? 'sync-log-ok'
+                                  : ev.status === 'error' ? 'sync-log-err'
+                                  : 'sync-log-skip';
+                        const icon = ev.status === 'ok' ? '✓'
+                                   : ev.status === 'error' ? '✗'
+                                   : '↷';
+                        const typeLabel = {
+                            add: '+', delete: '−', move: '→', metadata: '✎'
+                        }[ev.type] || '?';
+                        return '<div class="sync-log-row ' + cls + '">' +
+                               '<span class="sync-log-icon">' + icon + '</span>' +
+                               '<span class="sync-log-type">' + typeLabel + '</span>' +
+                               '<span class="sync-log-title">' + escapeHtml(ev.title || '—') + '</span>' +
+                               '<span class="sync-log-msg">' + escapeHtml(ev.msg || '') + '</span>' +
+                               '</div>';
+                    }).join('');
+                    // Auto-scroll al final
+                    logEl.scrollTop = logEl.scrollHeight;
+                    lastLogCount = status.log_tail.length;
+                }
+
+                // ¿Terminó?
+                if (status.finished) {
+                    hideProgressModal();
+                    $('sync-apply').disabled = false;
+                    $('sync-apply').textContent = '✓ Aplicar cambios seleccionados';
+                    if (status.result) {
+                        showResultModal(status.result);
+                    } else {
+                        showToast('Sincronización completada.', 'success');
+                    }
+                } else {
+                    // Seguir polleando cada 400ms
+                    setTimeout(pollOnce, 400);
+                }
+            }).catch(err => {
+                // Error de red: reintentar en 1s (no abortar el job, sigue corriendo)
+                setTimeout(pollOnce, 1000);
+            });
+        };
+        pollOnce();
     }
 
     function showResultModal(result) {

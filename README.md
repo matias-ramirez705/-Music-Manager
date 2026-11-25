@@ -1,4 +1,4 @@
-# Music Manager v3.7-sync
+# Music Manager v3.7.2
 
 Aplicacion web local para gestionar tu biblioteca musical: ver todos tus
 archivos de audio, compararlos con playlists publicas de YouTube Music o
@@ -9,6 +9,49 @@ detectar duplicados, reproducir canciones, editar metadata + caratulas +
 letras masivamente, ver canciones eliminadas, organizar por carpetas,
 acceder a un indice de sitios para descargar musica FLAC,
 **sincronizar carpetas A → B** (copia, borrar, mover, actualizar metadatos).
+
+## Novedades en v3.7.2
+
+- **Bugfix crítico M4A + sync**: `MP4Cover.FMT_PNG` y `MP4Cover.FMT_JPEG`
+  ya no existen en mutagen 1.47+ (se renombraron a `FORMAT_PNG`/`FORMAT_JPEG`).
+  Sin este fix, TODA carátula de archivos .m4a fallaba al extraer/guardar
+  con `type object 'MP4Cover' has no attribute 'FMT_PNG'`, lo que
+  imposibilitaba comparar carátulas en la sincronización. Ahora se resuelve
+  en runtime con `getattr` + fallback a los enteros del estándar MP4.
+- **Bugfix MOVE falsos**: el sync marcaba como MOVE archivos que estaban
+  en la misma carpeta raíz en A y B, por diferencias de mayúsculas/
+  minúsculas o separadores mixtos (`\` vs `/`). Ahora las rutas se
+  normalizan antes de comparar (case-insensitive, separadores unificados,
+  sin trailing slashes). Además, cuando hay varios archivos con el mismo
+  título+artista en B, se elige el de la ruta más parecida al de A
+  (no siempre el `[0]`).
+- **Fix CSS tabla sync**: las 9 columnas se desbordaban en pantallas
+  normales, no se podía ver la columna "Detalle". Ahora:
+  - Celdas `.sync-path` y `.sync-detail` usan `text-overflow: ellipsis`
+    (corte con `...`) en vez de `word-break: break-all`
+  - `title=""` en cada celda → al pasar el mouse ves la ruta completa
+  - Contenedor con `overflow-x: auto` para scroll horizontal si hace falta
+  - En pantallas anchas (≥1400px) las columnas se ensanchan a 320px
+- Verificado visualmente con Playwright + VLM.
+
+## Novedades en v3.7.1-fix
+
+- **Bugfix crítico**: el exe descargado de GitHub Actions crasheaba al
+  arrancar con `SyntaxError: f-string expression part cannot include a
+  backslash` en `app/auto_metadata.py` línea 254. La línea usaba el walrus
+  operator (`:=`) dentro de un f-string con comillas escapadas, algo que
+  solo permite Python 3.12+. Como el CI usaba Python 3.11, el exe compilado
+  no podía ejecutar la línea y abortaba al importar `web_app.py`.
+- **Fix**: extracción del regex `track_m` ANTES del dict, eliminando el
+  walrus dentro del f-string. El código ahora funciona en Python 3.10+.
+- **CI subido a Python 3.12** en `release.yml` (coincide con el entorno de
+  desarrollo).
+- **Step "Sanity check de sintaxis"** añadido al workflow: compila todos
+  los `.py` ANTES de invocar PyInstaller. Así futuros errores de sintaxis
+  se detectan en segundos en vez de esperar al runtime del exe.
+- **Bugfix anterior mantenido** (de v3.7-sync): `_get_first_tag` en
+  `metadata_reader.py` ahora envuelve `key in mutagen_file` en try-except
+  para evitar `ValueError` en FLAC easy=True.
 
 ## Novedades en v3.7-sync
 
